@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="192" height="192" viewBox="0 0 512 512" fill="none">
+  <defs>
+    <linearGradient id="bg" x1="70" y1="70" x2="442" y2="442" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#6A5CFF"/>
+      <stop offset="0.55" stop-color="#2F7CFF"/>
+      <stop offset="1" stop-color="#0DABFF"/>
+    </linearGradient>
+    <radialGradient id="shine" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(170 140) rotate(45) scale(360 300)">
+      <stop stop-color="#FFFFFF" stop-opacity="0.22"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect x="36" y="36" width="440" height="440" rx="112" fill="url(#bg)"/>
+  <rect x="36" y="36" width="440" height="440" rx="112" fill="url(#shine)"/>
+  <text
+    x="256"
+    y="292"
+    text-anchor="middle"
+    font-family="Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial"
+    font-size="110"
+    font-weight="900"
+    letter-spacing="2"
+    fill="#FFFFFF"
+  >
+    XNaMai
+  </text>
+</svg>
+
