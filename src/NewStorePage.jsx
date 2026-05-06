@@ -50,7 +50,6 @@ import AccountCircleRoundedIcon from "@mui/icons-material/AccountCircleRounded";
 import LockRoundedIcon from "@mui/icons-material/LockRounded";
 
 // Imagens institucionais (neutras, marca xNaMai)
-import imgCardExemplo from "./assets/images/giftcard-illustration.svg";
 import imgTabelaUtilizacao from "./assets/images/usage-table-illustration.svg";
 import imgAcumulo1 from "./assets/images/accumulo-1.svg";
 import imgAcumulo2 from "./assets/images/accumulo-2.svg";
@@ -1141,13 +1140,40 @@ export default function NewStorePage({
   </Stack>
 </Paper>
 
-             
               <Box
-                component="img"
-                src={imgCardExemplo}
-                alt="Cartão presente - exemplo"
-                sx={{ width: "100%", maxWidth: 800, mx: "auto", display: "block", borderRadius: 2 }}
-              />
+                sx={{
+                  width: "100%",
+                  maxWidth: 800,
+                  mx: "auto",
+                  mt: { xs: 10, md: 16 },
+                }}
+              >
+                <Typography
+                  variant="body2"
+                  sx={{
+                    color: "#1E66FF",
+                    fontStyle: "italic",
+                    fontFamily: "Georgia, 'Times New Roman', serif",
+                    fontSize: { xs: 15, sm: 16 },
+                    mb: "22px",
+                    textAlign: "left",
+                    lineHeight: 1.35,
+                    whiteSpace: "pre-line",
+                  }}
+                >
+                  {`imagem ilustrativa do\ncartão presente`}
+                </Typography>
+                <Box
+                  component="img"
+                  src="/assets/cartao-presente.png"
+                  alt="Cartão presente - exemplo"
+                  sx={{
+                    width: "100%",
+                    display: "block",
+                    borderRadius: 2,
+                  }}
+                />
+              </Box>
              
             </Stack>
           </Paper>
