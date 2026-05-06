@@ -2,24 +2,17 @@
 import * as React from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  AppBar, Box, Button, Chip, Container, CssBaseline, IconButton, Paper, Stack,
-  Tab, Tabs, ThemeProvider, Toolbar, Typography, createTheme, Table, TableBody, TableCell,
+  Box, Button, Chip, Paper, Stack,
+  Tab, Tabs, Typography, Table, TableBody, TableCell,
   TableContainer, TableHead, TableRow
 } from "@mui/material";
-import ArrowBackIosNewRoundedIcon from "@mui/icons-material/ArrowBackIosNewRounded";
 import RefreshRoundedIcon from "@mui/icons-material/RefreshRounded";
-import AccountCircleRoundedIcon from "@mui/icons-material/AccountCircleRounded";
 import {
   ResponsiveContainer, AreaChart, Area, LineChart, Line, BarChart, Bar,
   XAxis, YAxis, CartesianGrid, Tooltip as RTooltip, Legend
 } from "recharts";
-
-/* ============================== TEMA ============================== */
-const theme = createTheme({
-  palette: { mode: "dark", primary: { main: "#2E7D32" }, background: { default: "#0E0E0E", paper: "#121212" } },
-  shape: { borderRadius: 16 },
-  typography: { fontFamily: ["Inter", "system-ui", "Segoe UI", "Roboto", "Arial"].join(",") }
-});
+import "./styles/xnamai-admin.css";
+import XnamaiAdminLayout from "./components/admin/XnamaiAdminLayout";
 
 /* ============================ HELPERS API ============================ */
 /**
@@ -257,23 +250,13 @@ export default function AdminAnalytics() {
   /* ================================ UI ================================ */
 
   return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-
-      <AppBar position="sticky" elevation={0} sx={{ borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
-        <Toolbar sx={{ minHeight: 64 }}>
-          <IconButton edge="start" color="inherit" onClick={() => nav(-1)} aria-label="Voltar">
-            <ArrowBackIosNewRoundedIcon />
-          </IconButton>
-          <Typography sx={{ fontWeight: 900, ml: 1 }}>Analytics</Typography>
-          <IconButton color="inherit" sx={{ ml: "auto" }}>
-            <AccountCircleRoundedIcon />
-          </IconButton>
-        </Toolbar>
-      </AppBar>
-
-      <Container maxWidth="xl" sx={{ py: { xs: 2, md: 4 } }}>
-        <Paper sx={{ mb: 2, borderRadius: 4 }} variant="outlined">
+    <XnamaiAdminLayout
+      title="Analytics"
+      subtitle="KPIs, gráficos e tabelas com visão geral e por sorteio."
+      onBack={() => nav("/admin")}
+      maxWidth="xl"
+    >
+        <Paper className="xnamai-admin-card" sx={{ mb: 2 }} variant="outlined">
           <Tabs
             value={tab}
             onChange={(_, v) => setTab(v)}
@@ -400,15 +383,15 @@ export default function AdminAnalytics() {
                       value={drawId || ""}
                       onChange={(e) => setDrawId(e.target.value)}
                       style={{
-                        background: "transparent",
-                        border: "1px solid rgba(255,255,255,.14)",
-                        color: "#fff",
+                        background: "rgba(255,255,255,0.90)",
+                        border: "1px solid rgba(15,23,42,0.14)",
+                        color: "#0B1B33",
                         padding: "8px 12px",
                         borderRadius: 8
                       }}
                     >
                       {(draws || []).map((d) => (
-                        <option key={d.id} value={d.id} style={{ color: "#000" }}>
+                        <option key={d.id} value={d.id} style={{ color: "#0B1B33" }}>
                           #{d.id} — {d.product_name || "S/ nome"} ({d.status})
                         </option>
                       ))}
@@ -704,8 +687,10 @@ export default function AdminAnalytics() {
                 </ResponsiveContainer>
               </Box>
             </Section>
-            <Paper variant="outlined" sx={{ p: 2, borderRadius: 4 }}>
-              <Typography>🧠 Média de números "perdidos" por execução: <b>{Number(autopayStats?.avg_missed ?? 0).toFixed(2)}</b></Typography>
+            <Paper className="xnamai-admin-card" variant="outlined" sx={{ p: 2 }}>
+              <Typography>
+                Média de números "perdidos" por execução: <b>{Number(autopayStats?.avg_missed ?? 0).toFixed(2)}</b>
+              </Typography>
             </Paper>
           </Stack>
         )}
@@ -782,7 +767,6 @@ export default function AdminAnalytics() {
             </Section>
           </Stack>
         )}
-      </Container>
-    </ThemeProvider>
+    </XnamaiAdminLayout>
   );
 }

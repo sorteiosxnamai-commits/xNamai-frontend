@@ -1,7 +1,20 @@
+/* xNaMai Admin — identidade visual clara (login/cadastro/home) */
+:root{
+  --xnamai-primary:#1E66FF;
+  --xnamai-primaryDark:#0B5FFF;
+  --xnamai-bg:#F4F8FF;
+  --xnamai-bgSoft:#EEF4FF;
+  --xnamai-card:#FFFFFF;
+  --xnamai-border:rgba(15,23,42,0.10);
+  --xnamai-text:#0B1B33;
+  --xnamai-textSoft:rgba(11,27,51,0.72);
+  --xnamai-shadow:0 12px 32px rgba(30,102,255,0.10);
+}
+
 .xnamai-admin-page{
   min-height:100vh;
-  background:#F4F8FF;
-  color:#0B1B33;
+  background:var(--xnamai-bg);
+  color:var(--xnamai-text);
   font-family:Inter,system-ui,"Segoe UI",Roboto,Arial;
 }
 
@@ -28,28 +41,34 @@
   z-index:10;
   backdrop-filter:blur(10px);
   background:rgba(255,255,255,0.78);
-  border-bottom:1px solid rgba(15,23,42,0.10);
+  border-bottom:1px solid var(--xnamai-border);
 }
 
 .xnamai-admin-section{
   padding: clamp(18px, 3vw, 32px) 0;
 }
 
+.xnamai-admin-toolbar{
+  display:flex;
+  align-items:center;
+  min-height:64px;
+}
+
 .xnamai-admin-title{
   font-weight: 900;
   letter-spacing: -0.02em;
   line-height: 1.1;
-  color:#0B1B33;
+  color:var(--xnamai-text);
 }
 
 .xnamai-admin-subtitle{
-  color: rgba(11,27,51,0.72);
+  color: var(--xnamai-textSoft);
   font-weight: 600;
 }
 
 .xnamai-admin-card{
   background: rgba(255,255,255,0.92);
-  border: 1px solid rgba(15, 23, 42, 0.10);
+  border: 1px solid var(--xnamai-border);
   box-shadow:
     0 18px 45px rgba(15, 23, 42, 0.10),
     0 2px 0 rgba(15, 23, 42, 0.02);
@@ -79,8 +98,8 @@
   color:#fff;
   font-weight:800;
   letter-spacing: .2px;
-  background: linear-gradient(135deg, #1E66FF 0%, #0B5FFF 100%);
-  box-shadow: 0 10px 28px rgba(30,102,255,0.22);
+  background: linear-gradient(135deg, var(--xnamai-primary) 0%, var(--xnamai-primaryDark) 100%);
+  box-shadow: var(--xnamai-shadow);
   transition: transform 140ms ease, box-shadow 140ms ease, filter 140ms ease;
 }
 .xnamai-admin-button:hover{
@@ -91,24 +110,37 @@
 .xnamai-admin-button:active{ transform: translateY(0); }
 
 .xnamai-admin-button.secondary{
-  color:#0B1B33;
+  color:var(--xnamai-text);
   background: rgba(255,255,255,0.9);
-  border: 1px solid rgba(15,23,42,0.10);
+  border: 1px solid rgba(30,102,255,0.18);
   box-shadow: 0 12px 28px rgba(15,23,42,0.08);
+}
+.xnamai-admin-button.secondary:hover{
+  border-color: rgba(30,102,255,0.28);
+  background: rgba(30,102,255,0.04);
+}
+
+.xnamai-admin-actions{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  flex-wrap:wrap;
 }
 
 .xnamai-admin-input{
   background: rgba(255,255,255,0.95);
-  border: 1px solid rgba(15,23,42,0.10);
+  border: 1px solid var(--xnamai-border);
   border-radius: 12px;
 }
 
+.xnamai-admin-table-wrap{ width:100%; overflow-x:auto; }
+
 .xnamai-admin-table{
   width:100%;
-  overflow-x:auto;
   border-radius: 16px;
-  border: 1px solid rgba(15, 23, 42, 0.10);
+  border: 1px solid var(--xnamai-border);
   background: rgba(255,255,255,0.92);
+  box-shadow: 0 12px 32px rgba(15,23,42,0.06);
 }
 
 .xnamai-admin-table table{
@@ -120,15 +152,15 @@
 
 .xnamai-admin-table thead th{
   background: rgba(30,102,255,0.06);
-  color:#0B1B33;
+  color:var(--xnamai-text);
   font-weight: 800;
-  border-bottom: 1px solid rgba(15, 23, 42, 0.10);
+  border-bottom: 1px solid var(--xnamai-border);
   white-space: nowrap;
 }
 
 .xnamai-admin-table tbody td{
   border-bottom: 1px solid rgba(15, 23, 42, 0.08);
-  color:#0B1B33;
+  color:var(--xnamai-text);
 }
 
 .xnamai-admin-table tbody tr:hover td{
@@ -137,6 +169,58 @@
 
 .xnamai-admin-empty{
   padding: 18px 16px;
-  color: rgba(11,27,51,0.72);
+  color: var(--xnamai-textSoft);
   font-weight: 600;
 }
+
+.xnamai-admin-stat-grid{
+  display:grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 12px;
+}
+.xnamai-admin-stat-card{
+  grid-column: span 4;
+}
+@media (max-width: 900px){
+  .xnamai-admin-stat-card{ grid-column: span 12; }
+}
+
+/* Integração suave com MUI (TextField/Button/Tabs/Table) */
+.xnamai-admin-page .MuiPaper-root{ border-color: var(--xnamai-border); }
+
+.xnamai-admin-page .MuiOutlinedInput-root{
+  background: rgba(255,255,255,0.95);
+  border-radius: 12px;
+}
+.xnamai-admin-page .MuiOutlinedInput-notchedOutline{
+  border-color: rgba(15,23,42,0.14);
+}
+.xnamai-admin-page .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline{
+  border-color: rgba(30,102,255,0.65);
+  box-shadow: 0 0 0 4px rgba(30,102,255,0.14);
+}
+.xnamai-admin-page .MuiInputLabel-root{ color: var(--xnamai-textSoft); font-weight: 700; }
+.xnamai-admin-page .MuiInputLabel-root.Mui-focused{ color: var(--xnamai-primary); }
+
+.xnamai-admin-page .MuiButton-containedPrimary{
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--xnamai-primary) 0%, var(--xnamai-primaryDark) 100%);
+  box-shadow: var(--xnamai-shadow);
+}
+.xnamai-admin-page .MuiButton-outlinedPrimary{
+  border-radius: 999px;
+  border-color: rgba(30,102,255,0.22);
+  color: var(--xnamai-primaryDark);
+  background: rgba(255,255,255,0.88);
+}
+.xnamai-admin-page .MuiButton-outlinedPrimary:hover{
+  border-color: rgba(30,102,255,0.32);
+  background: rgba(30,102,255,0.05);
+}
+
+.xnamai-admin-page .MuiTabs-root{
+  background: rgba(255,255,255,0.84);
+  border: 1px solid var(--xnamai-border);
+  border-radius: 14px;
+}
+.xnamai-admin-page .MuiTab-root{ font-weight: 800; }

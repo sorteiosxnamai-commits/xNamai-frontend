@@ -2,10 +2,8 @@
 import * as React from "react";
 import { useNavigate, Link as RouterLink } from "react-router-dom";
 import {
-  AppBar,
   Box,
   Container,
-  CssBaseline,
   Divider,
   IconButton,
   Menu,
@@ -13,10 +11,7 @@ import {
   Paper,
   Stack,
   TextField,
-  ThemeProvider,
-  Toolbar,
   Typography,
-  createTheme,
 } from "@mui/material";
 import ArrowBackIosNewRoundedIcon from "@mui/icons-material/ArrowBackIosNewRounded";
 import AccountCircleRoundedIcon from "@mui/icons-material/AccountCircleRounded";
@@ -31,17 +26,7 @@ import { useAuth } from "./authContext";
 import { API_CONFIG } from "./config/api";
 import BrandLogo from "./components/branding/BrandLogo";
 import "./styles/xnamai-admin.css";
-
-const theme = createTheme({
-  palette: {
-    mode: "light",
-    primary: { main: "#1E66FF" },
-    background: { default: "#F4F8FF", paper: "#FFFFFF" },
-    text: { primary: "#0B1B33", secondary: "rgba(11,27,51,0.72)" },
-  },
-  shape: { borderRadius: 16 },
-  typography: { fontFamily: ["Inter", "system-ui", "Segoe UI", "Roboto", "Arial"].join(",") },
-});
+import XnamaiAdminLayout from "./components/admin/XnamaiAdminLayout";
 
 /* ---------- helpers de API (robusto com /api) ---------- */
 const RAW_BASE = API_CONFIG.baseUrl || "/api";
@@ -288,60 +273,30 @@ export default function AdminDashboard() {
   const doLogout = () => { closeMenu(); logout(); navigate("/"); };
 
   return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-      <div className="xnamai-admin-page">
-        <div className="xnamai-admin-bg" />
-        <div className="xnamai-admin-shell">
-          <AppBar
-            position="sticky"
-            elevation={0}
-            className="xnamai-admin-header"
-            sx={{
-              bgcolor: "transparent",
-              color: "text.primary",
-            }}
+    <XnamaiAdminLayout
+      title="Painel Admin"
+      subtitle="Configure o sorteio atual e acesse rapidamente as áreas principais."
+      onBack={() => navigate("/")}
+      actions={
+        <>
+          <IconButton color="inherit" onClick={openMenu} aria-label="Conta">
+            <AccountCircleRoundedIcon />
+          </IconButton>
+          <Menu
+            anchorEl={menuEl}
+            open={open}
+            onClose={closeMenu}
+            anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+            transformOrigin={{ vertical: "top", horizontal: "right" }}
           >
-            <Toolbar sx={{ position: "relative", minHeight: 64 }}>
-              <IconButton edge="start" color="inherit" onClick={() => navigate("/admin")} aria-label="Voltar">
-                <ArrowBackIosNewRoundedIcon />
-              </IconButton>
-
-              <Box
-                component={RouterLink}
-                to="/admin"
-                sx={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%, -50%)" }}
-              >
-                <BrandLogo size={34} />
-              </Box>
-
-              <IconButton color="inherit" sx={{ ml: "auto" }} onClick={openMenu}>
-                <AccountCircleRoundedIcon />
-              </IconButton>
-              <Menu
-                anchorEl={menuEl}
-                open={open}
-                onClose={closeMenu}
-                anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
-                transformOrigin={{ vertical: "top", horizontal: "right" }}
-              >
-                <MenuItem onClick={goPainel}>Painel (Admin)</MenuItem>
-                <Divider />
-                <MenuItem onClick={doLogout}>Sair</MenuItem>
-              </Menu>
-            </Toolbar>
-          </AppBar>
-
-          <Container maxWidth="lg" className="xnamai-admin-section">
-            <Stack spacing={3}>
-              <Box>
-                <Typography className="xnamai-admin-title" sx={{ fontSize: { xs: 26, md: 44 } }}>
-                  Painel Admin
-                </Typography>
-                <Typography className="xnamai-admin-subtitle" sx={{ mt: 0.75 }}>
-                  Configure o sorteio atual e acesse rapidamente as áreas principais.
-                </Typography>
-              </Box>
+            <MenuItem onClick={goPainel}>Painel (Admin)</MenuItem>
+            <Divider />
+            <MenuItem onClick={doLogout}>Sair</MenuItem>
+          </Menu>
+        </>
+      }
+    >
+      <Stack spacing={3}>
 
           {/* Painel (resumo + preço e configs) */}
           <Paper className="xnamai-admin-card" variant="outlined" sx={{ p: { xs: 2, md: 3 } }}>
@@ -488,10 +443,7 @@ export default function AdminDashboard() {
               </Box>
             </Box>
           </Box>
-        </Stack>
-      </Container>
-        </div>
-      </div>
-    </ThemeProvider>
+      </Stack>
+    </XnamaiAdminLayout>
   );
 }

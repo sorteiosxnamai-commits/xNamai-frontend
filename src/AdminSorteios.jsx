@@ -2,21 +2,18 @@
 import * as React from "react";
 import { useNavigate, Link as RouterLink } from "react-router-dom";
 import {
-  AppBar, Box, Container, CssBaseline, IconButton, Menu, MenuItem, Divider,
+  Box, IconButton, Menu, MenuItem, Divider,
   Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-  ThemeProvider, Toolbar, Typography, createTheme, Collapse, Stack, Chip
+  Typography, Collapse, Stack, Chip
 } from "@mui/material";
-import ArrowBackIosNewRoundedIcon from "@mui/icons-material/ArrowBackIosNewRounded";
 import AccountCircleRoundedIcon from "@mui/icons-material/AccountCircleRounded";
 import ExpandMoreRoundedIcon from "@mui/icons-material/ExpandMoreRounded";
 import ExpandLessRoundedIcon from "@mui/icons-material/ExpandLessRounded";
 import { useAuth } from "./authContext";
 import { API_CONFIG } from "./config/api";
 import BrandLogo from "./components/branding/BrandLogo";
-
-const theme = createTheme({
-  palette: { mode: "dark", background: { default: "#0E0E0E", paper: "#121212" } },
-});
+import "./styles/xnamai-admin.css";
+import XnamaiAdminLayout from "./components/admin/XnamaiAdminLayout";
 
 /* ---------- API base normalizada (mesma lógica do AccountPage) ---------- */
 const RAW_BASE = API_CONFIG.baseUrl || "/api";
@@ -219,21 +216,13 @@ export default function AdminSorteios() {
   }
 
   return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-      <AppBar position="sticky" elevation={0} sx={{ borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
-        <Toolbar sx={{ position: "relative", minHeight: 64 }}>
-          <IconButton edge="start" color="inherit" onClick={() => navigate("/admin")} aria-label="Voltar">
-            <ArrowBackIosNewRoundedIcon />
-          </IconButton>
-          <Box
-            component={RouterLink}
-            to="/admin"
-            sx={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%, -50%)" }}
-          >
-            <BrandLogo size={34} />
-          </Box>
-          <IconButton color="inherit" sx={{ ml: "auto" }} onClick={openMenu}>
+    <XnamaiAdminLayout
+      title="Sorteios realizados"
+      subtitle="Histórico de sorteios e detalhes de participantes por sorteio."
+      onBack={() => navigate("/admin")}
+      actions={
+        <>
+          <IconButton color="inherit" onClick={openMenu} aria-label="Conta">
             <AccountCircleRoundedIcon />
           </IconButton>
           <Menu
@@ -247,123 +236,129 @@ export default function AdminSorteios() {
             <Divider />
             <MenuItem onClick={doLogout}>Sair</MenuItem>
           </Menu>
-        </Toolbar>
-      </AppBar>
-
-      <Container maxWidth="lg" sx={{ py: { xs: 3, md: 6 } }}>
-        <Typography align="center" sx={{ fontWeight: 900, lineHeight: 1.1, fontSize: { xs: 26, md: 48 }, mb: 3 }}>
-          Lista de Sorteios
-          <br /> Realizados
-        </Typography>
-
-        <Paper variant="outlined">
-          <TableContainer sx={{ overflowX: "auto" }}>
-            <Table sx={{ minWidth: 920 }}>
-              <TableHead>
-                <TableRow>
-                  <TableCell sx={{ fontWeight: 800 }}>Nº SORTEIO</TableCell>
-                  <TableCell sx={{ fontWeight: 800 }}>DATA ABERTURA</TableCell>
-                  <TableCell sx={{ fontWeight: 800 }}>DATA FECHAMENTO</TableCell>
-                  <TableCell sx={{ fontWeight: 800 }}>DIAS ABERTO</TableCell>
-                  <TableCell sx={{ fontWeight: 800 }}>DATA REALIZAÇÃO</TableCell>
-                  <TableCell sx={{ fontWeight: 800 }}>USUÁRIO VENCEDOR</TableCell>
-                  <TableCell sx={{ fontWeight: 800 }} align="right">Detalhes</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {loading && (
+        </>
+      }
+    >
+      <Paper className="xnamai-admin-card" variant="outlined" sx={{ p: { xs: 1, md: 1.5 } }}>
+        <div className="xnamai-admin-table-wrap">
+          <div className="xnamai-admin-table">
+            <TableContainer>
+              <Table sx={{ minWidth: 920 }}>
+                <TableHead>
                   <TableRow>
-                    <TableCell colSpan={7}>Carregando…</TableCell>
+                    <TableCell>Nº SORTEIO</TableCell>
+                    <TableCell>DATA ABERTURA</TableCell>
+                    <TableCell>DATA FECHAMENTO</TableCell>
+                    <TableCell>DIAS ABERTO</TableCell>
+                    <TableCell>DATA REALIZAÇÃO</TableCell>
+                    <TableCell>USUÁRIO VENCEDOR</TableCell>
+                    <TableCell align="right">Detalhes</TableCell>
                   </TableRow>
-                )}
-                {!loading && rows.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={7} sx={{ color: "#bbb" }}>
-                      Nenhum sorteio encontrado.
-                    </TableCell>
-                  </TableRow>
-                )}
+                </TableHead>
+                <TableBody>
+                  {loading && (
+                    <TableRow>
+                      <TableCell colSpan={7}>Carregando…</TableCell>
+                    </TableRow>
+                  )}
+                  {!loading && rows.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={7} className="xnamai-admin-empty">
+                        Nenhum sorteio encontrado.
+                      </TableCell>
+                    </TableRow>
+                  )}
 
-                {!loading && rows.map((d) => {
-                  const drawId = Number(d.n);
-                  const isOpen = !!expanded[drawId];
-                  const partState = partsCache[drawId];
-                  const grouped = groupParticipants(partState?.items);
+                  {!loading && rows.map((d) => {
+                    const drawId = Number(d.n);
+                    const isOpen = !!expanded[drawId];
+                    const partState = partsCache[drawId];
+                    const grouped = groupParticipants(partState?.items);
 
-                  return (
-                    <React.Fragment key={drawId}>
-                      <TableRow
-                        hover
-                        onClick={() => toggleExpand(drawId)}
-                        sx={{ cursor: "pointer" }}
-                      >
-                        <TableCell>{pad3(drawId)}</TableCell>
-                        <TableCell>{d.abertura}</TableCell>
-                        <TableCell>{d.fechamento}</TableCell>
-                        <TableCell>{d.dias}</TableCell>
-                        <TableCell>{d.realizacao}</TableCell>
-                        <TableCell>{d.vencedor}</TableCell>
-                        <TableCell align="right" sx={{ width: 56 }}>
-                          {isOpen ? <ExpandLessRoundedIcon /> : <ExpandMoreRoundedIcon />}
-                        </TableCell>
-                      </TableRow>
+                    return (
+                      <React.Fragment key={drawId}>
+                        <TableRow hover onClick={() => toggleExpand(drawId)} sx={{ cursor: "pointer" }}>
+                          <TableCell sx={{ fontWeight: 900, color: "primary.main" }}>{pad3(drawId)}</TableCell>
+                          <TableCell>{d.abertura}</TableCell>
+                          <TableCell>{d.fechamento}</TableCell>
+                          <TableCell>{d.dias}</TableCell>
+                          <TableCell>{d.realizacao}</TableCell>
+                          <TableCell sx={{ fontWeight: 700 }}>{d.vencedor}</TableCell>
+                          <TableCell align="right" sx={{ width: 56, color: "primary.main" }}>
+                            {isOpen ? <ExpandLessRoundedIcon /> : <ExpandMoreRoundedIcon />}
+                          </TableCell>
+                        </TableRow>
 
-                      <TableRow>
-                        <TableCell colSpan={7} sx={{ p: 0, borderBottom: 0 }}>
-                          <Collapse in={isOpen} timeout="auto" unmountOnExit>
-                            <Box sx={{ px: 2, py: 2, bgcolor: "rgba(255,255,255,0.03)", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
-                              <Typography variant="subtitle1" sx={{ fontWeight: 800, mb: 1 }}>
-                                Participantes & Números do Sorteio #{pad3(drawId)}
-                              </Typography>
+                        <TableRow>
+                          <TableCell colSpan={7} sx={{ p: 0, borderBottom: 0 }}>
+                            <Collapse in={isOpen} timeout="auto" unmountOnExit>
+                              <Box sx={{ px: 2, py: 2, bgcolor: "rgba(30,102,255,0.04)", borderTop: "1px solid rgba(15,23,42,0.08)" }}>
+                                <Typography variant="subtitle1" sx={{ fontWeight: 900, mb: 1, color: "text.primary" }}>
+                                  Participantes & números do sorteio #{pad3(drawId)}
+                                </Typography>
 
-                              {!partState || partState.loading ? (
-                                <Typography variant="body2" sx={{ color: "#bbb" }}>Carregando participantes…</Typography>
-                              ) : partState.error ? (
-                                <Typography variant="body2" color="error">Erro ao carregar participantes: {partState.error}</Typography>
-                              ) : grouped.length === 0 ? (
-                                <Typography variant="body2" sx={{ color: "#bbb" }}>Nenhum participante encontrado.</Typography>
-                              ) : (
-                                <Table size="small" sx={{ bgcolor: "transparent" }}>
-                                  <TableHead>
-                                    <TableRow>
-                                      <TableCell sx={{ fontWeight: 700 }}>Usuário</TableCell>
-                                      <TableCell sx={{ fontWeight: 700 }}>Qtd</TableCell>
-                                      <TableCell sx={{ fontWeight: 700 }}>Números</TableCell>
-                                      <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
-                                    </TableRow>
-                                  </TableHead>
-                                  <TableBody>
-                                    {grouped.map((p, idx) => (
-                                      <TableRow key={idx} hover>
-                                        <TableCell>{p.name}</TableCell>
-                                        <TableCell>{p.qty}</TableCell>
-                                        <TableCell>
-                                          <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-                                            {p.numbers.map((n) => (
-                                              <Chip key={n} size="small" label={String(n).padStart(2, "0")} />
-                                            ))}
-                                          </Stack>
-                                        </TableCell>
-                                        <TableCell sx={{ color: "#bbb" }}>
-                                          {p.statusLabel || "-"}
-                                        </TableCell>
-                                      </TableRow>
-                                    ))}
-                                  </TableBody>
-                                </Table>
-                              )}
-                            </Box>
-                          </Collapse>
-                        </TableCell>
-                      </TableRow>
-                    </React.Fragment>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        </Paper>
-      </Container>
-    </ThemeProvider>
+                                {!partState || partState.loading ? (
+                                  <Typography variant="body2" sx={{ color: "text.secondary", fontWeight: 700 }}>
+                                    Carregando participantes…
+                                  </Typography>
+                                ) : partState.error ? (
+                                  <Typography variant="body2" color="error">
+                                    Erro ao carregar participantes: {partState.error}
+                                  </Typography>
+                                ) : grouped.length === 0 ? (
+                                  <Typography variant="body2" sx={{ color: "text.secondary", fontWeight: 700 }}>
+                                    Nenhum participante encontrado.
+                                  </Typography>
+                                ) : (
+                                  <Paper className="xnamai-admin-card" variant="outlined" sx={{ p: 1.25 }}>
+                                    <Table size="small">
+                                      <TableHead>
+                                        <TableRow>
+                                          <TableCell>Usuário</TableCell>
+                                          <TableCell>Qtd</TableCell>
+                                          <TableCell>Números</TableCell>
+                                          <TableCell>Status</TableCell>
+                                        </TableRow>
+                                      </TableHead>
+                                      <TableBody>
+                                        {grouped.map((p, idx) => (
+                                          <TableRow key={idx} hover>
+                                            <TableCell sx={{ fontWeight: 800 }}>{p.name}</TableCell>
+                                            <TableCell sx={{ fontWeight: 900, color: "primary.main" }}>{p.qty}</TableCell>
+                                            <TableCell>
+                                              <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                                                {p.numbers.map((n) => (
+                                                  <Chip
+                                                    key={n}
+                                                    size="small"
+                                                    label={String(n).padStart(2, "0")}
+                                                    sx={{ bgcolor: "rgba(30,102,255,0.10)", border: "1px solid rgba(30,102,255,0.18)", fontWeight: 900 }}
+                                                  />
+                                                ))}
+                                              </Stack>
+                                            </TableCell>
+                                            <TableCell sx={{ color: "text.secondary", fontWeight: 700 }}>
+                                              {p.statusLabel || "-"}
+                                            </TableCell>
+                                          </TableRow>
+                                        ))}
+                                      </TableBody>
+                                    </Table>
+                                  </Paper>
+                                )}
+                              </Box>
+                            </Collapse>
+                          </TableCell>
+                        </TableRow>
+                      </React.Fragment>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </div>
+        </div>
+      </Paper>
+    </XnamaiAdminLayout>
   );
 }

@@ -1,11 +1,10 @@
 // src/AdminUsersPage.jsx
 import * as React from "react";
 import {
-  AppBar, Toolbar, IconButton, Typography, Container, CssBaseline, Paper, Stack,
+  Typography, Paper, Stack,
   TextField, Button, Table, TableHead, TableBody, TableRow, TableCell, TableContainer,
-  Checkbox, Divider, Snackbar, Alert, CircularProgress, createTheme, ThemeProvider, Box, Chip
+  Checkbox, Divider, Snackbar, Alert, CircularProgress, Box, Chip
 } from "@mui/material";
-import ArrowBackIosNewRoundedIcon from "@mui/icons-material/ArrowBackIosNewRounded";
 import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import SaveRoundedIcon from "@mui/icons-material/SaveRounded";
@@ -14,23 +13,8 @@ import SendRoundedIcon from "@mui/icons-material/SendRounded";
 
 import { useNavigate } from "react-router-dom";
 import { apiJoin, authHeaders } from "./lib/api";
-
-/* --------------------------- THEME (igual às outras telas) --------------------------- */
-const theme = createTheme({
-  palette: {
-    mode: "dark",
-    primary: { main: "#67C23A" },
-    secondary: { main: "#FFC107" },
-    error: { main: "#D32F2F" },
-    background: { default: "#0E0E0E", paper: "#121212" },
-    success: { main: "#2E7D32" },
-    warning: { main: "#B58900" },
-  },
-  shape: { borderRadius: 12 },
-  typography: {
-    fontFamily: ["Inter", "system-ui", "Segoe UI", "Roboto", "Arial"].join(","),
-  },
-});
+import "./styles/xnamai-admin.css";
+import XnamaiAdminLayout from "./components/admin/XnamaiAdminLayout";
 
 /* ----------------------------------- Helpers ----------------------------------- */
 function toBRL(valueNumber) {
@@ -430,47 +414,35 @@ export default function AdminUsersPage() {
   const getCellSx = (state) => {
     if (state === "taken") {
       return {
-        color: "#FFB3B3",
-        border: "1px solid #FF8A8A",
-        background:
-          "linear-gradient(180deg, #472427 0%, #2B1517 100%)",
+        color: "#7A0B18",
+        border: "1px solid rgba(220, 38, 38, 0.24)",
+        background: "linear-gradient(180deg, rgba(248,113,113,0.30) 0%, rgba(248,113,113,0.16) 100%)",
       };
     }
     if (state === "reserved") {
       return {
-        color: "#FFE7A1",
-        border: "1px solid #FFD666",
-        background:
-          "linear-gradient(180deg, #3A2E12 0%, #2A230D 100%)",
+        color: "#6B4B00",
+        border: "1px solid rgba(245, 158, 11, 0.25)",
+        background: "linear-gradient(180deg, rgba(251,191,36,0.28) 0%, rgba(251,191,36,0.14) 100%)",
       };
     }
     return {
-      color: "#0E0E0E",
-      border: "1px solid rgba(255,255,255,.2)",
-      background:
-        "linear-gradient(180deg, #67C23A 0%, #58A834 100%)",
+      color: "#0B1B33",
+      border: "1px solid rgba(30,102,255,0.18)",
+      background: "linear-gradient(180deg, rgba(30,102,255,0.22) 0%, rgba(11,95,255,0.12) 100%)",
     };
   };
 
   return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-
-      <AppBar position="sticky" elevation={0} sx={{ borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
-        <Toolbar sx={{ minHeight: { xs: 56, md: 64 } }}>
-          <IconButton edge="start" color="inherit" onClick={() => navigate(-1)}>
-            <ArrowBackIosNewRoundedIcon />
-          </IconButton>
-          <Typography sx={{ fontWeight: 900, letterSpacing: 0.5 }}>
-            Cadastro de Clientes
-          </Typography>
-        </Toolbar>
-      </AppBar>
-
-      <Container maxWidth="lg" sx={{ py: { xs: 2.5, md: 5 } }}>
-        <Stack spacing={2.5}>
+    <>
+    <XnamaiAdminLayout
+      title="Cadastro e manutenção de clientes"
+      subtitle="Gerencie clientes, cupons e atribuição de números ao sorteio."
+      onBack={() => navigate("/admin")}
+    >
+      <Stack spacing={2.5}>
           {/* CRUD */}
-          <Paper variant="outlined" sx={{ p: { xs: 2, md: 3 }, border: "1px solid rgba(255,255,255,0.08)", bgcolor: "background.paper" }}>
+          <Paper className="xnamai-admin-card" variant="outlined" sx={{ p: { xs: 2, md: 3 } }}>
             <Typography variant="h6" fontWeight={900} sx={{ mb: 1 }}>
               Cliente
             </Typography>
@@ -524,7 +496,6 @@ export default function AdminUsersPage() {
               <Button startIcon={<AddRoundedIcon />} onClick={handleNew}>Novo</Button>
               <Button
                 variant="contained"
-                color="success"
                 startIcon={saving ? <CircularProgress size={18} /> : <SaveRoundedIcon />}
                 onClick={handleSave}
                 disabled={saving}
@@ -532,7 +503,8 @@ export default function AdminUsersPage() {
                 Salvar
               </Button>
               <Button
-                color="error"
+                color="inherit"
+                variant="outlined"
                 startIcon={<DeleteForeverRoundedIcon />}
                 onClick={handleDelete}
                 disabled={!form.id || saving}
@@ -541,7 +513,7 @@ export default function AdminUsersPage() {
               </Button>
             </Stack>
 
-            <Divider sx={{ my: 2, borderColor: "rgba(255,255,255,0.08)" }} />
+            <Divider sx={{ my: 2 }} />
 
             {/* Atribuir números */}
             <Typography variant="subtitle1" fontWeight={800} sx={{ mb: 1 }}>
@@ -572,7 +544,6 @@ export default function AdminUsersPage() {
                 </Button>
                 <Button
                   variant="contained"
-                  color="primary"
                   startIcon={assigning ? <CircularProgress size={18} /> : <SendRoundedIcon />}
                   onClick={handleAssign}
                   disabled={assigning}
@@ -586,9 +557,9 @@ export default function AdminUsersPage() {
             <Box sx={{ mt: 2.5 }}>
               <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
                 <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>Situação do sorteio</Typography>
-                <Chip size="small" label="Disponível" sx={{ bgcolor: "#67C23A", color: "#0E0E0E", fontWeight: 800 }} />
-                <Chip size="small" label="Reservado"  sx={{ bgcolor: "#FFD54F", color: "#000", fontWeight: 800 }} />
-                <Chip size="small" label="Indisponível" sx={{ bgcolor: "#E57373", color: "#000", fontWeight: 800 }} />
+                <Chip size="small" label="Disponível" sx={{ bgcolor: "rgba(30,102,255,0.14)", color: "#0B1B33", fontWeight: 900, border: "1px solid rgba(30,102,255,0.20)" }} />
+                <Chip size="small" label="Reservado"  sx={{ bgcolor: "rgba(251,191,36,0.22)", color: "#0B1B33", fontWeight: 900, border: "1px solid rgba(245,158,11,0.22)" }} />
+                <Chip size="small" label="Indisponível" sx={{ bgcolor: "rgba(248,113,113,0.22)", color: "#0B1B33", fontWeight: 900, border: "1px solid rgba(220,38,38,0.20)" }} />
                 <Box sx={{ flex: 1 }} />
                 <Button size="small" onClick={async () => {
                   const idNum = Number(drawId);
@@ -650,7 +621,7 @@ export default function AdminUsersPage() {
           </Paper>
 
           {/* Busca */}
-          <Paper variant="outlined" sx={{ p: 1.5, border: "1px solid rgba(255,255,255,0.08)", bgcolor: "background.paper" }}>
+          <Paper className="xnamai-admin-card" variant="outlined" sx={{ p: 1.5 }}>
             <Stack direction="row" spacing={1.5} alignItems="center">
               <SearchRoundedIcon sx={{ opacity: 0.7 }} />
               <TextField
@@ -663,50 +634,54 @@ export default function AdminUsersPage() {
           </Paper>
 
           {/* Tabela */}
-          <Paper variant="outlined" sx={{ p: 1, border: "1px solid rgba(255,255,255,0.08)", bgcolor: "background.paper" }}>
-            <TableContainer>
-              <Table size="small" sx={{ minWidth: 920 }}>
-                <TableHead>
-                  <TableRow>
-                    <TableCell sx={{ fontWeight: 800, whiteSpace: "nowrap" }}>ID</TableCell>
-                    <TableCell sx={{ fontWeight: 800, whiteSpace: "nowrap" }}>NOME</TableCell>
-                    <TableCell sx={{ fontWeight: 800, whiteSpace: "nowrap" }}>EMAIL</TableCell>
-                    <TableCell sx={{ fontWeight: 800, whiteSpace: "nowrap" }}>CELULAR</TableCell>
-                    <TableCell sx={{ fontWeight: 800, whiteSpace: "nowrap" }}>CUPOM</TableCell>
-                    <TableCell sx={{ fontWeight: 800, whiteSpace: "nowrap" }}>SALDO</TableCell>
-                    <TableCell sx={{ fontWeight: 800, whiteSpace: "nowrap" }}>ADMIN</TableCell>
-                    <TableCell sx={{ fontWeight: 800, whiteSpace: "nowrap" }}>CRIADO EM</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {loading && (
-                    <TableRow>
-                      <TableCell colSpan={8} sx={{ color: "#bbb" }}>Carregando…</TableCell>
-                    </TableRow>
-                  )}
-                  {!loading && filtered.length === 0 && (
-                    <TableRow>
-                      <TableCell colSpan={8} sx={{ color: "#bbb" }}>Nenhum usuário encontrado.</TableCell>
-                    </TableRow>
-                  )}
-                  {filtered.map((u) => (
-                    <TableRow key={u.id} hover sx={{ cursor: "pointer" }} onClick={() => handleSelect(u)}>
-                      <TableCell>{u.id}</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }}>{u.name}</TableCell>
-                      <TableCell>{u.email}</TableCell>
-                      <TableCell>{u.phone}</TableCell>
-                      <TableCell>{u.coupon_code || "-"}</TableCell>
-                      <TableCell>{toBRL((u.coupon_value_cents || 0) / 100)}</TableCell>
-                      <TableCell>{u.is_admin ? "Sim" : "Não"}</TableCell>
-                      <TableCell>{u.created_at ? new Date(u.created_at).toLocaleString("pt-BR") : "--"}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
+          <Paper className="xnamai-admin-card" variant="outlined" sx={{ p: 1 }}>
+            <div className="xnamai-admin-table-wrap">
+              <div className="xnamai-admin-table">
+                <TableContainer>
+                  <Table size="small" sx={{ minWidth: 920 }}>
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>ID</TableCell>
+                        <TableCell>NOME</TableCell>
+                        <TableCell>EMAIL</TableCell>
+                        <TableCell>CELULAR</TableCell>
+                        <TableCell>CUPOM</TableCell>
+                        <TableCell>SALDO</TableCell>
+                        <TableCell>ADMIN</TableCell>
+                        <TableCell>CRIADO EM</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {loading && (
+                        <TableRow>
+                          <TableCell colSpan={8}>Carregando…</TableCell>
+                        </TableRow>
+                      )}
+                      {!loading && filtered.length === 0 && (
+                        <TableRow>
+                          <TableCell colSpan={8} className="xnamai-admin-empty">Nenhum usuário encontrado.</TableCell>
+                        </TableRow>
+                      )}
+                      {filtered.map((u) => (
+                        <TableRow key={u.id} hover sx={{ cursor: "pointer" }} onClick={() => handleSelect(u)}>
+                          <TableCell sx={{ fontWeight: 900, color: "primary.main" }}>{u.id}</TableCell>
+                          <TableCell sx={{ fontWeight: 800 }}>{u.name}</TableCell>
+                          <TableCell>{u.email}</TableCell>
+                          <TableCell>{u.phone}</TableCell>
+                          <TableCell sx={{ fontWeight: 800 }}>{u.coupon_code || "-"}</TableCell>
+                          <TableCell sx={{ fontWeight: 900 }}>{toBRL((u.coupon_value_cents || 0) / 100)}</TableCell>
+                          <TableCell>{u.is_admin ? "Sim" : "Não"}</TableCell>
+                          <TableCell>{u.created_at ? new Date(u.created_at).toLocaleString("pt-BR") : "--"}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </div>
+            </div>
           </Paper>
         </Stack>
-      </Container>
+    </XnamaiAdminLayout>
 
       <Snackbar
         open={toast.open}
@@ -718,6 +693,6 @@ export default function AdminUsersPage() {
           {toast.msg}
         </Alert>
       </Snackbar>
-    </ThemeProvider>
+    </>
   );
 }

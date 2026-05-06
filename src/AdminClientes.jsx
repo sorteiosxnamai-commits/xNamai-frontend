@@ -2,20 +2,16 @@
 import * as React from "react";
 import { useNavigate, Link as RouterLink } from "react-router-dom";
 import {
-  AppBar, Box, Container, CssBaseline, IconButton, Menu, MenuItem, Divider,
+  Box, IconButton, Menu, MenuItem, Divider,
   Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-  ThemeProvider, Toolbar, Typography, createTheme
+  Typography
 } from "@mui/material";
-import ArrowBackIosNewRoundedIcon from "@mui/icons-material/ArrowBackIosNewRounded";
 import AccountCircleRoundedIcon from "@mui/icons-material/AccountCircleRounded";
 import { useAuth } from "./authContext";
 import { API_CONFIG } from "./config/api";
 import BrandLogo from "./components/branding/BrandLogo";
-
-const theme = createTheme({
-  palette: { mode: "dark", background: { default: "#0E0E0E", paper: "#121212" }, success: { main: "#67C23A" } },
-  typography: { fontFamily: ["Inter", "system-ui", "Segoe UI", "Roboto", "Arial"].join(",") },
-});
+import "./styles/xnamai-admin.css";
+import XnamaiAdminLayout from "./components/admin/XnamaiAdminLayout";
 
 /* ---------- API base ---------- */
 const RAW_BASE = API_CONFIG.baseUrl || "";
@@ -237,78 +233,71 @@ export default function AdminClientes() {
   const doLogout = () => { closeMenu(); logout(); navigate("/"); };
 
   return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-      <AppBar position="sticky" elevation={0} sx={{ borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
-        <Toolbar sx={{ position: "relative", minHeight: 64 }}>
-          <IconButton edge="start" color="inherit" onClick={() => navigate("/admin")} aria-label="Voltar">
-            <ArrowBackIosNewRoundedIcon />
-          </IconButton>
-          <Box component={RouterLink} to="/admin"
-               sx={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%, -50%)" }}>
-            <BrandLogo size={34} />
-          </Box>
-          <IconButton color="inherit" sx={{ ml: "auto" }} onClick={openMenu}>
+    <XnamaiAdminLayout
+      title="Clientes com saldo ativo"
+      subtitle="Lista de clientes com saldo de cupom e informações de expiração."
+      onBack={() => navigate("/admin")}
+      actions={
+        <>
+          <IconButton color="inherit" sx={{ ml: "auto" }} onClick={openMenu} aria-label="Conta">
             <AccountCircleRoundedIcon />
           </IconButton>
-          <Menu anchorEl={menuEl} open={open} onClose={closeMenu}
-                anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
-                transformOrigin={{ vertical: "top", horizontal: "right" }}>
+          <Menu
+            anchorEl={menuEl}
+            open={open}
+            onClose={closeMenu}
+            anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+            transformOrigin={{ vertical: "top", horizontal: "right" }}
+          >
             <MenuItem onClick={goPainel}>Painel (Admin)</MenuItem>
             <Divider />
             <MenuItem onClick={doLogout}>Sair</MenuItem>
           </Menu>
-        </Toolbar>
-      </AppBar>
-
-      <Container maxWidth="lg" sx={{ py: { xs: 3, md: 6 } }}>
-        <Typography sx={{
-          fontWeight: 900, textTransform: "uppercase",
-          fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
-          fontSize: { xs: 24, md: 44 }, mb: 2,
-        }}>
-          Lista de clientes com saldo ativo
-        </Typography>
-
-        <Paper variant="outlined" sx={{ bgcolor: "background.paper" }}>
-          <TableContainer sx={{ overflowX: "auto" }}>
-            <Table sx={{ minWidth: 900 }}>
-              <TableHead>
-                <TableRow>
-                  <TableCell sx={{ fontWeight: 800 }}>NOME DO CLIENTE</TableCell>
-                  <TableCell sx={{ fontWeight: 800 }}>DATA DE CADASTRO</TableCell>
-                  <TableCell sx={{ fontWeight: 800 }}>QUANTIDADE DE COMPRAS</TableCell>
-                  <TableCell sx={{ fontWeight: 800 }}>VALOR (saldo do cupom)</TableCell>
-                  <TableCell sx={{ fontWeight: 800 }}>ÚLTIMA COMPRA</TableCell>
-                  <TableCell sx={{ fontWeight: 800 }}>VEZES CONTEMPLADO</TableCell>
-                  <TableCell sx={{ fontWeight: 800 }}>CUPOM</TableCell>
-                  <TableCell sx={{ fontWeight: 800 }}>DIAS PARA EXPIRAÇÃO</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {loading && (
-                  <TableRow><TableCell colSpan={8}>Carregando…</TableCell></TableRow>
-                )}
-                {!loading && rows.length === 0 && (
-                  <TableRow><TableCell colSpan={8} sx={{ color: "#bbb" }}>Nenhum cliente com saldo ativo.</TableCell></TableRow>
-                )}
-                {rows.map((r) => (
-                  <TableRow key={r.key} hover>
-                    <TableCell>{r.nome}</TableCell>
-                    <TableCell>{r.cadastro}</TableCell>
-                    <TableCell>{r.compras}</TableCell>
-                    <TableCell>{fmtBRL(r.total)}</TableCell>
-                    <TableCell>{r.ultima}</TableCell>
-                    <TableCell>{r.vezes}</TableCell>
-                    <TableCell>{r.cupom || "-"}</TableCell>
-                    <TableCell sx={{ color: "success.main", fontWeight: 800 }}>{r.dias}</TableCell>
+        </>
+      }
+    >
+      <Paper className="xnamai-admin-card" variant="outlined" sx={{ p: { xs: 1, md: 1.5 } }}>
+        <div className="xnamai-admin-table-wrap">
+          <div className="xnamai-admin-table">
+            <TableContainer>
+              <Table sx={{ minWidth: 900 }}>
+                <TableHead>
+                  <TableRow>
+                    <TableCell>NOME DO CLIENTE</TableCell>
+                    <TableCell>DATA DE CADASTRO</TableCell>
+                    <TableCell>QUANTIDADE DE COMPRAS</TableCell>
+                    <TableCell>VALOR (saldo do cupom)</TableCell>
+                    <TableCell>ÚLTIMA COMPRA</TableCell>
+                    <TableCell>VEZES CONTEMPLADO</TableCell>
+                    <TableCell>CUPOM</TableCell>
+                    <TableCell>DIAS PARA EXPIRAÇÃO</TableCell>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        </Paper>
-      </Container>
-    </ThemeProvider>
+                </TableHead>
+                <TableBody>
+                  {loading && (
+                    <TableRow><TableCell colSpan={8}>Carregando…</TableCell></TableRow>
+                  )}
+                  {!loading && rows.length === 0 && (
+                    <TableRow><TableCell colSpan={8} className="xnamai-admin-empty">Nenhum cliente com saldo ativo.</TableCell></TableRow>
+                  )}
+                  {rows.map((r) => (
+                    <TableRow key={r.key} hover>
+                      <TableCell sx={{ fontWeight: 700 }}>{r.nome}</TableCell>
+                      <TableCell>{r.cadastro}</TableCell>
+                      <TableCell>{r.compras}</TableCell>
+                      <TableCell sx={{ fontWeight: 800 }}>{fmtBRL(r.total)}</TableCell>
+                      <TableCell>{r.ultima}</TableCell>
+                      <TableCell>{r.vezes}</TableCell>
+                      <TableCell>{r.cupom || "-"}</TableCell>
+                      <TableCell sx={{ color: "primary.main", fontWeight: 900 }}>{r.dias}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </div>
+        </div>
+      </Paper>
+    </XnamaiAdminLayout>
   );
 }

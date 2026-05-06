@@ -2,25 +2,18 @@
 import * as React from "react";
 import { useNavigate, Link as RouterLink } from "react-router-dom";
 import {
-  AppBar, Box, Button, Chip, Container, CssBaseline, Divider, IconButton,
-  Paper, Stack, Tab, Tabs, TextField, ThemeProvider, Toolbar, Typography, createTheme,
+  Box, Button, Chip, Divider,
+  Paper, Stack, Tab, Tabs, TextField, Typography,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow
 } from "@mui/material";
-import ArrowBackIosNewRoundedIcon from "@mui/icons-material/ArrowBackIosNewRounded";
-import AccountCircleRoundedIcon from "@mui/icons-material/AccountCircleRounded";
 import DownloadRoundedIcon from "@mui/icons-material/DownloadRounded";
 import JSZip from "jszip";
 import xNamaiWordmark from "./assets/branding/xnamai-wordmark.svg";
 import { useAuth } from "./authContext";
 import { API_CONFIG } from "./config/api";
 import BrandLogo from "./components/branding/BrandLogo";
-
-/* ---------- tema ---------- */
-const theme = createTheme({
-  palette: { mode: "dark", primary: { main: "#2E7D32" }, background: { default: "#0E0E0E", paper: "#121212" } },
-  shape: { borderRadius: 16 },
-  typography: { fontFamily: ["Inter", "system-ui", "Segoe UI", "Roboto", "Arial"].join(",") },
-});
+import "./styles/xnamai-admin.css";
+import XnamaiAdminLayout from "./components/admin/XnamaiAdminLayout";
 
 /* ---------- helpers de API (iguais ao AdminDashboard) ---------- */
 const RAW_BASE = API_CONFIG.baseUrl || "/api";
@@ -680,106 +673,95 @@ export default function AdminOpenDrawBuyers() {
   };
 
   return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
+    <XnamaiAdminLayout
+      title="Sorteio ativo — compradores"
+      subtitle="Visualize compradores, busque por nome/e-mail/número e exporte CSV/PNG."
+      onBack={() => navigate("/admin")}
+    >
+      <Paper className="xnamai-admin-card" variant="outlined" sx={{ p: { xs: 2, md: 3 } }}>
+        <Stack direction={{ xs: "column", md: "row" }} spacing={2} alignItems={{ xs: "stretch", md: "center" }} flexWrap="wrap">
+          <Stack sx={{ mr: 1 }}>
+            <Typography className="xnamai-admin-subtitle">Nº Sorteio</Typography>
+            <Typography variant="h5" sx={{ fontWeight: 900, color: "text.primary" }}>{loading ? "…" : (drawId ?? "-")}</Typography>
+          </Stack>
+          <Stack sx={{ mr: 1 }}>
+            <Typography className="xnamai-admin-subtitle">Vendidos (aprovados)</Typography>
+            <Typography variant="h5" sx={{ fontWeight: 900, color: "text.primary" }}>{loading ? "…" : sold}</Typography>
+          </Stack>
+          <Stack sx={{ mr: 1 }}>
+            <Typography className="xnamai-admin-subtitle">Restantes</Typography>
+            <Typography variant="h5" sx={{ fontWeight: 900, color: "text.primary" }}>{loading ? "…" : remaining}</Typography>
+          </Stack>
 
-      <AppBar position="sticky" elevation={0} sx={{ borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
-        <Toolbar sx={{ position: "relative", minHeight: 64 }}>
-          <IconButton edge="start" color="inherit" onClick={() => navigate("/admin")} aria-label="Voltar">
-            <ArrowBackIosNewRoundedIcon />
-          </IconButton>
+          <Box sx={{ flex: 1 }} />
 
-          <Box component={RouterLink} to="/admin"
-            sx={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%, -50%)" }}>
-            <BrandLogo size={34} />
-          </Box>
+          <TextField
+            size="small"
+            placeholder="Buscar por nome, e-mail ou número…"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            sx={{ minWidth: { xs: "100%", sm: 280 } }}
+          />
 
-          <IconButton color="inherit" sx={{ ml: "auto" }}>
-            <AccountCircleRoundedIcon />
-          </IconButton>
-        </Toolbar>
-      </AppBar>
+          <Stack direction={{ xs: "column", sm: "row" }} spacing={1} alignItems={{ xs: "stretch", sm: "center" }}>
+            <Button startIcon={<DownloadRoundedIcon />} onClick={exportCSV} variant="outlined">
+              Exportar CSV
+            </Button>
+            <Button startIcon={<DownloadRoundedIcon />} onClick={exportPNGMobile} variant="contained">
+              Exportar PNG (Grade 1080×1920)
+            </Button>
+            <Button startIcon={<DownloadRoundedIcon />} onClick={exportPNGListMobile} variant="contained" color="primary">
+              Exportar PNG (Lista 1080×1920)
+            </Button>
+          </Stack>
+        </Stack>
 
-      <Container maxWidth="lg" sx={{ py: { xs: 3, md: 5 } }}>
-        <Stack spacing={2.5}>
-          <Typography sx={{ fontWeight: 900, fontSize: { xs: 22, md: 28 } }}>
-            Sorteio Ativo — Compradores
-          </Typography>
+        <Divider sx={{ my: 2.5 }} />
 
-          <Paper variant="outlined" sx={{ p: { xs: 2, md: 3 }, borderRadius: 4 }}>
-            <Stack direction="row" spacing={1.5} alignItems="center" flexWrap="wrap">
-              <Stack sx={{ mr: 3 }}>
-                <Typography sx={{ opacity: .7, fontWeight: 700 }}>Nº Sorteio</Typography>
-                <Typography variant="h5" sx={{ fontWeight: 900 }}>{loading ? "…" : (drawId ?? "-")}</Typography>
-              </Stack>
-              <Stack sx={{ mr: 3 }}>
-                <Typography sx={{ opacity: .7, fontWeight: 700 }}>Vendidos (aprovados)</Typography>
-                <Typography variant="h5" sx={{ fontWeight: 900 }}>{loading ? "…" : sold}</Typography>
-              </Stack>
-              <Stack sx={{ mr: 3 }}>
-                <Typography sx={{ opacity: .7, fontWeight: 700 }}>Restantes</Typography>
-                <Typography variant="h5" sx={{ fontWeight: 900 }}>{loading ? "…" : remaining}</Typography>
-              </Stack>
+        <Tabs value={tab} onChange={(_, v) => setTab(v)} textColor="primary" indicatorColor="primary">
+          <Tab label="Por comprador" />
+          <Tab label="Por número (00–99)" />
+        </Tabs>
 
-              <Box sx={{ flex: 1 }} />
-
-              <TextField
-                size="small"
-                placeholder="Buscar por nome, e-mail ou número…"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                sx={{ minWidth: { xs: "100%", sm: 280 } }}
-              />
-
-              <Button startIcon={<DownloadRoundedIcon />} onClick={exportCSV} variant="outlined">
-                Exportar CSV
-              </Button>
-              <Button startIcon={<DownloadRoundedIcon />} onClick={exportPNGMobile} variant="contained">
-                Exportar PNG (Grade 1080×1920)
-              </Button>
-              <Button startIcon={<DownloadRoundedIcon />} onClick={exportPNGListMobile} variant="contained" color="primary">
-                Exportar PNG (Lista 1080×1920)
-              </Button>
-            </Stack>
-
-            <Divider sx={{ my: 2.5 }} />
-
-            <Tabs value={tab} onChange={(_, v) => setTab(v)} textColor="primary" indicatorColor="primary">
-              <Tab label="Por comprador" />
-              <Tab label="Por número (00–99)" />
-            </Tabs>
-
-            {/* --- Tab 1: Compradores --- */}
-            {tab === 0 && (
-              <Box sx={{ mt: 2 }}>
+        {tab === 0 && (
+          <Box sx={{ mt: 2 }}>
+            <div className="xnamai-admin-table-wrap">
+              <div className="xnamai-admin-table">
                 <TableContainer>
                   <Table size="small">
                     <TableHead>
                       <TableRow>
-                        <TableCell sx={{ fontWeight: 800 }}>Comprador</TableCell>
-                        <TableCell sx={{ fontWeight: 800 }}>Qtd</TableCell>
-                        <TableCell sx={{ fontWeight: 800 }}>Números</TableCell>
-                        <TableCell sx={{ fontWeight: 800 }}>Valor (R$)</TableCell>
+                        <TableCell>Comprador</TableCell>
+                        <TableCell>Qtd</TableCell>
+                        <TableCell>Números</TableCell>
+                        <TableCell>Valor (R$)</TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
                       {filteredBuyers.length === 0 && (
-                        <TableRow><TableCell colSpan={5} sx={{ color: "#bbb" }}>Nenhum comprador.</TableCell></TableRow>
+                        <TableRow><TableCell colSpan={4} className="xnamai-admin-empty">Nenhum comprador.</TableCell></TableRow>
                       )}
                       {filteredBuyers.map((b, i) => (
-                        <TableRow key={b.user_id || i}>
-                          <TableCell sx={{ fontWeight: 700 }}>
+                        <TableRow key={b.user_id || i} hover>
+                          <TableCell sx={{ fontWeight: 800 }}>
                             <Stack direction="row" spacing={1} alignItems="center">
-                              <Chip size="small" label={pad2(i+1)} sx={{ bgcolor: buyerColor(idToIdx.get(b.user_id) ?? i), color: "#000", fontWeight: 800 }} />
+                              <Chip
+                                size="small"
+                                label={pad2(i + 1)}
+                                sx={{
+                                  bgcolor: buyerColor(idToIdx.get(b.user_id) ?? i),
+                                  color: "#000",
+                                  fontWeight: 900
+                                }}
+                              />
                               <span>{b.name || "(sem nome)"}</span>
                             </Stack>
                           </TableCell>
-
-                          <TableCell>{b.count || 0}</TableCell>
+                          <TableCell sx={{ fontWeight: 900, color: "primary.main" }}>{b.count || 0}</TableCell>
                           <TableCell sx={{ maxWidth: 520, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                             {(b.numbers || []).map(pad2).join(", ")}
                           </TableCell>
-                          <TableCell>
+                          <TableCell sx={{ fontWeight: 800 }}>
                             {((b.total_cents || 0) / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
                           </TableCell>
                         </TableRow>
@@ -787,53 +769,54 @@ export default function AdminOpenDrawBuyers() {
                     </TableBody>
                   </Table>
                 </TableContainer>
-              </Box>
-            )}
+              </div>
+            </div>
+          </Box>
+        )}
 
-            {/* --- Tab 2: Grade 00–99 --- */}
-            {tab === 1 && (
-              <Box sx={{ mt: 2 }}>
-                <Box
-                  sx={{
-                    display: "grid",
-                    gridTemplateColumns: { xs: "repeat(10, 1fr)", md: "repeat(20, 1fr)" },
-                    gap: .6,
-                  }}
-                >
-                  {Array.from({ length: 100 }, (_, n) => {
-                    const owner = numbers.find(x => Number(x.n) === n);
-                    const idx   = owner ? (idToIdx.get(owner.user_id) ?? 0) : 0;
-                    const bg    = owner ? buyerColor(idx) : "transparent";
-                    const bd    = owner ? "none" : "1px solid rgba(255,255,255,.18)";
-                    const fg    = owner ? "#000" : "inherit";
-                    const title = owner ? `${pad2(n)} • ${owner.name || owner.email || "Comprador"}` : pad2(n);
-                    return (
-                      <Box
-                        key={n}
-                        title={title}
-                        sx={{
-                          userSelect: "none",
-                          textAlign: "center",
-                          py: .8,
-                          borderRadius: 1.5,
-                          fontWeight: 800,
-                          letterSpacing: .5,
-                          fontSize: 12,
-                          border: bd,
-                          bgcolor: bg,
-                          color: fg,
-                        }}
-                      >
-                        {pad2(n)}
-                      </Box>
-                    );
-                  })}
-                </Box>
+        {tab === 1 && (
+          <Box sx={{ mt: 2 }}>
+            <Paper className="xnamai-admin-card" variant="outlined" sx={{ p: { xs: 1.25, md: 1.5 } }}>
+              <Box
+                sx={{
+                  display: "grid",
+                  gridTemplateColumns: { xs: "repeat(10, 1fr)", md: "repeat(20, 1fr)" },
+                  gap: .6,
+                }}
+              >
+                {Array.from({ length: 100 }, (_, n) => {
+                  const owner = numbers.find(x => Number(x.n) === n);
+                  const idx   = owner ? (idToIdx.get(owner.user_id) ?? 0) : 0;
+                  const bg    = owner ? buyerColor(idx) : "transparent";
+                  const bd    = owner ? "none" : "1px solid rgba(15,23,42,0.12)";
+                  const fg    = owner ? "#000" : "#0B1B33";
+                  const title = owner ? `${pad2(n)} • ${owner.name || owner.email || "Comprador"}` : pad2(n);
+                  return (
+                    <Box
+                      key={n}
+                      title={title}
+                      sx={{
+                        userSelect: "none",
+                        textAlign: "center",
+                        py: .8,
+                        borderRadius: 1.5,
+                        fontWeight: 900,
+                        letterSpacing: .4,
+                        fontSize: 12,
+                        border: bd,
+                        bgcolor: bg,
+                        color: fg,
+                      }}
+                    >
+                      {pad2(n)}
+                    </Box>
+                  );
+                })}
               </Box>
-            )}
-          </Paper>
-        </Stack>
-      </Container>
-    </ThemeProvider>
+            </Paper>
+          </Box>
+        )}
+      </Paper>
+    </XnamaiAdminLayout>
   );
 }

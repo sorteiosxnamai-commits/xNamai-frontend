@@ -2,24 +2,16 @@
 import * as React from "react";
 import { useNavigate, Link as RouterLink } from "react-router-dom";
 import {
-  AppBar, Box, Container, CssBaseline, IconButton, Menu, MenuItem, Divider,
+  IconButton, Menu, MenuItem, Divider,
   Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-  ThemeProvider, Toolbar, Typography, createTheme, TextField, Button
+  Typography, TextField, Button
 } from "@mui/material";
-import ArrowBackIosNewRoundedIcon from "@mui/icons-material/ArrowBackIosNewRounded";
 import AccountCircleRoundedIcon from "@mui/icons-material/AccountCircleRounded";
 import { useAuth } from "./authContext";
 import { API_CONFIG } from "./config/api";
 import BrandLogo from "./components/branding/BrandLogo";
-
-const theme = createTheme({
-  palette: {
-    mode: "dark",
-    background: { default: "#0E0E0E", paper: "#121212" },
-    success: { main: "#67C23A" },
-    error: { main: "#D32F2F" },
-  },
-});
+import "./styles/xnamai-admin.css";
+import XnamaiAdminLayout from "./components/admin/XnamaiAdminLayout";
 
 /* ---------- API base util ---------- */
 const RAW_BASE = API_CONFIG.baseUrl || "/api";
@@ -153,21 +145,13 @@ export default function AdminVencedores() {
   };
 
   return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-      <AppBar position="sticky" elevation={0} sx={{ borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
-        <Toolbar sx={{ position: "relative", minHeight: 64 }}>
-          <IconButton edge="start" color="inherit" onClick={() => navigate("/admin")} aria-label="Voltar">
-            <ArrowBackIosNewRoundedIcon />
-          </IconButton>
-          <Box
-            component={RouterLink}
-            to="/admin"
-            sx={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%, -50%)" }}
-          >
-            <BrandLogo size={34} />
-          </Box>
-          <IconButton color="inherit" sx={{ ml: "auto" }} onClick={openMenu}>
+    <XnamaiAdminLayout
+      title="Vencedores"
+      subtitle="Lista de vencedores dos sorteios e dados do prêmio."
+      onBack={() => navigate("/admin")}
+      actions={
+        <>
+          <IconButton color="inherit" onClick={openMenu} aria-label="Conta">
             <AccountCircleRoundedIcon />
           </IconButton>
           <Menu
@@ -181,91 +165,80 @@ export default function AdminVencedores() {
             <Divider />
             <MenuItem onClick={doLogout}>Sair</MenuItem>
           </Menu>
-        </Toolbar>
-      </AppBar>
-
-      <Container maxWidth="lg" sx={{ py: { xs: 3, md: 6 } }}>
-        <Typography align="center" sx={{ fontWeight: 900, lineHeight: 1.1, fontSize: { xs: 26, md: 48 }, mb: 3 }}>
-          Lista de Vencedores
-          <br /> dos Sorteios
-        </Typography>
-
-        <Paper variant="outlined">
-          <TableContainer sx={{ overflowX: "auto" }}>
-            <Table sx={{ minWidth: 1100 }}>
-              <TableHead>
-                <TableRow>
-                  <TableCell sx={{ fontWeight: 800 }}>NOME DO USUÁRIO</TableCell>
-                  <TableCell sx={{ fontWeight: 800 }}>Nº SORTEIO</TableCell>
-                  <TableCell sx={{ fontWeight: 800 }}>NÚMERO VENCEDOR</TableCell>
-                  <TableCell sx={{ fontWeight: 800 }}>DATA DO SORTEIO</TableCell>
-                  <TableCell sx={{ fontWeight: 800 }}>SITUAÇÃO DO PRÊMIO</TableCell>
-                  <TableCell sx={{ fontWeight: 800 }}>DIAS CONTEMPLADO</TableCell>
-
-                  {/* NOVAS COLUNAS EDITÁVEIS */}
-                  <TableCell sx={{ fontWeight: 800, minWidth: 220 }}>PRODUTO</TableCell>
-                  <TableCell sx={{ fontWeight: 800, minWidth: 260 }}>LINK DO PRODUTO</TableCell>
-                  <TableCell sx={{ fontWeight: 800 }} align="right">AÇÕES</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {loading && (
-                  <TableRow><TableCell colSpan={9}>Carregando…</TableCell></TableRow>
-                )}
-                {!loading && rows.length === 0 && (
-                  <TableRow><TableCell colSpan={9} sx={{ color: "#bbb" }}>Nenhum vencedor encontrado.</TableCell></TableRow>
-                )}
-                {rows.map((w) => (
-                  <TableRow key={w.key} hover>
-                    <TableCell>{w.nome}</TableCell>
-                    <TableCell>{pad3(w.numero)}</TableCell>
-                    <TableCell>{w.numeroVencedor}</TableCell>
-                    <TableCell>{w.data}</TableCell>
-                    <TableCell sx={{ color: w.status === "RESGATADO" ? "success.main" : "error.main", fontWeight: 800 }}>
-                      {w.status}
-                    </TableCell>
-                    <TableCell>{w.dias}</TableCell>
-
-                    {/* PRODUTO (editável) */}
-                    <TableCell>
-                      <TextField
-                        size="small"
-                        placeholder="Nome do produto"
-                        value={w.productName}
-                        onChange={(e) => updateField(w.key, "productName", e.target.value)}
-                        fullWidth
-                      />
-                    </TableCell>
-
-                    {/* LINK DO PRODUTO (editável) */}
-                    <TableCell>
-                      <TextField
-                        size="small"
-                        placeholder="https://…"
-                        value={w.productLink}
-                        onChange={(e) => updateField(w.key, "productLink", e.target.value)}
-                        fullWidth
-                      />
-                    </TableCell>
-
-                    {/* AÇÕES */}
-                    <TableCell align="right">
-                      <Button
-                        variant="contained"
-                        size="small"
-                        onClick={() => saveRow(w)}
-                        disabled={savingId === w.drawId}
-                      >
-                        {savingId === w.drawId ? "Salvando…" : "Salvar"}
-                      </Button>
-                    </TableCell>
+        </>
+      }
+    >
+      <Paper className="xnamai-admin-card" variant="outlined" sx={{ p: { xs: 1, md: 1.5 } }}>
+        <div className="xnamai-admin-table-wrap">
+          <div className="xnamai-admin-table">
+            <TableContainer>
+              <Table sx={{ minWidth: 1100 }}>
+                <TableHead>
+                  <TableRow>
+                    <TableCell>NOME DO USUÁRIO</TableCell>
+                    <TableCell>Nº SORTEIO</TableCell>
+                    <TableCell>NÚMERO VENCEDOR</TableCell>
+                    <TableCell>DATA DO SORTEIO</TableCell>
+                    <TableCell>SITUAÇÃO DO PRÊMIO</TableCell>
+                    <TableCell>DIAS CONTEMPLADO</TableCell>
+                    <TableCell sx={{ minWidth: 220 }}>PRODUTO</TableCell>
+                    <TableCell sx={{ minWidth: 260 }}>LINK DO PRODUTO</TableCell>
+                    <TableCell align="right">AÇÕES</TableCell>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        </Paper>
-      </Container>
-    </ThemeProvider>
+                </TableHead>
+                <TableBody>
+                  {loading && (
+                    <TableRow><TableCell colSpan={9}>Carregando…</TableCell></TableRow>
+                  )}
+                  {!loading && rows.length === 0 && (
+                    <TableRow><TableCell colSpan={9} className="xnamai-admin-empty">Nenhum vencedor encontrado.</TableCell></TableRow>
+                  )}
+                  {rows.map((w) => (
+                    <TableRow key={w.key} hover>
+                      <TableCell sx={{ fontWeight: 800 }}>{w.nome}</TableCell>
+                      <TableCell sx={{ fontWeight: 900, color: "primary.main" }}>{pad3(w.numero)}</TableCell>
+                      <TableCell sx={{ fontWeight: 800 }}>{w.numeroVencedor}</TableCell>
+                      <TableCell>{w.data}</TableCell>
+                      <TableCell sx={{ color: w.status === "RESGATADO" ? "primary.main" : "text.secondary", fontWeight: 900 }}>
+                        {w.status}
+                      </TableCell>
+                      <TableCell>{w.dias}</TableCell>
+                      <TableCell>
+                        <TextField
+                          size="small"
+                          placeholder="Nome do produto"
+                          value={w.productName}
+                          onChange={(e) => updateField(w.key, "productName", e.target.value)}
+                          fullWidth
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <TextField
+                          size="small"
+                          placeholder="https://…"
+                          value={w.productLink}
+                          onChange={(e) => updateField(w.key, "productLink", e.target.value)}
+                          fullWidth
+                        />
+                      </TableCell>
+                      <TableCell align="right">
+                        <Button
+                          variant="contained"
+                          size="small"
+                          onClick={() => saveRow(w)}
+                          disabled={savingId === w.drawId}
+                        >
+                          {savingId === w.drawId ? "Salvando…" : "Salvar"}
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </div>
+        </div>
+      </Paper>
+    </XnamaiAdminLayout>
   );
 }
