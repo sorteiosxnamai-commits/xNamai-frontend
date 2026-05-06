@@ -50,9 +50,11 @@ import AccountCircleRoundedIcon from "@mui/icons-material/AccountCircleRounded";
 import LockRoundedIcon from "@mui/icons-material/LockRounded";
 
 // Imagens institucionais (neutras, marca xNaMai)
-import imgTabelaUtilizacao from "./assets/images/usage-table-illustration.svg";
 import imgAcumulo1 from "./assets/images/accumulo-1.svg";
 import imgAcumulo2 from "./assets/images/accumulo-2.svg";
+
+// PNG em `public/assets` (CRA — respeita PUBLIC_URL em deploy)
+const imgTabelaUtilizacao = `${process.env.PUBLIC_URL ?? ""}/assets/tabela-utilizacao-cartao.png`;
 
 // Tema
 const theme = createTheme({
