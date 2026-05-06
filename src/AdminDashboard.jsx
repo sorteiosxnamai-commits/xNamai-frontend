@@ -4,8 +4,6 @@ import { useNavigate, Link as RouterLink } from "react-router-dom";
 import {
   AppBar,
   Box,
-  Button,
-  ButtonBase,
   Container,
   CssBaseline,
   Divider,
@@ -22,16 +20,24 @@ import {
 } from "@mui/material";
 import ArrowBackIosNewRoundedIcon from "@mui/icons-material/ArrowBackIosNewRounded";
 import AccountCircleRoundedIcon from "@mui/icons-material/AccountCircleRounded";
+import PeopleAltRoundedIcon from "@mui/icons-material/PeopleAltRounded";
+import LocalOfferRoundedIcon from "@mui/icons-material/LocalOfferRounded";
+import InsightsRoundedIcon from "@mui/icons-material/InsightsRounded";
+import HistoryRoundedIcon from "@mui/icons-material/HistoryRounded";
+import AccountBalanceWalletRoundedIcon from "@mui/icons-material/AccountBalanceWalletRounded";
+import EmojiEventsRoundedIcon from "@mui/icons-material/EmojiEventsRounded";
+import ArrowForwardRoundedIcon from "@mui/icons-material/ArrowForwardRounded";
 import { useAuth } from "./authContext";
 import { API_CONFIG } from "./config/api";
 import BrandLogo from "./components/branding/BrandLogo";
+import "./styles/xnamai-admin.css";
 
 const theme = createTheme({
   palette: {
-    mode: "dark",
-    primary: { main: "#2E7D32" },
-    background: { default: "#0E0E0E", paper: "#121212" },
-    warning: { main: "#B58900" },
+    mode: "light",
+    primary: { main: "#1E66FF" },
+    background: { default: "#F4F8FF", paper: "#FFFFFF" },
+    text: { primary: "#0B1B33", secondary: "rgba(11,27,51,0.72)" },
   },
   shape: { borderRadius: 16 },
   typography: { fontFamily: ["Inter", "system-ui", "Segoe UI", "Roboto", "Arial"].join(",") },
@@ -89,43 +95,63 @@ async function postJSON(path, body, method = "POST") {
   return r.json().catch(() => ({}));
 }
 
-/* ---------- Card grande clicável (as 3 listas) ---------- */
-function BigCard({ children, color, outlined = false, onClick }) {
+function NavCard({ icon, title, desc, onClick }) {
   return (
-    <ButtonBase onClick={onClick} sx={{ width: "100%" }}>
-      <Paper
-        elevation={0}
-        sx={{
-          width: "100%",
-          p: { xs: 3, md: 4 },
-          borderRadius: 4,
-          bgcolor: outlined ? "transparent" : color,
-          border: outlined ? "1px solid rgba(255,255,255,0.16)" : "none",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          minHeight: { xs: 120, md: 140 },
-          transition: "transform 120ms ease, filter 120ms ease",
-          "&:hover": { transform: "translateY(-2px)", filter: "brightness(1.02)" },
-          textAlign: "center",
-        }}
-      >
-        <Typography
+    <Paper
+      role="button"
+      tabIndex={0}
+      onClick={onClick}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") onClick?.();
+      }}
+      className="xnamai-admin-card"
+      sx={{
+        p: { xs: 2, md: 2.5 },
+        cursor: "pointer",
+        transition: "transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease",
+        borderColor: "rgba(15, 23, 42, 0.10)",
+        "&:hover": {
+          transform: "translateY(-2px)",
+          borderColor: "rgba(30, 102, 255, 0.22)",
+          boxShadow: "0 22px 56px rgba(15,23,42,0.12)",
+        },
+        "&:focus-visible": {
+          outline: "3px solid rgba(30, 102, 255, 0.25)",
+          outlineOffset: 2,
+        },
+      }}
+    >
+      <Stack direction="row" spacing={1.5} alignItems="flex-start">
+        <Box
           sx={{
-            fontWeight: 900,
-            letterSpacing: 2,
-            fontSize: { xs: 18, md: 28 },
-            lineHeight: 1.25,
-            color: outlined ? "rgba(255,255,255,0.85)" : "#fff",
-            textTransform: "uppercase",
-            fontFamily:
-              'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+            width: 44,
+            height: 44,
+            borderRadius: 999,
+            display: "grid",
+            placeItems: "center",
+            background: "linear-gradient(135deg, rgba(30,102,255,0.14) 0%, rgba(11,95,255,0.10) 100%)",
+            border: "1px solid rgba(30, 102, 255, 0.18)",
+            color: "primary.main",
+            flex: "0 0 auto",
           }}
         >
-          {children}
-        </Typography>
-      </Paper>
-    </ButtonBase>
+          {icon}
+        </Box>
+
+        <Box sx={{ flex: 1, minWidth: 0 }}>
+          <Typography sx={{ fontWeight: 900, fontSize: 16, color: "text.primary" }}>
+            {title}
+          </Typography>
+          <Typography sx={{ mt: 0.5, color: "text.secondary", fontWeight: 600, fontSize: 13, lineHeight: 1.35 }}>
+            {desc}
+          </Typography>
+        </Box>
+
+        <Box sx={{ color: "primary.main", opacity: 0.9, pt: 0.5 }}>
+          <ArrowForwardRoundedIcon />
+        </Box>
+      </Stack>
+    </Paper>
   );
 }
 
@@ -264,112 +290,130 @@ export default function AdminDashboard() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-
-      <AppBar position="sticky" elevation={0} sx={{ borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
-        <Toolbar sx={{ position: "relative", minHeight: 64 }}>
-          <IconButton edge="start" color="inherit" onClick={() => navigate("/admin")} aria-label="Voltar">
-            <ArrowBackIosNewRoundedIcon />
-          </IconButton>
-
-          <Box component={RouterLink} to="/admin"
-               sx={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%, -50%)" }}>
-            <BrandLogo size={34} />
-          </Box>
-
-          <IconButton color="inherit" sx={{ ml: "auto" }} onClick={openMenu}>
-            <AccountCircleRoundedIcon />
-          </IconButton>
-          <Menu
-            anchorEl={menuEl}
-            open={open}
-            onClose={closeMenu}
-            anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
-            transformOrigin={{ vertical: "top", horizontal: "right" }}
+      <div className="xnamai-admin-page">
+        <div className="xnamai-admin-bg" />
+        <div className="xnamai-admin-shell">
+          <AppBar
+            position="sticky"
+            elevation={0}
+            className="xnamai-admin-header"
+            sx={{
+              bgcolor: "transparent",
+              color: "text.primary",
+            }}
           >
-            <MenuItem onClick={goPainel}>Painel (Admin)</MenuItem>
-            <Divider />
-            <MenuItem onClick={doLogout}>Sair</MenuItem>
-          </Menu>
-        </Toolbar>
-      </AppBar>
+            <Toolbar sx={{ position: "relative", minHeight: 64 }}>
+              <IconButton edge="start" color="inherit" onClick={() => navigate("/admin")} aria-label="Voltar">
+                <ArrowBackIosNewRoundedIcon />
+              </IconButton>
 
-      <Container maxWidth="md" sx={{ py: { xs: 4, md: 8 } }}>
-        <Stack spacing={4} alignItems="center">
-          <Typography sx={{ fontWeight: 900, textAlign: "center", lineHeight: 1.1, fontSize: { xs: 28, md: 56 } }}>
-            Painel de Controle
-            <br /> dos Sorteios
-          </Typography>
+              <Box
+                component={RouterLink}
+                to="/admin"
+                sx={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%, -50%)" }}
+              >
+                <BrandLogo size={34} />
+              </Box>
+
+              <IconButton color="inherit" sx={{ ml: "auto" }} onClick={openMenu}>
+                <AccountCircleRoundedIcon />
+              </IconButton>
+              <Menu
+                anchorEl={menuEl}
+                open={open}
+                onClose={closeMenu}
+                anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+                transformOrigin={{ vertical: "top", horizontal: "right" }}
+              >
+                <MenuItem onClick={goPainel}>Painel (Admin)</MenuItem>
+                <Divider />
+                <MenuItem onClick={doLogout}>Sair</MenuItem>
+              </Menu>
+            </Toolbar>
+          </AppBar>
+
+          <Container maxWidth="lg" className="xnamai-admin-section">
+            <Stack spacing={3}>
+              <Box>
+                <Typography className="xnamai-admin-title" sx={{ fontSize: { xs: 26, md: 44 } }}>
+                  Painel Admin
+                </Typography>
+                <Typography className="xnamai-admin-subtitle" sx={{ mt: 0.75 }}>
+                  Configure o sorteio atual e acesse rapidamente as áreas principais.
+                </Typography>
+              </Box>
 
           {/* Painel (resumo + preço e configs) */}
-          <Paper variant="outlined" sx={{ p: { xs: 3, md: 4 }, borderRadius: 4, width: "100%" }}>
-            <Stack direction="row" spacing={4} alignItems="center" flexWrap="wrap">
+          <Paper className="xnamai-admin-card" variant="outlined" sx={{ p: { xs: 2, md: 3 } }}>
+            <Stack direction={{ xs: "column", md: "row" }} spacing={2} alignItems={{ xs: "stretch", md: "center" }} flexWrap="wrap">
               <Stack>
-                <Typography sx={{ opacity: 0.7, fontWeight: 700 }}>Nº Sorteio Atual</Typography>
-                <Typography variant="h4" sx={{ fontWeight: 900 }}>
+                <Typography sx={{ color: "text.secondary", fontWeight: 800 }}>Nº Sorteio atual</Typography>
+                <Typography variant="h4" sx={{ fontWeight: 900, color: "text.primary" }}>
                   {loading ? "…" : drawId ?? "-"}
                 </Typography>
               </Stack>
 
               <Stack>
-                <Typography sx={{ opacity: 0.7, fontWeight: 700 }}>Nºs Vendidos</Typography>
-                <Typography variant="h4" sx={{ fontWeight: 900 }}>
+                <Typography sx={{ color: "text.secondary", fontWeight: 800 }}>Números vendidos</Typography>
+                <Typography variant="h4" sx={{ fontWeight: 900, color: "text.primary" }}>
                   {loading ? "…" : sold}
                 </Typography>
               </Stack>
 
               <Stack>
-                <Typography sx={{ opacity: 0.7, fontWeight: 700 }}>Nºs Restantes</Typography>
-                <Typography variant="h4" sx={{ fontWeight: 900 }}>
+                <Typography sx={{ color: "text.secondary", fontWeight: 800 }}>Números restantes</Typography>
+                <Typography variant="h4" sx={{ fontWeight: 900, color: "text.primary" }}>
                   {loading ? "…" : remaining}
                 </Typography>
               </Stack>
 
               <Box sx={{ flex: 1 }} />
 
-              <Button
+              <Box
+                component="button"
                 onClick={onNewDraw}
                 disabled={creating}
-                variant="outlined"
-                sx={{ borderRadius: 999, px: 3 }}
+                className="xnamai-admin-button secondary"
+                style={{ cursor: creating ? "not-allowed" : "pointer" }}
               >
                 {creating ? "Criando..." : "NOVO SORTEIO"}
-              </Button>
+              </Box>
             </Stack>
 
-            <Divider sx={{ my: 3 }} />
+            <Divider sx={{ my: 2.5 }} />
 
             {/* Valor por Ticket (centavos) */}
-            <Typography sx={{ opacity: 0.7, fontWeight: 700, mb: 1 }}>Valor por Ticket</Typography>
-            <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 2 }}>
+            <Typography sx={{ color: "text.secondary", fontWeight: 800, mb: 1 }}>Valor por ticket</Typography>
+            <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} alignItems={{ xs: "stretch", sm: "center" }} sx={{ mb: 2 }}>
               <TextField
                 value={price}
                 onChange={(e) => setPrice(e.target.value)}
                 placeholder="em centavos (ex.: 100 = R$ 1,00)"
                 inputProps={{ inputMode: "numeric", pattern: "[0-9]*" }}
-                sx={{ maxWidth: 320 }}
+                sx={{ maxWidth: 360 }}
               />
             </Stack>
 
             {/* Máximo de tickets por seleção */}
-            <Typography sx={{ opacity: 0.7, fontWeight: 700, mb: 1 }}>
+            <Typography sx={{ color: "text.secondary", fontWeight: 800, mb: 1 }}>
               Máximo de Tickets permitidos
             </Typography>
-            <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 2 }}>
+            <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} alignItems={{ xs: "stretch", sm: "center" }} sx={{ mb: 2 }}>
               <TextField
                 type="number"
                 value={maxSelect}
                 onChange={(e) => setMaxSelect(e.target.value)}
                 placeholder="Ex.: 5"
                 inputProps={{ min: 1 }}
-                sx={{ maxWidth: 320 }}
+                sx={{ maxWidth: 220 }}
               />
             </Stack>
 
             {/* Frase promocional */}
-            <Typography sx={{ opacity: 0.7, fontWeight: 700, mb: 1 }}>
+            <Typography sx={{ color: "text.secondary", fontWeight: 800, mb: 1 }}>
               Frase promocional
             </Typography>
-            <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 3 }}>
+            <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} alignItems={{ xs: "stretch", sm: "center" }} sx={{ mb: 2.5 }}>
               <TextField
                 value={bannerTitle}
                 onChange={(e) => setBannerTitle(e.target.value)}
@@ -378,53 +422,76 @@ export default function AdminDashboard() {
               />
             </Stack>
 
-            <Button
+            <Box
+              component="button"
               onClick={onSaveAll}
               disabled={saving}
-              variant="contained"
-              color="primary"
-              sx={{ borderRadius: 999, px: 3 }}
+              className="xnamai-admin-button"
+              style={{ cursor: saving ? "not-allowed" : "pointer" }}
             >
               {saving ? "Salvando..." : "ATUALIZAR"}
-            </Button>
+            </Box>
           </Paper>
 
-          {/* As 3 listas */}
-          <Stack  spacing={3} sx={{ width: "100%" }}>
-             <BigCard color="green"  onClick={() => navigate("/admin/AdminClientesUser")}>
-              CADASTRO E MANUTENÇÃO
-              <br /> CLIENTES
-            </BigCard>
-
-            <br />
-            <Divider sx={{ my: 3, borderColor: "rgba(255,255,255,0.18)", borderBottomWidth: 2 }} />
-            <br />
-            <BigCard color="info.dark" onClick={() => navigate("/admin/sorteiosAtivos")}>
-              SORTEIO ATIVO<br /> COMPRADORES
-            </BigCard>
-            <br />
-              <br />
-            <BigCard color="info.dark" onClick={() => navigate("/admin/analytics")}>
-              DASHBOARD - ANALISE
-            </BigCard>
-            <br />
-            <BigCard outlined onClick={() => navigate("/admin/sorteios")}>
-              LISTA DE SORTEIOS
-              <br /> REALIZADOS
-            </BigCard>
-
-            <BigCard color="primary.main" onClick={() => navigate("/admin/clientes")}>
-              LISTA DE CLIENTES
-              <br /> COM SALDO ATIVO
-            </BigCard>
-
-            <BigCard color="warning.main" onClick={() => navigate("/admin/vencedores")}>
-              LISTA DE VENCEDORES
-              <br /> DOS SORTEIOS
-            </BigCard>
-          </Stack>
+          <Box>
+            <Typography sx={{ fontWeight: 900, fontSize: 16, mb: 1, color: "text.primary" }}>
+              Acessos rápidos
+            </Typography>
+            <Box className="xnamai-admin-grid">
+              <Box sx={{ gridColumn: { xs: "span 12", md: "span 6" } }}>
+                <NavCard
+                  icon={<PeopleAltRoundedIcon />}
+                  title="Cadastro e manutenção de clientes"
+                  desc="Criar/editar clientes, saldo de cupom e permissões."
+                  onClick={() => navigate("/admin/AdminClientesUser")}
+                />
+              </Box>
+              <Box sx={{ gridColumn: { xs: "span 12", md: "span 6" } }}>
+                <NavCard
+                  icon={<LocalOfferRoundedIcon />}
+                  title="Sorteio ativo — compradores"
+                  desc="Ver compradores e exportar CSV/PNG do sorteio aberto."
+                  onClick={() => navigate("/admin/sorteiosAtivos")}
+                />
+              </Box>
+              <Box sx={{ gridColumn: { xs: "span 12", md: "span 6" } }}>
+                <NavCard
+                  icon={<InsightsRoundedIcon />}
+                  title="Dashboard — análise"
+                  desc="KPIs, gráficos e tabelas de performance."
+                  onClick={() => navigate("/admin/analytics")}
+                />
+              </Box>
+              <Box sx={{ gridColumn: { xs: "span 12", md: "span 6" } }}>
+                <NavCard
+                  icon={<HistoryRoundedIcon />}
+                  title="Lista de sorteios realizados"
+                  desc="Histórico, vencedor e detalhes por sorteio."
+                  onClick={() => navigate("/admin/sorteios")}
+                />
+              </Box>
+              <Box sx={{ gridColumn: { xs: "span 12", md: "span 6" } }}>
+                <NavCard
+                  icon={<AccountBalanceWalletRoundedIcon />}
+                  title="Lista de clientes com saldo ativo"
+                  desc="Clientes com saldo de cupom e expiração."
+                  onClick={() => navigate("/admin/clientes")}
+                />
+              </Box>
+              <Box sx={{ gridColumn: { xs: "span 12", md: "span 6" } }}>
+                <NavCard
+                  icon={<EmojiEventsRoundedIcon />}
+                  title="Lista de vencedores dos sorteios"
+                  desc="Vencedores, status do prêmio e dados do produto."
+                  onClick={() => navigate("/admin/vencedores")}
+                />
+              </Box>
+            </Box>
+          </Box>
         </Stack>
       </Container>
+        </div>
+      </div>
     </ThemeProvider>
   );
 }
