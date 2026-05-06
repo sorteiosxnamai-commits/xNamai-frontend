@@ -2,7 +2,7 @@
 // Tamanho aproximado: ~1060 linhas (mantido o conteúdo original + iniciais + fix de número no mobile)
 
 import * as React from "react";
-import { useNavigate, Link as RouterLink } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { SelectionContext } from "./selectionContext";
 import PixModal from "./PixModal";
 import { createPixPayment, checkPixStatus } from "./services/pix";
@@ -17,7 +17,6 @@ import PixIcon from "@mui/icons-material/Pix";
 import CreditCardOutlinedIcon from "@mui/icons-material/CreditCardOutlined";
 import HelpOutlineOutlinedIcon from "@mui/icons-material/HelpOutlineOutlined";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import VerifiedUserRoundedIcon from "@mui/icons-material/VerifiedUserRounded";
 import ReplayRoundedIcon from "@mui/icons-material/ReplayRounded";
 import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
@@ -36,14 +35,12 @@ import {
   Chip,
   Container,
   CssBaseline,
-  Drawer,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
   Divider,
   IconButton,
-  InputBase,
   Link,
   Menu,
   MenuItem,
@@ -55,7 +52,6 @@ import {
   createTheme,
 } from "@mui/material";
 import AccountCircleRoundedIcon from "@mui/icons-material/AccountCircleRounded";
-import MenuRoundedIcon from "@mui/icons-material/MenuRounded";
 import LockRoundedIcon from "@mui/icons-material/LockRounded";
 
 // Imagens institucionais (neutras, marca xNaMai)
@@ -199,29 +195,6 @@ export default function NewStorePage({
     React.useContext(SelectionContext);
   const { user, token, logout } = useAuth();
   const isAuthenticated = !!(user?.email || user?.id || token);
-  const [mobileNavOpen, setMobileNavOpen] = React.useState(false);
-
-  const navItems = React.useMemo(
-    () => [
-      { id: "inicio", label: "Início" },
-      { id: "sobre", label: "Sobre o Sorteio" },
-      { id: "produtos", label: "Produtos" },
-      { id: "como-funciona", label: "Como Funciona" },
-      { id: "duvidas", label: "Dúvidas" },
-      { id: "contato", label: "Contato" },
-    ],
-    []
-  );
-
-  const scrollToSection = React.useCallback((id) => {
-    try {
-      const el = document.getElementById(id);
-      if (!el) return;
-      el.scrollIntoView({ behavior: "smooth", block: "start" });
-    } finally {
-      setMobileNavOpen(false);
-    }
-  }, []);
 
   // Estados vindos do backend
   const [srvIndisponiveis, setSrvIndisponiveis] = React.useState([]);
@@ -595,145 +568,114 @@ export default function NewStorePage({
         <div className="xnamai-page-content">
       {/* Topo */}
       <AppBar
-        position="sticky"
+        position="fixed"
         elevation={0}
         sx={{
-          borderBottom: "1px solid rgba(15, 23, 42, 0.06)",
-          bgcolor: "#FFFFFF",
-          backdropFilter: "saturate(180%) blur(10px)",
+          top: 0,
+          left: 0,
+          right: 0,
+          zIndex: (t) => t.zIndex.drawer + 1,
+          borderBottom: "1px solid rgba(15, 23, 42, 0.08)",
+          bgcolor: "rgba(255, 255, 255, 0.92)",
+          boxShadow: "0 8px 24px rgba(15, 23, 42, 0.08)",
+          backdropFilter: "blur(8px) saturate(140%)",
         }}
       >
-        <Toolbar sx={{ minHeight: 62 }}>
+        <Toolbar sx={{ minHeight: 55 }}>
           <Container
-            maxWidth="lg"
+            maxWidth={false}
             disableGutters
             sx={{
-              display: "flex",
+              display: "grid",
+              gridTemplateColumns: "1fr auto 1fr",
               alignItems: "center",
-              gap: 2,
-              px: { xs: 2, sm: 2.5 },
+              gap: 1,
+              px: { xs: 1, sm: 1.5, md: 1.75 },
             }}
           >
-          <IconButton
-            edge="start"
-            color="inherit"
-            onClick={() => setMobileNavOpen(true)}
-            sx={{ display: { xs: "inline-flex", md: "none" } }}
-            aria-label="Abrir menu"
-          >
-            <MenuRoundedIcon />
-          </IconButton>
+          <Box sx={{ justifySelf: "start" }}>
+            <Button
+              onClick={() => navigate("/cadastro")}
+              variant="text"
+              sx={{
+                textTransform: "uppercase",
+                fontWeight: 700,
+                letterSpacing: 1.1,
+                color: isAuthenticated ? "rgba(11,27,51,0.86)" : "#1E66FF",
+                fontSize: { xs: 11, sm: 11.8, md: 12.2 },
+                px: { xs: 0.45, sm: 0.65, md: 0.8 },
+                py: 0.55,
+                borderRadius: 999,
+                border: "1px solid transparent",
+                bgcolor: "transparent",
+                whiteSpace: "nowrap",
+                minWidth: "auto",
+                transition: "all 180ms ease",
+                "&:hover": {
+                  bgcolor: "rgba(30, 102, 255, 0.08)",
+                  borderColor: "rgba(30, 102, 255, 0.26)",
+                },
+                "&:focus-visible": {
+                  bgcolor: "rgba(30, 102, 255, 0.08)",
+                  borderColor: "rgba(30, 102, 255, 0.26)",
+                },
+              }}
+            >
+              {isAuthenticated ? "Minha Conta" : "Criar Conta"}
+            </Button>
+          </Box>
 
           <Button
-            onClick={() => scrollToSection("inicio")}
+            onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
             variant="text"
             sx={{
+              justifySelf: "center",
               px: 0,
-              mr: 1,
-              fontWeight: 800,
-              letterSpacing: 0.2,
+              minWidth: "auto",
               textTransform: "none",
-              color: "text.primary",
               "&:hover": { bgcolor: "transparent" },
             }}
           >
-            <Stack direction="row" spacing={1.2} alignItems="center">
-              <BrandLogo size={28} />
-            </Stack>
+            <Typography
+              component="span"
+              sx={{
+                color: "#1E66FF",
+                fontFamily: '"Space Grotesk", "Inter", "Segoe UI", "Roboto", "Helvetica Neue", Arial, sans-serif',
+                fontSize: { xs: 17, sm: 18.5, md: 20 },
+                fontWeight: 700,
+                letterSpacing: { xs: "3.8px", sm: "4.4px", md: "5px" },
+                lineHeight: 1,
+                textTransform: "uppercase",
+                transform: "scaleX(1.15)",
+                transformOrigin: "center",
+                whiteSpace: "nowrap",
+              }}
+            >
+              XNaMai
+            </Typography>
           </Button>
 
-          <Stack
-            direction="row"
-            spacing={2.2}
-            alignItems="center"
-            sx={{
-              display: { xs: "none", md: "flex" },
-              mx: "auto",
-              transform: "translateX(-10px)",
-            }}
-          >
-            {navItems.map((it) => (
-              <Button
-                key={it.id}
-                onClick={() => scrollToSection(it.id)}
-                variant="text"
-                className={
-                  it.id === "inicio"
-                    ? "xnamai-header__navItem xnamai-header__navItem--active"
-                    : "xnamai-header__navItem"
-                }
-                sx={{
-                  minWidth: "auto",
-                  px: 0,
-                  py: 0.5,
-                  fontWeight: 600,
-                  textTransform: "none",
-                  "&:hover": {
-                    bgcolor: "transparent",
-                    opacity: 0.92,
-                  },
-                }}
-              >
-                {it.label}
-              </Button>
-            ))}
-          </Stack>
-
-          {/* Busca (sem placeholder) */}
-          <Paper
-            component="form"
-            role="search"
-            aria-label="Buscar"
-            onSubmit={(e) => e.preventDefault()}
-            variant="outlined"
-            sx={{
-              ml: "auto",
-              mr: 1.2,
-              px: 1.6,
-              py: 0.5,
-              borderRadius: 999,
-              display: { xs: "none", md: "flex" },
-              alignItems: "center",
-              gap: 1,
-              width: 330,
-              bgcolor: "#F2F6FF",
-              borderColor: "rgba(15, 23, 42, 0.08)",
-              boxShadow: "none",
-              "&:focus-within": {
-                borderColor: "rgba(30, 102, 255, 0.35)",
-                boxShadow: "0 0 0 4px rgba(30, 102, 255, 0.10)",
-              },
-            }}
-          >
-            <InputBase
-              inputProps={{
-                "aria-label": "Buscar",
-                placeholder: "",
-              }}
-              placeholder=""
+          <Box sx={{ justifySelf: "end" }}>
+            <IconButton
+              color="inherit"
               sx={{
-                flex: 1,
-                fontSize: 14,
-                color: "text.primary",
-                "& input::placeholder": { color: "transparent" },
+                color: "rgba(11,27,51,0.92)",
+                border: "1px solid transparent",
+                bgcolor: "transparent",
+                width: 44,
+                height: 44,
+                transition: "transform 180ms ease, background-color 180ms ease",
+                "&:hover": {
+                  bgcolor: "rgba(30, 102, 255, 0.08)",
+                  transform: "translateY(-1px)",
+                },
               }}
-            />
-            <SearchRoundedIcon sx={{ color: "rgba(11,27,51,0.55)" }} />
-          </Paper>
-
-          <IconButton
-            color="inherit"
-            sx={{
-              color: "text.primary",
-              border: "1px solid rgba(15, 23, 42, 0.10)",
-              width: 40,
-              height: 40,
-            }}
-            onClick={handleOpenMenu}
-            aria-label={isAuthenticated ? "Abrir menu do usuário" : "Abrir menu de login"}
-          >
-            <AccountCircleRoundedIcon />
-          </IconButton>
+              onClick={handleOpenMenu}
+              aria-label={isAuthenticated ? "Abrir menu do usuário" : "Abrir menu de login"}
+            >
+              <AccountCircleRoundedIcon sx={{ fontSize: 30 }} />
+            </IconButton>
+          </Box>
           <Menu
             anchorEl={menuEl}
             open={menuOpen}
@@ -755,64 +697,8 @@ export default function NewStorePage({
         </Toolbar>
       </AppBar>
 
-      <Drawer
-        anchor="left"
-        open={mobileNavOpen}
-        onClose={() => setMobileNavOpen(false)}
-        PaperProps={{
-          sx: {
-            width: 280,
-            bgcolor: "background.paper",
-            borderRight: "1px solid rgba(15, 23, 42, 0.10)",
-            backgroundImage:
-              "radial-gradient(120% 90% at 10% 20%, rgba(30,102,255,0.10) 0%, transparent 60%), radial-gradient(120% 90% at 85% 35%, rgba(30,102,255,0.06) 0%, transparent 60%)",
-          },
-        }}
-      >
-        <Stack spacing={1} sx={{ p: 2 }}>
-          <Stack direction="row" spacing={1.2} alignItems="center">
-            <BrandLogo size={26} />
-            <Typography sx={{ fontWeight: 900, letterSpacing: 0.6 }}>
-              Sorteios
-            </Typography>
-          </Stack>
-          <Divider sx={{ borderColor: "rgba(255,255,255,0.10)" }} />
-          {navItems.map((it) => (
-            <Button
-              key={it.id}
-              onClick={() => scrollToSection(it.id)}
-              sx={{
-                justifyContent: "flex-start",
-                fontWeight: 800,
-                textTransform: "none",
-                color: "text.primary",
-              }}
-            >
-              {it.label}
-            </Button>
-          ))}
-          {!isAuthenticated && (
-            <Button
-              component={RouterLink}
-              to="/cadastro"
-              variant="contained"
-              sx={{
-                mt: 1,
-                fontWeight: 900,
-                borderRadius: 999,
-                bgcolor: "primary.main",
-                color: "#fff",
-                boxShadow: "0 12px 22px rgba(30, 102, 255, 0.25)",
-              }}
-            >
-              Criar conta
-            </Button>
-          )}
-        </Stack>
-      </Drawer>
-
       {/* Conteúdo */}
-      <Container maxWidth="lg" sx={{ py: { xs: 3.5, md: 5 } }}>
+      <Container maxWidth="lg" sx={{ pt: { xs: 10, md: 11 }, pb: { xs: 3.5, md: 5 } }}>
         <Stack spacing={4}>
           <Box id="inicio" />
 

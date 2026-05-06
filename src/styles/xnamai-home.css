@@ -31,24 +31,32 @@
   position: relative;
   font-weight: 600;
   letter-spacing: 0.2px;
-  padding: 8px 10px;
-  border-radius: 10px;
-  color: rgba(11, 27, 51, 0.72);
+  border-radius: 999px;
+  color: rgba(255, 255, 255, 0.78);
+  transition: color 180ms ease, background-color 180ms ease, transform 180ms ease;
+}
+
+.xnamai-header__navItem:hover {
+  color: #FFFFFF;
+  background: rgba(255, 255, 255, 0.08);
+  transform: translateY(-1px);
 }
 
 .xnamai-header__navItem--active {
-  color: #1E66FF;
+  color: #FFFFFF;
+  background: linear-gradient(135deg, rgba(30,102,255,0.42), rgba(30,102,255,0.22));
+  box-shadow: 0 8px 18px rgba(30, 102, 255, 0.22);
 }
 
 .xnamai-header__navItem--active::after {
   content: "";
   position: absolute;
-  left: 10px;
-  right: 10px;
-  bottom: -12px;
-  height: 3px;
-  border-radius: 3px;
-  background: #1E66FF;
+  left: 14px;
+  right: 14px;
+  bottom: 5px;
+  height: 2px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.88);
 }
 
 /* Hero com shapes internos */
