@@ -19,10 +19,6 @@ import HelpOutlineOutlinedIcon from "@mui/icons-material/HelpOutlineOutlined";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import VerifiedUserRoundedIcon from "@mui/icons-material/VerifiedUserRounded";
 import ReplayRoundedIcon from "@mui/icons-material/ReplayRounded";
-import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
-import ArrowForwardRoundedIcon from "@mui/icons-material/ArrowForwardRounded";
-import EmojiEventsOutlinedIcon from "@mui/icons-material/EmojiEventsOutlined";
-import ConfirmationNumberOutlinedIcon from "@mui/icons-material/ConfirmationNumberOutlined";
 
 import GiftCardSimulator from "./components/GiftCardSimulator.jsx";
 import "./styles/xnamai-home.css";
@@ -189,6 +185,7 @@ export default function NewStorePage({
   indisponiveis = MOCK_INDISPONIVEIS,
   groupUrl = "https://chat.whatsapp.com/GdosYmyW2Jj1mDXNDTFt6F",
 }) {
+  const totalGridNumbers = 100;
   const navigate = useNavigate();
   const { selecionados, setSelecionados, limparSelecao } =
     React.useContext(SelectionContext);
@@ -529,27 +526,32 @@ export default function NewStorePage({
   const getCellSx = (n) => {
     if (isIndisponivel(n))
       return {
-        border: "1px solid rgba(15, 23, 42, 0.10)",
-        bgcolor: "rgba(15, 23, 42, 0.32)",
-        color: "rgba(255,255,255,0.92)",
+        border: "1px solid rgba(15, 23, 42, 0.14)",
+        bgcolor: "rgba(15, 23, 42, 0.30)",
+        color: "rgba(255,255,255,0.94)",
         cursor: "not-allowed",
+        boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.08)",
         opacity: 0.9,
       };
 
     if (isSelecionado(n))
       return {
-        border: "1px solid rgba(30, 102, 255, 0.65)",
-        bgcolor: "primary.main",
+        border: "1px solid rgba(30, 102, 255, 0.85)",
+        bgcolor: "#1E66FF",
         color: "#FFFFFF",
-        boxShadow: "0 10px 22px rgba(30, 102, 255, 0.22)",
+        boxShadow: "0 10px 20px rgba(30, 102, 255, 0.28)",
       };
 
     return {
-      border: "1px solid rgba(30,102,255,0.18)",
+      border: "1px solid rgba(30,102,255,0.24)",
       bgcolor: "#FFFFFF",
       color: "#1E66FF",
-      "&:hover": { borderColor: "rgba(30, 102, 255, 0.28)", boxShadow: "0 10px 18px rgba(15, 23, 42, 0.08)" },
-      transition: "border-color 140ms ease, box-shadow 140ms ease, transform 120ms ease",
+      "&:hover": {
+        borderColor: "rgba(30, 102, 255, 0.52)",
+        boxShadow: "0 10px 16px rgba(30, 102, 255, 0.18)",
+        transform: "translateY(-1px)",
+      },
+      transition: "border-color 160ms ease, box-shadow 160ms ease, transform 120ms ease",
       "&:active": { transform: "scale(0.98)" },
     };
   };
@@ -797,25 +799,29 @@ export default function NewStorePage({
           >
             <Box id="sobre" />
             {/* Título do bloco (com ícone à esquerda, como na referência) */}
-            <Stack direction="row" spacing={1.2} alignItems="center" sx={{ mb: 1.2 }}>
-              <Box
-                sx={{
-                  width: 28,
-                  height: 28,
-                  borderRadius: 2.2,
-                  bgcolor: "rgba(30,102,255,0.10)",
-                  display: "grid",
-                  placeItems: "center",
-                }}
-              >
-                <ConfirmationNumberOutlinedIcon sx={{ color: "#1E66FF", fontSize: 18 }} />
-              </Box>
+            <Stack
+              direction="row"
+              spacing={1.2}
+              alignItems="center"
+              justifyContent="center"
+              sx={{
+                mb: 1.8,
+                py: 1.4,
+                px: 2,
+                borderRadius: 3,
+                border: "1px solid rgba(30, 102, 255, 0.20)",
+                background:
+                  "linear-gradient(90deg, rgba(30,102,255,0.14) 0%, rgba(30,102,255,0.08) 55%, rgba(13,171,255,0.10) 100%)",
+              }}
+            >
               <Typography
                 sx={{
                   fontWeight: 900,
-                  letterSpacing: 0.4,
+                  letterSpacing: 1,
                   color: "#1E66FF",
-                  fontSize: { xs: 18, md: 22 },
+                  fontSize: { xs: 20, md: 40 },
+                  textAlign: "center",
+                  lineHeight: 1.1,
                 }}
               >
                 {bannerTitle || "SORTEIO TISSOT PRX DAMASCUS"}
@@ -827,23 +833,26 @@ export default function NewStorePage({
               spacing={2}
               alignItems={{ xs: "stretch", md: "center" }}
               justifyContent="space-between"
-              sx={{ mb: 2 }}
+              sx={{ mb: 2.3 }}
             >
-              <Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap">
+              <Stack direction="row" spacing={1} alignItems="center" justifyContent="center" flexWrap="wrap">
                 {/* Legenda com bolinhas (como na referência) */}
-                <Stack direction="row" spacing={0.8} alignItems="center">
-                  <Box sx={{ width: 10, height: 10, borderRadius: 999, border: "2px solid #1E66FF", bgcolor: "#fff" }} />
-                  <Typography variant="caption" sx={{ color: "rgba(11,27,51,0.72)", fontWeight: 700 }}>
+                <Stack direction="row" spacing={0.6} alignItems="center" sx={{ px: 1.05, py: 0.46, borderRadius: 999, bgcolor: "rgba(30,102,255,0.12)", border: "1px solid rgba(30,102,255,0.26)" }}>
+                  <Typography variant="caption" sx={{ color: "#1E66FF", fontWeight: 900, letterSpacing: 0.3 }}>
                     DISPONÍVEL
                   </Typography>
                 </Stack>
-                <Stack direction="row" spacing={0.8} alignItems="center">
-                  <Box sx={{ width: 10, height: 10, borderRadius: 999, bgcolor: "rgba(15,23,42,0.35)" }} />
-                  <Typography variant="caption" sx={{ color: "rgba(11,27,51,0.72)", fontWeight: 700 }}>
+                <Stack direction="row" spacing={0.6} alignItems="center" sx={{ px: 1.05, py: 0.46, borderRadius: 999, border: "1px solid rgba(30,102,255,0.48)", bgcolor: "rgba(30,102,255,0.12)" }}>
+                  <Typography variant="caption" sx={{ color: "#1E66FF", fontWeight: 900, letterSpacing: 0.3 }}>
+                    RESERVADO
+                  </Typography>
+                </Stack>
+                <Stack direction="row" spacing={0.6} alignItems="center" sx={{ px: 1.05, py: 0.46, borderRadius: 999, border: "1px solid rgba(15,23,42,0.22)", bgcolor: "rgba(15,23,42,0.10)" }}>
+                  <Typography variant="caption" sx={{ color: "rgba(11,27,51,0.80)", fontWeight: 900, letterSpacing: 0.3 }}>
                     INDISPONÍVEL
                   </Typography>
                 </Stack>
-                <Typography variant="body2" sx={{ ml: 0.5, color: "text.secondary" }}>
+                <Typography variant="body2" sx={{ ml: 0.5, color: "rgba(11,27,51,0.72)" }}>
                   {Number.isFinite(limitUsage.max) && Number.isFinite(limitUsage.current)
                     ? `• Você tem ${Math.max(
                         0,
@@ -852,44 +861,88 @@ export default function NewStorePage({
                     : " "}
                 </Typography>
                 {!!selecionados.length && (
-                  <Typography variant="body2" sx={{ ml: 1, color: "text.secondary" }}>
+                  <Typography variant="body2" sx={{ ml: 1, color: "rgba(11,27,51,0.72)" }}>
                     • {selecionados.length} selecionado(s) (máx. {maxSelect} por seleção)
                   </Typography>
                 )}
               </Stack>
 
-              <Box id="produtos" />
+              <Stack direction="row" spacing={1.1} alignItems="stretch" sx={{ width: { xs: "100%", md: 360 } }}>
+                <Button
+                  fullWidth
+                  variant="outlined"
+                  disabled={!selecionados.length}
+                  onClick={limparSelecao}
+                  sx={{
+                    borderRadius: 1.6,
+                    fontWeight: 900,
+                    borderColor: "rgba(30,102,255,0.45)",
+                    color: "#1E66FF",
+                    bgcolor: "#FFFFFF",
+                    py: 1.02,
+                    textTransform: "uppercase",
+                    fontSize: 12,
+                    "&:hover": {
+                      borderColor: "rgba(30,102,255,0.62)",
+                      bgcolor: "rgba(244,248,255,0.98)",
+                    },
+                  }}
+                >
+                  Limpar Seleção
+                </Button>
+                <Button
+                  fullWidth
+                  variant="contained"
+                  disabled={continuarDisabled}
+                  onClick={handleAbrirConfirmacao}
+                  sx={{
+                    borderRadius: 1.6,
+                    fontWeight: 1000,
+                    color: "#FFFFFF",
+                    bgcolor: "#1E66FF",
+                    boxShadow: "0 12px 18px rgba(30, 102, 255, 0.28)",
+                    py: 1.02,
+                    textTransform: "uppercase",
+                    fontSize: 12,
+                    "&:hover": {
+                      bgcolor: "#2B73FF",
+                    },
+                  }}
+                >
+                  Continuar
+                </Button>
+              </Stack>
+
+              <Box id="produtos" sx={{ width: 0, height: 0 }} />
             </Stack>
 
-            <Stack
-              direction={{ xs: "column", md: "row" }}
-              spacing={2}
-              alignItems="stretch"
-            >
-              {/* Coluna esquerda: grade */}
-              <Box sx={{ flex: 1, minWidth: 0 }}>
-                {/* Grid (00..49 como referência) */}
+            <Box sx={{ minWidth: 0 }}>
+                {/* Grid expandida para visual mais denso e moderno */}
                 <Box
                   sx={{
                     width: "100%",
-                    maxWidth: 540,
-                    mx: { xs: "auto", md: 0 },
+                    maxWidth: 980,
+                    mx: "auto",
                   }}
                 >
                   <Box
                     sx={{
                       display: "grid",
-                      gridTemplateColumns: "repeat(10, minmax(0, 1fr))",
-                      gridTemplateRows: "repeat(5, minmax(0, 1fr))",
-                      gap: { xs: 1, md: 1.1 },
+                      gridTemplateColumns: {
+                        xs: "repeat(5, minmax(0, 1fr))",
+                        sm: "repeat(8, minmax(0, 1fr))",
+                        md: "repeat(10, minmax(0, 1fr))",
+                        lg: "repeat(10, minmax(0, 1fr))",
+                      },
+                      gap: { xs: 0.75, md: 0.85 },
                       boxSizing: "border-box",
-                      p: { xs: 1.2, md: 1.4 },
-                      borderRadius: 4,
-                      border: "1px solid rgba(15, 23, 42, 0.08)",
-                      background: "#FFFFFF",
+                      p: 0,
+                      border: "none",
+                      background: "transparent",
+                      boxShadow: "none",
                     }}
                   >
-                    {Array.from({ length: 50 }).map((_, idx) => {
+                    {Array.from({ length: totalGridNumbers }).map((_, idx) => {
                       const sold = isIndisponivel(idx);
                       const initials = soldInitials[idx];
                       return (
@@ -898,10 +951,10 @@ export default function NewStorePage({
                           onClick={() => handleClickNumero(idx)}
                           sx={{
                             ...getCellSx(idx),
-                            borderRadius: 2.6,
+                            borderRadius: 1.8,
                             userSelect: "none",
                             cursor: sold ? "not-allowed" : "pointer",
-                            height: { xs: 36, md: 42 },
+                            height: { xs: 38, md: 44 },
                             display: "flex",
                             alignItems: "center",
                             justifyContent: "center",
@@ -911,7 +964,7 @@ export default function NewStorePage({
                           }}
                         >
                           <Stack spacing={0.2} alignItems="center" sx={{ pointerEvents: "none" }}>
-                            <Box component="span" sx={{ fontSize: { xs: 12.5, md: 13.5 }, lineHeight: 1 }}>
+                            <Box component="span" sx={{ fontSize: { xs: 13, md: 14.5 }, lineHeight: 1 }}>
                               {pad2(idx)}
                             </Box>
                             {sold && initials && (
@@ -925,9 +978,9 @@ export default function NewStorePage({
                                   fontSize: 10,
                                   fontWeight: 900,
                                   letterSpacing: 0.6,
-                                  bgcolor: "rgba(11,27,51,0.08)",
-                                  border: "1px solid rgba(15,23,42,0.10)",
-                                  color: "rgba(11,27,51,0.80)",
+                                  bgcolor: "rgba(11,27,51,0.10)",
+                                  border: "1px solid rgba(15,23,42,0.12)",
+                                  color: "rgba(11,27,51,0.86)",
                                 }}
                               >
                                 {initials}
@@ -939,154 +992,7 @@ export default function NewStorePage({
                     })}
                   </Box>
                 </Box>
-              </Box>
-
-              {/* Coluna direita: painel */}
-              <Stack
-                spacing={1.5}
-                sx={{
-                  width: { xs: "100%", md: 360 },
-                  flexShrink: 0,
-                }}
-              >
-                <Stack direction="row" spacing={1.2}>
-                  <Button
-                    fullWidth
-                    variant="outlined"
-                    disabled={!selecionados.length}
-                    onClick={limparSelecao}
-                    sx={{
-                      borderRadius: 999,
-                      fontWeight: 900,
-                      borderColor: "rgba(30,102,255,0.45)",
-                      color: "#1E66FF",
-                      bgcolor: "#fff",
-                      py: 1.1,
-                      textTransform: "uppercase",
-                      fontSize: 12,
-                      "&:hover": { borderColor: "rgba(30, 102, 255, 0.55)", bgcolor: "rgba(244,248,255,0.90)" },
-                    }}
-                    startIcon={<DeleteOutlineRoundedIcon />}
-                  >
-                    Limpar seleção
-                  </Button>
-                  <Button
-                    fullWidth
-                    variant="contained"
-                    disabled={continuarDisabled}
-                    onClick={handleAbrirConfirmacao}
-                    sx={{
-                      borderRadius: 999,
-                      fontWeight: 1000,
-                      color: "#fff",
-                      bgcolor: "#1E66FF",
-                      backgroundImage: "linear-gradient(90deg, #1E66FF 0%, #0DABFF 100%)",
-                      boxShadow: "0 14px 24px rgba(30, 102, 255, 0.26)",
-                      py: 1.1,
-                      textTransform: "uppercase",
-                      fontSize: 12,
-                    }}
-                    endIcon={<ArrowForwardRoundedIcon />}
-                  >
-                    Continuar
-                  </Button>
-                </Stack>
-
-                <Paper
-                  variant="outlined"
-                  sx={{
-                    p: 2,
-                    borderRadius: 4,
-                    bgcolor: "#F4F8FF",
-                    borderColor: "rgba(15,23,42,0.08)",
-                    boxShadow: "0 12px 24px rgba(15, 23, 42, 0.06)",
-                  }}
-                >
-                  <Stack direction="row" spacing={1.4} alignItems="center">
-                    <Box
-                      sx={{
-                        width: 42,
-                        height: 42,
-                        borderRadius: 999,
-                        bgcolor: "rgba(30,102,255,0.14)",
-                        display: "grid",
-                        placeItems: "center",
-                        flexShrink: 0,
-                      }}
-                    >
-                      <ConfirmationNumberOutlinedIcon sx={{ color: "#1E66FF" }} />
-                    </Box>
-                    <Box>
-                      <Typography sx={{ fontWeight: 900, mb: 0.2 }}>
-                        Cartão Presente Digital
-                      </Typography>
-                      <Typography variant="body2" sx={{ color: "rgba(11,27,51,0.72)" }}>
-                        Cada número selecionado gera um Cartão Presente Digital no valor da sua participação.
-                      </Typography>
-                    </Box>
-                  </Stack>
-                </Paper>
-
-                <Paper
-                  variant="outlined"
-                  sx={{
-                    p: 2,
-                    borderRadius: 4,
-                    bgcolor: "#F4F8FF",
-                    borderColor: "rgba(15,23,42,0.08)",
-                    boxShadow: "0 12px 24px rgba(15, 23, 42, 0.06)",
-                  }}
-                >
-                  <Stack direction="row" spacing={1.4} alignItems="center">
-                    <Box
-                      sx={{
-                        width: 42,
-                        height: 42,
-                        borderRadius: 999,
-                        bgcolor: "rgba(30,102,255,0.14)",
-                        display: "grid",
-                        placeItems: "center",
-                        flexShrink: 0,
-                      }}
-                    >
-                      <EmojiEventsOutlinedIcon sx={{ color: "#1E66FF" }} />
-                    </Box>
-                    <Box>
-                      <Typography sx={{ fontWeight: 900, letterSpacing: 0.6, color: "rgba(11,27,51,0.82)" }}>
-                        1 GANHADOR
-                      </Typography>
-                      <Typography sx={{ fontWeight: 1000, fontSize: 20, color: "#1E66FF", lineHeight: 1.15 }}>
-                        R$ 5.000
-                        <Box component="span" sx={{ fontWeight: 900, fontSize: 14, color: "rgba(11,27,51,0.72)" }}>
-                          {" "}EM CRÉDITOS
-                        </Box>
-                      </Typography>
-                      <Typography variant="body2" sx={{ color: "rgba(11,27,51,0.62)" }}>
-                        Resultado via Loteria Federal
-                      </Typography>
-                    </Box>
-                  </Stack>
-                </Paper>
-
-                <Paper
-                  variant="outlined"
-                  sx={{
-                    p: 1.8,
-                    borderRadius: 4,
-                    bgcolor: "#F4F8FF",
-                    borderColor: "rgba(15,23,42,0.08)",
-                    boxShadow: "0 12px 24px rgba(15, 23, 42, 0.06)",
-                  }}
-                >
-                  <Stack direction="row" spacing={1} alignItems="center">
-                    <LockRoundedIcon sx={{ color: "primary.main" }} />
-                    <Typography variant="body2" sx={{ color: "rgba(11,27,51,0.72)" }}>
-                      Seus dados e participação estão 100% seguros e criptografados.
-                    </Typography>
-                  </Stack>
-                </Paper>
-              </Stack>
-            </Stack>
+            </Box>
 
             {/* >>>>> LINHA INFERIOR (apenas texto adicionado) */}
             <Box sx={{ mt: 2.5, textAlign: "center" }}>
@@ -1095,7 +1001,7 @@ export default function NewStorePage({
                 d.setDate(d.getDate() + 7);
                 const dia = String(d.getDate()).padStart(2, "0");
                 return (
-                  <Typography variant="subtitle1" sx={{ opacity: 0.95, fontWeight: 800 }}>
+                  <Typography variant="subtitle1" sx={{ opacity: 0.95, fontWeight: 800, color: "rgba(11,27,51,0.82)" }}>
                     📅 Utilizaremos o sorteio do dia <strong>{dia}</strong> ou o
                     primeiro sorteio da <strong>Loteria Federal</strong> após a tabela fechada.
                   </Typography>
