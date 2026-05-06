@@ -1,9 +1,8 @@
 // src/AdminDashboard.jsx
 import * as React from "react";
-import { useNavigate, Link as RouterLink } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import {
   Box,
-  Container,
   Divider,
   IconButton,
   Menu,
@@ -13,7 +12,6 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import ArrowBackIosNewRoundedIcon from "@mui/icons-material/ArrowBackIosNewRounded";
 import AccountCircleRoundedIcon from "@mui/icons-material/AccountCircleRounded";
 import PeopleAltRoundedIcon from "@mui/icons-material/PeopleAltRounded";
 import LocalOfferRoundedIcon from "@mui/icons-material/LocalOfferRounded";
@@ -24,7 +22,6 @@ import EmojiEventsRoundedIcon from "@mui/icons-material/EmojiEventsRounded";
 import ArrowForwardRoundedIcon from "@mui/icons-material/ArrowForwardRounded";
 import { useAuth } from "./authContext";
 import { API_CONFIG } from "./config/api";
-import BrandLogo from "./components/branding/BrandLogo";
 import "./styles/xnamai-admin.css";
 import XnamaiAdminLayout from "./components/admin/XnamaiAdminLayout";
 

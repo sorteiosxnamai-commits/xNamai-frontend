@@ -1,6 +1,6 @@
 // src/AdminSorteios.jsx
 import * as React from "react";
-import { useNavigate, Link as RouterLink } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import {
   Box, IconButton, Menu, MenuItem, Divider,
   Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
@@ -11,7 +11,6 @@ import ExpandMoreRoundedIcon from "@mui/icons-material/ExpandMoreRounded";
 import ExpandLessRoundedIcon from "@mui/icons-material/ExpandLessRounded";
 import { useAuth } from "./authContext";
 import { API_CONFIG } from "./config/api";
-import BrandLogo from "./components/branding/BrandLogo";
 import "./styles/xnamai-admin.css";
 import XnamaiAdminLayout from "./components/admin/XnamaiAdminLayout";
 
