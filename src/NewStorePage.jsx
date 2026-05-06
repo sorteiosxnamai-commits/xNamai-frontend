@@ -25,7 +25,6 @@ import EmojiEventsOutlinedIcon from "@mui/icons-material/EmojiEventsOutlined";
 import ConfirmationNumberOutlinedIcon from "@mui/icons-material/ConfirmationNumberOutlined";
 
 import GiftCardSimulator from "./components/GiftCardSimulator.jsx";
-import BrandLogo from "./components/branding/BrandLogo";
 import "./styles/xnamai-home.css";
 
 import {
@@ -706,27 +705,33 @@ export default function NewStorePage({
             variant="outlined"
             className="xnamai-hero"
             sx={{
-              p: { xs: 3, md: 4.2 },
-              borderRadius: 5,
+              p: { xs: 3, sm: 3.4, md: 4.4 },
+              borderRadius: 1.5,
               bgcolor: "#FFFFFF",
               borderColor: "rgba(15,23,42,0.08)",
-              boxShadow: "0 18px 50px rgba(15, 23, 42, 0.10)",
+              boxShadow: "0 14px 34px rgba(15, 23, 42, 0.08)",
+              backdropFilter: "blur(6px)",
+              transition: "transform 180ms ease, box-shadow 180ms ease",
+              "&:hover": {
+                boxShadow: "0 18px 40px rgba(15, 23, 42, 0.10)",
+              },
             }}
           >
             <Box className="xnamai-heroDots" />
-            <Stack spacing={2}>
+            <Stack spacing={{ xs: 2, md: 2.4 }} alignItems="flex-start">
               <Stack
-                direction={{ xs: "column", md: "row" }}
-                spacing={{ xs: 2.5, md: 4 }}
-                alignItems="stretch"
+                direction="column"
+                spacing={{ xs: 2.2, md: 2.8 }}
+                alignItems="flex-start"
               >
-                <Stack spacing={1.4} sx={{ flex: 1 }}>
+                <Stack spacing={1.45} sx={{ maxWidth: 860 }}>
                   <Typography
                     sx={{
                       fontWeight: 900,
-                      letterSpacing: -0.6,
-                      lineHeight: 1.05,
-                      fontSize: { xs: 30, md: 40 },
+                      letterSpacing: -0.9,
+                      lineHeight: 1.03,
+                      color: "#0B1B33",
+                      fontSize: { xs: 31, sm: 36, md: 48 },
                     }}
                   >
                     Bem-vindos ao Sorteio da
@@ -735,6 +740,7 @@ export default function NewStorePage({
                       component="span"
                       sx={{
                         color: "#1E66FF",
+                        textShadow: "0 0 16px rgba(30, 102, 255, 0.28)",
                       }}
                     >
                       xNaMai
@@ -743,9 +749,10 @@ export default function NewStorePage({
 
                   <Typography
                     sx={{
-                      fontWeight: 800,
+                      fontWeight: 900,
                       color: "#1E66FF",
-                      fontSize: { xs: 14.5, md: 16.5 },
+                      fontSize: { xs: 15, md: 17.5 },
+                      lineHeight: 1.35,
                     }}
                   >
                     “Participe, concorra e ainda receba 100% do valor de volta.”
@@ -755,8 +762,9 @@ export default function NewStorePage({
                     variant="body1"
                     sx={{
                       color: "rgba(11,27,51,0.78)",
-                      maxWidth: 720,
-                      fontSize: { xs: 13.5, md: 14.5 },
+                      maxWidth: 760,
+                      fontSize: { xs: 14.2, md: 15.3 },
+                      lineHeight: 1.65,
                     }}
                   >
                     A xNaMai apresenta o único sorteio em que você nunca sai perdendo. Ao
@@ -766,38 +774,12 @@ export default function NewStorePage({
                     site.
                   </Typography>
 
-                  <Typography variant="body2" sx={{ color: "rgba(11,27,51,0.58)", fontSize: 12.5 }}>
+                  <Typography variant="body2" sx={{ color: "rgba(11,27,51,0.60)", fontSize: 12.8, lineHeight: 1.5 }}>
                     Sorteio válido até o preenchimento total da tabela. Baseado no resultado
                     oficial da Loteria Federal (Caixa Econômica Federal).
                   </Typography>
                 </Stack>
 
-                <Paper
-                  variant="outlined"
-                  sx={{
-                    width: { xs: "100%", md: 360 },
-                    borderRadius: 4.5,
-                    bgcolor: "#FFFFFF",
-                    borderColor: "rgba(15,23,42,0.08)",
-                    boxShadow: "0 16px 40px rgba(15, 23, 42, 0.12)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    p: 3.2,
-                    minHeight: 190,
-                    alignSelf: { md: "center" },
-                  }}
-                >
-                  <Stack spacing={0.8} alignItems="center">
-                    <BrandLogo size={34} />
-                    <Typography sx={{ color: "rgba(11,27,51,0.78)", fontWeight: 800 }}>
-                      Sorteios
-                    </Typography>
-                    <Typography variant="caption" sx={{ color: "rgba(11,27,51,0.60)", textAlign: "center" }}>
-                      Premium • Futurista • Neon
-                    </Typography>
-                  </Stack>
-                </Paper>
               </Stack>
             </Stack>
           </Paper>
