@@ -603,9 +603,9 @@ export default function NewStorePage({
                 fontWeight: 700,
                 letterSpacing: 1.1,
                 color: isAuthenticated ? "rgba(11,27,51,0.86)" : "#1E66FF",
-                fontSize: { xs: 11, sm: 11.8, md: 12.2 },
-                px: { xs: 0.45, sm: 0.65, md: 0.8 },
-                py: 0.55,
+                fontSize: { xs: 12, sm: 12.8, md: 13.2 },
+                px: { xs: 0.7, sm: 0.9, md: 1.1 },
+                py: 0.7,
                 borderRadius: 999,
                 border: "1px solid transparent",
                 bgcolor: "transparent",
@@ -642,7 +642,7 @@ export default function NewStorePage({
               sx={{
                 color: "#1E66FF",
                 fontFamily: '"Space Grotesk", "Inter", "Segoe UI", "Roboto", "Helvetica Neue", Arial, sans-serif',
-                fontSize: { xs: 17, sm: 18.5, md: 20 },
+                fontSize: { xs: 18.5, sm: 20, md: 22 },
                 fontWeight: 700,
                 letterSpacing: { xs: "3.8px", sm: "4.4px", md: "5px" },
                 lineHeight: 1,
@@ -920,8 +920,8 @@ export default function NewStorePage({
                 {/* Grid expandida para visual mais denso e moderno */}
                 <Box
                   sx={{
-                    width: "100%",
-                    maxWidth: 980,
+                    width: "fit-content",
+                    maxWidth: "100%",
                     mx: "auto",
                   }}
                 >
@@ -929,12 +929,13 @@ export default function NewStorePage({
                     sx={{
                       display: "grid",
                       gridTemplateColumns: {
-                        xs: "repeat(5, minmax(0, 1fr))",
-                        sm: "repeat(8, minmax(0, 1fr))",
-                        md: "repeat(10, minmax(0, 1fr))",
-                        lg: "repeat(10, minmax(0, 1fr))",
+                        xs: "repeat(5, 42px)",
+                        sm: "repeat(8, 48px)",
+                        md: "repeat(10, 56px)",
+                        lg: "repeat(10, 56px)",
                       },
-                      gap: { xs: 0.75, md: 0.85 },
+                      justifyContent: "center",
+                      gap: { xs: 0.95, md: 1.15 },
                       boxSizing: "border-box",
                       p: 0,
                       border: "none",
@@ -951,10 +952,12 @@ export default function NewStorePage({
                           onClick={() => handleClickNumero(idx)}
                           sx={{
                             ...getCellSx(idx),
-                            borderRadius: 1.8,
+                            borderRadius: 1.1,
                             userSelect: "none",
                             cursor: sold ? "not-allowed" : "pointer",
-                            height: { xs: 38, md: 44 },
+                            aspectRatio: "1 / 1",
+                            width: "100%",
+                            height: { xs: 42, md: 56 },
                             display: "flex",
                             alignItems: "center",
                             justifyContent: "center",
@@ -964,7 +967,7 @@ export default function NewStorePage({
                           }}
                         >
                           <Stack spacing={0.2} alignItems="center" sx={{ pointerEvents: "none" }}>
-                            <Box component="span" sx={{ fontSize: { xs: 13, md: 14.5 }, lineHeight: 1 }}>
+                            <Box component="span" sx={{ fontSize: { xs: 14.5, md: 15.5 }, lineHeight: 1 }}>
                               {pad2(idx)}
                             </Box>
                             {sold && initials && (
