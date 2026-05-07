@@ -2,7 +2,7 @@
 // Tamanho aproximado: ~1060 linhas (mantido o conteúdo original + iniciais + fix de número no mobile)
 
 import * as React from "react";
-import { useNavigate, Link as RouterLink } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { SelectionContext } from "./selectionContext";
 import PixModal from "./PixModal";
 import { createPixPayment, checkPixStatus } from "./services/pix";
@@ -17,16 +17,10 @@ import PixIcon from "@mui/icons-material/Pix";
 import CreditCardOutlinedIcon from "@mui/icons-material/CreditCardOutlined";
 import HelpOutlineOutlinedIcon from "@mui/icons-material/HelpOutlineOutlined";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import VerifiedUserRoundedIcon from "@mui/icons-material/VerifiedUserRounded";
 import ReplayRoundedIcon from "@mui/icons-material/ReplayRounded";
-import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
-import ArrowForwardRoundedIcon from "@mui/icons-material/ArrowForwardRounded";
-import EmojiEventsOutlinedIcon from "@mui/icons-material/EmojiEventsOutlined";
-import ConfirmationNumberOutlinedIcon from "@mui/icons-material/ConfirmationNumberOutlined";
 
 import GiftCardSimulator from "./components/GiftCardSimulator.jsx";
-import BrandLogo from "./components/branding/BrandLogo";
 import "./styles/xnamai-home.css";
 
 import {
@@ -36,14 +30,12 @@ import {
   Chip,
   Container,
   CssBaseline,
-  Drawer,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
   Divider,
   IconButton,
-  InputBase,
   Link,
   Menu,
   MenuItem,
@@ -55,14 +47,13 @@ import {
   createTheme,
 } from "@mui/material";
 import AccountCircleRoundedIcon from "@mui/icons-material/AccountCircleRounded";
-import MenuRoundedIcon from "@mui/icons-material/MenuRounded";
 import LockRoundedIcon from "@mui/icons-material/LockRounded";
 
-// Imagens institucionais (neutras, marca xNaMai)
-import imgCardExemplo from "./assets/images/giftcard-illustration.svg";
-import imgTabelaUtilizacao from "./assets/images/usage-table-illustration.svg";
-import imgAcumulo1 from "./assets/images/accumulo-1.svg";
-import imgAcumulo2 from "./assets/images/accumulo-2.svg";
+// PNG em `public/assets` (CRA — respeita PUBLIC_URL em deploy)
+const imgTabelaUtilizacao = `${process.env.PUBLIC_URL ?? ""}/assets/tabela-utilizacao-cartao.png`;
+const imgDicaAcumuloUnificada = `${process.env.PUBLIC_URL ?? ""}/assets/dica-acumulo-unificada.png`;
+const imgDicaAcumuloUnificada2x = `${process.env.PUBLIC_URL ?? ""}/assets/dica-acumulo-unificada@2x.png`;
+const imgDicaAcumuloUnificada3x = `${process.env.PUBLIC_URL ?? ""}/assets/dica-acumulo-unificada@3x.png`;
 
 // Tema
 const theme = createTheme({
@@ -194,34 +185,12 @@ export default function NewStorePage({
   indisponiveis = MOCK_INDISPONIVEIS,
   groupUrl = "https://chat.whatsapp.com/GdosYmyW2Jj1mDXNDTFt6F",
 }) {
+  const totalGridNumbers = 100;
   const navigate = useNavigate();
   const { selecionados, setSelecionados, limparSelecao } =
     React.useContext(SelectionContext);
   const { user, token, logout } = useAuth();
   const isAuthenticated = !!(user?.email || user?.id || token);
-  const [mobileNavOpen, setMobileNavOpen] = React.useState(false);
-
-  const navItems = React.useMemo(
-    () => [
-      { id: "inicio", label: "Início" },
-      { id: "sobre", label: "Sobre o Sorteio" },
-      { id: "produtos", label: "Produtos" },
-      { id: "como-funciona", label: "Como Funciona" },
-      { id: "duvidas", label: "Dúvidas" },
-      { id: "contato", label: "Contato" },
-    ],
-    []
-  );
-
-  const scrollToSection = React.useCallback((id) => {
-    try {
-      const el = document.getElementById(id);
-      if (!el) return;
-      el.scrollIntoView({ behavior: "smooth", block: "start" });
-    } finally {
-      setMobileNavOpen(false);
-    }
-  }, []);
 
   // Estados vindos do backend
   const [srvIndisponiveis, setSrvIndisponiveis] = React.useState([]);
@@ -557,27 +526,32 @@ export default function NewStorePage({
   const getCellSx = (n) => {
     if (isIndisponivel(n))
       return {
-        border: "1px solid rgba(15, 23, 42, 0.10)",
-        bgcolor: "rgba(15, 23, 42, 0.32)",
-        color: "rgba(255,255,255,0.92)",
+        border: "1px solid rgba(15, 23, 42, 0.14)",
+        bgcolor: "rgba(15, 23, 42, 0.30)",
+        color: "rgba(255,255,255,0.94)",
         cursor: "not-allowed",
+        boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.08)",
         opacity: 0.9,
       };
 
     if (isSelecionado(n))
       return {
-        border: "1px solid rgba(30, 102, 255, 0.65)",
-        bgcolor: "primary.main",
+        border: "1px solid rgba(30, 102, 255, 0.85)",
+        bgcolor: "#1E66FF",
         color: "#FFFFFF",
-        boxShadow: "0 10px 22px rgba(30, 102, 255, 0.22)",
+        boxShadow: "0 10px 20px rgba(30, 102, 255, 0.28)",
       };
 
     return {
-      border: "1px solid rgba(30,102,255,0.18)",
+      border: "1px solid rgba(30,102,255,0.24)",
       bgcolor: "#FFFFFF",
       color: "#1E66FF",
-      "&:hover": { borderColor: "rgba(30, 102, 255, 0.28)", boxShadow: "0 10px 18px rgba(15, 23, 42, 0.08)" },
-      transition: "border-color 140ms ease, box-shadow 140ms ease, transform 120ms ease",
+      "&:hover": {
+        borderColor: "rgba(30, 102, 255, 0.52)",
+        boxShadow: "0 10px 16px rgba(30, 102, 255, 0.18)",
+        transform: "translateY(-1px)",
+      },
+      transition: "border-color 160ms ease, box-shadow 160ms ease, transform 120ms ease",
       "&:active": { transform: "scale(0.98)" },
     };
   };
@@ -595,145 +569,114 @@ export default function NewStorePage({
         <div className="xnamai-page-content">
       {/* Topo */}
       <AppBar
-        position="sticky"
+        position="fixed"
         elevation={0}
         sx={{
-          borderBottom: "1px solid rgba(15, 23, 42, 0.06)",
-          bgcolor: "#FFFFFF",
-          backdropFilter: "saturate(180%) blur(10px)",
+          top: 0,
+          left: 0,
+          right: 0,
+          zIndex: (t) => t.zIndex.drawer + 1,
+          borderBottom: "1px solid rgba(15, 23, 42, 0.08)",
+          bgcolor: "rgba(255, 255, 255, 0.92)",
+          boxShadow: "0 8px 24px rgba(15, 23, 42, 0.08)",
+          backdropFilter: "blur(8px) saturate(140%)",
         }}
       >
-        <Toolbar sx={{ minHeight: 62 }}>
+        <Toolbar sx={{ minHeight: 55 }}>
           <Container
-            maxWidth="lg"
+            maxWidth={false}
             disableGutters
             sx={{
-              display: "flex",
+              display: "grid",
+              gridTemplateColumns: "1fr auto 1fr",
               alignItems: "center",
-              gap: 2,
-              px: { xs: 2, sm: 2.5 },
+              gap: 1,
+              px: { xs: 1, sm: 1.5, md: 1.75 },
             }}
           >
-          <IconButton
-            edge="start"
-            color="inherit"
-            onClick={() => setMobileNavOpen(true)}
-            sx={{ display: { xs: "inline-flex", md: "none" } }}
-            aria-label="Abrir menu"
-          >
-            <MenuRoundedIcon />
-          </IconButton>
+          <Box sx={{ justifySelf: "start" }}>
+            <Button
+              onClick={() => navigate("/cadastro")}
+              variant="text"
+              sx={{
+                textTransform: "uppercase",
+                fontWeight: 700,
+                letterSpacing: 1.1,
+                color: isAuthenticated ? "rgba(11,27,51,0.86)" : "#1E66FF",
+                fontSize: { xs: 12, sm: 12.8, md: 13.2 },
+                px: { xs: 0.7, sm: 0.9, md: 1.1 },
+                py: 0.7,
+                borderRadius: 999,
+                border: "1px solid transparent",
+                bgcolor: "transparent",
+                whiteSpace: "nowrap",
+                minWidth: "auto",
+                transition: "all 180ms ease",
+                "&:hover": {
+                  bgcolor: "rgba(30, 102, 255, 0.08)",
+                  borderColor: "rgba(30, 102, 255, 0.26)",
+                },
+                "&:focus-visible": {
+                  bgcolor: "rgba(30, 102, 255, 0.08)",
+                  borderColor: "rgba(30, 102, 255, 0.26)",
+                },
+              }}
+            >
+              {isAuthenticated ? "Minha Conta" : "Criar Conta"}
+            </Button>
+          </Box>
 
           <Button
-            onClick={() => scrollToSection("inicio")}
+            onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
             variant="text"
             sx={{
+              justifySelf: "center",
               px: 0,
-              mr: 1,
-              fontWeight: 800,
-              letterSpacing: 0.2,
+              minWidth: "auto",
               textTransform: "none",
-              color: "text.primary",
               "&:hover": { bgcolor: "transparent" },
             }}
           >
-            <Stack direction="row" spacing={1.2} alignItems="center">
-              <BrandLogo size={28} />
-            </Stack>
+            <Typography
+              component="span"
+              sx={{
+                color: "#1E66FF",
+                fontFamily: '"Space Grotesk", "Inter", "Segoe UI", "Roboto", "Helvetica Neue", Arial, sans-serif',
+                fontSize: { xs: 18.5, sm: 20, md: 22 },
+                fontWeight: 700,
+                letterSpacing: { xs: "3.8px", sm: "4.4px", md: "5px" },
+                lineHeight: 1,
+                textTransform: "uppercase",
+                transform: "scaleX(1.15)",
+                transformOrigin: "center",
+                whiteSpace: "nowrap",
+              }}
+            >
+              XNaMai
+            </Typography>
           </Button>
 
-          <Stack
-            direction="row"
-            spacing={2.2}
-            alignItems="center"
-            sx={{
-              display: { xs: "none", md: "flex" },
-              mx: "auto",
-              transform: "translateX(-10px)",
-            }}
-          >
-            {navItems.map((it) => (
-              <Button
-                key={it.id}
-                onClick={() => scrollToSection(it.id)}
-                variant="text"
-                className={
-                  it.id === "inicio"
-                    ? "xnamai-header__navItem xnamai-header__navItem--active"
-                    : "xnamai-header__navItem"
-                }
-                sx={{
-                  minWidth: "auto",
-                  px: 0,
-                  py: 0.5,
-                  fontWeight: 600,
-                  textTransform: "none",
-                  "&:hover": {
-                    bgcolor: "transparent",
-                    opacity: 0.92,
-                  },
-                }}
-              >
-                {it.label}
-              </Button>
-            ))}
-          </Stack>
-
-          {/* Busca (sem placeholder) */}
-          <Paper
-            component="form"
-            role="search"
-            aria-label="Buscar"
-            onSubmit={(e) => e.preventDefault()}
-            variant="outlined"
-            sx={{
-              ml: "auto",
-              mr: 1.2,
-              px: 1.6,
-              py: 0.5,
-              borderRadius: 999,
-              display: { xs: "none", md: "flex" },
-              alignItems: "center",
-              gap: 1,
-              width: 330,
-              bgcolor: "#F2F6FF",
-              borderColor: "rgba(15, 23, 42, 0.08)",
-              boxShadow: "none",
-              "&:focus-within": {
-                borderColor: "rgba(30, 102, 255, 0.35)",
-                boxShadow: "0 0 0 4px rgba(30, 102, 255, 0.10)",
-              },
-            }}
-          >
-            <InputBase
-              inputProps={{
-                "aria-label": "Buscar",
-                placeholder: "",
-              }}
-              placeholder=""
+          <Box sx={{ justifySelf: "end" }}>
+            <IconButton
+              color="inherit"
               sx={{
-                flex: 1,
-                fontSize: 14,
-                color: "text.primary",
-                "& input::placeholder": { color: "transparent" },
+                color: "rgba(11,27,51,0.92)",
+                border: "1px solid transparent",
+                bgcolor: "transparent",
+                width: 44,
+                height: 44,
+                transition: "transform 180ms ease, background-color 180ms ease",
+                "&:hover": {
+                  bgcolor: "rgba(30, 102, 255, 0.08)",
+                  transform: "translateY(-1px)",
+                },
               }}
-            />
-            <SearchRoundedIcon sx={{ color: "rgba(11,27,51,0.55)" }} />
-          </Paper>
-
-          <IconButton
-            color="inherit"
-            sx={{
-              color: "text.primary",
-              border: "1px solid rgba(15, 23, 42, 0.10)",
-              width: 40,
-              height: 40,
-            }}
-            onClick={handleOpenMenu}
-            aria-label={isAuthenticated ? "Abrir menu do usuário" : "Abrir menu de login"}
-          >
-            <AccountCircleRoundedIcon />
-          </IconButton>
+              onClick={handleOpenMenu}
+              aria-label={isAuthenticated ? "Abrir menu do usuário" : "Abrir menu de login"}
+            >
+              <AccountCircleRoundedIcon sx={{ fontSize: 30 }} />
+            </IconButton>
+          </Box>
           <Menu
             anchorEl={menuEl}
             open={menuOpen}
@@ -755,64 +698,8 @@ export default function NewStorePage({
         </Toolbar>
       </AppBar>
 
-      <Drawer
-        anchor="left"
-        open={mobileNavOpen}
-        onClose={() => setMobileNavOpen(false)}
-        PaperProps={{
-          sx: {
-            width: 280,
-            bgcolor: "background.paper",
-            borderRight: "1px solid rgba(15, 23, 42, 0.10)",
-            backgroundImage:
-              "radial-gradient(120% 90% at 10% 20%, rgba(30,102,255,0.10) 0%, transparent 60%), radial-gradient(120% 90% at 85% 35%, rgba(30,102,255,0.06) 0%, transparent 60%)",
-          },
-        }}
-      >
-        <Stack spacing={1} sx={{ p: 2 }}>
-          <Stack direction="row" spacing={1.2} alignItems="center">
-            <BrandLogo size={26} />
-            <Typography sx={{ fontWeight: 900, letterSpacing: 0.6 }}>
-              Sorteios
-            </Typography>
-          </Stack>
-          <Divider sx={{ borderColor: "rgba(255,255,255,0.10)" }} />
-          {navItems.map((it) => (
-            <Button
-              key={it.id}
-              onClick={() => scrollToSection(it.id)}
-              sx={{
-                justifyContent: "flex-start",
-                fontWeight: 800,
-                textTransform: "none",
-                color: "text.primary",
-              }}
-            >
-              {it.label}
-            </Button>
-          ))}
-          {!isAuthenticated && (
-            <Button
-              component={RouterLink}
-              to="/cadastro"
-              variant="contained"
-              sx={{
-                mt: 1,
-                fontWeight: 900,
-                borderRadius: 999,
-                bgcolor: "primary.main",
-                color: "#fff",
-                boxShadow: "0 12px 22px rgba(30, 102, 255, 0.25)",
-              }}
-            >
-              Criar conta
-            </Button>
-          )}
-        </Stack>
-      </Drawer>
-
       {/* Conteúdo */}
-      <Container maxWidth="lg" sx={{ py: { xs: 3.5, md: 5 } }}>
+      <Container maxWidth="lg" sx={{ pt: { xs: 10, md: 11 }, pb: { xs: 3.5, md: 5 } }}>
         <Stack spacing={4}>
           <Box id="inicio" />
 
@@ -820,27 +707,33 @@ export default function NewStorePage({
             variant="outlined"
             className="xnamai-hero"
             sx={{
-              p: { xs: 3, md: 4.2 },
-              borderRadius: 5,
+              p: { xs: 3, sm: 3.4, md: 4.4 },
+              borderRadius: 1.5,
               bgcolor: "#FFFFFF",
               borderColor: "rgba(15,23,42,0.08)",
-              boxShadow: "0 18px 50px rgba(15, 23, 42, 0.10)",
+              boxShadow: "0 14px 34px rgba(15, 23, 42, 0.08)",
+              backdropFilter: "blur(6px)",
+              transition: "transform 180ms ease, box-shadow 180ms ease",
+              "&:hover": {
+                boxShadow: "0 18px 40px rgba(15, 23, 42, 0.10)",
+              },
             }}
           >
             <Box className="xnamai-heroDots" />
-            <Stack spacing={2}>
+            <Stack spacing={{ xs: 2, md: 2.4 }} alignItems="flex-start">
               <Stack
-                direction={{ xs: "column", md: "row" }}
-                spacing={{ xs: 2.5, md: 4 }}
-                alignItems="stretch"
+                direction="column"
+                spacing={{ xs: 2.2, md: 2.8 }}
+                alignItems="flex-start"
               >
-                <Stack spacing={1.4} sx={{ flex: 1 }}>
+                <Stack spacing={1.45} sx={{ maxWidth: 860 }}>
                   <Typography
                     sx={{
                       fontWeight: 900,
-                      letterSpacing: -0.6,
-                      lineHeight: 1.05,
-                      fontSize: { xs: 30, md: 40 },
+                      letterSpacing: -0.9,
+                      lineHeight: 1.03,
+                      color: "#0B1B33",
+                      fontSize: { xs: 31, sm: 36, md: 48 },
                     }}
                   >
                     Bem-vindos ao Sorteio da
@@ -849,6 +742,7 @@ export default function NewStorePage({
                       component="span"
                       sx={{
                         color: "#1E66FF",
+                        textShadow: "0 0 16px rgba(30, 102, 255, 0.28)",
                       }}
                     >
                       xNaMai
@@ -857,9 +751,10 @@ export default function NewStorePage({
 
                   <Typography
                     sx={{
-                      fontWeight: 800,
+                      fontWeight: 900,
                       color: "#1E66FF",
-                      fontSize: { xs: 14.5, md: 16.5 },
+                      fontSize: { xs: 15, md: 17.5 },
+                      lineHeight: 1.35,
                     }}
                   >
                     “Participe, concorra e ainda receba 100% do valor de volta.”
@@ -869,8 +764,9 @@ export default function NewStorePage({
                     variant="body1"
                     sx={{
                       color: "rgba(11,27,51,0.78)",
-                      maxWidth: 720,
-                      fontSize: { xs: 13.5, md: 14.5 },
+                      maxWidth: 760,
+                      fontSize: { xs: 14.2, md: 15.3 },
+                      lineHeight: 1.65,
                     }}
                   >
                     A xNaMai apresenta o único sorteio em que você nunca sai perdendo. Ao
@@ -880,38 +776,12 @@ export default function NewStorePage({
                     site.
                   </Typography>
 
-                  <Typography variant="body2" sx={{ color: "rgba(11,27,51,0.58)", fontSize: 12.5 }}>
+                  <Typography variant="body2" sx={{ color: "rgba(11,27,51,0.60)", fontSize: 12.8, lineHeight: 1.5 }}>
                     Sorteio válido até o preenchimento total da tabela. Baseado no resultado
                     oficial da Loteria Federal (Caixa Econômica Federal).
                   </Typography>
                 </Stack>
 
-                <Paper
-                  variant="outlined"
-                  sx={{
-                    width: { xs: "100%", md: 360 },
-                    borderRadius: 4.5,
-                    bgcolor: "#FFFFFF",
-                    borderColor: "rgba(15,23,42,0.08)",
-                    boxShadow: "0 16px 40px rgba(15, 23, 42, 0.12)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    p: 3.2,
-                    minHeight: 190,
-                    alignSelf: { md: "center" },
-                  }}
-                >
-                  <Stack spacing={0.8} alignItems="center">
-                    <BrandLogo size={34} />
-                    <Typography sx={{ color: "rgba(11,27,51,0.78)", fontWeight: 800 }}>
-                      Sorteios
-                    </Typography>
-                    <Typography variant="caption" sx={{ color: "rgba(11,27,51,0.60)", textAlign: "center" }}>
-                      Premium • Futurista • Neon
-                    </Typography>
-                  </Stack>
-                </Paper>
               </Stack>
             </Stack>
           </Paper>
@@ -929,25 +799,29 @@ export default function NewStorePage({
           >
             <Box id="sobre" />
             {/* Título do bloco (com ícone à esquerda, como na referência) */}
-            <Stack direction="row" spacing={1.2} alignItems="center" sx={{ mb: 1.2 }}>
-              <Box
-                sx={{
-                  width: 28,
-                  height: 28,
-                  borderRadius: 2.2,
-                  bgcolor: "rgba(30,102,255,0.10)",
-                  display: "grid",
-                  placeItems: "center",
-                }}
-              >
-                <ConfirmationNumberOutlinedIcon sx={{ color: "#1E66FF", fontSize: 18 }} />
-              </Box>
+            <Stack
+              direction="row"
+              spacing={1.2}
+              alignItems="center"
+              justifyContent="center"
+              sx={{
+                mb: 1.8,
+                py: 1.4,
+                px: 2,
+                borderRadius: 3,
+                border: "1px solid rgba(30, 102, 255, 0.20)",
+                background:
+                  "linear-gradient(90deg, rgba(30,102,255,0.14) 0%, rgba(30,102,255,0.08) 55%, rgba(13,171,255,0.10) 100%)",
+              }}
+            >
               <Typography
                 sx={{
                   fontWeight: 900,
-                  letterSpacing: 0.4,
+                  letterSpacing: 1,
                   color: "#1E66FF",
-                  fontSize: { xs: 18, md: 22 },
+                  fontSize: { xs: 20, md: 40 },
+                  textAlign: "center",
+                  lineHeight: 1.1,
                 }}
               >
                 {bannerTitle || "SORTEIO TISSOT PRX DAMASCUS"}
@@ -959,23 +833,26 @@ export default function NewStorePage({
               spacing={2}
               alignItems={{ xs: "stretch", md: "center" }}
               justifyContent="space-between"
-              sx={{ mb: 2 }}
+              sx={{ mb: 2.3 }}
             >
-              <Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap">
+              <Stack direction="row" spacing={1} alignItems="center" justifyContent="center" flexWrap="wrap">
                 {/* Legenda com bolinhas (como na referência) */}
-                <Stack direction="row" spacing={0.8} alignItems="center">
-                  <Box sx={{ width: 10, height: 10, borderRadius: 999, border: "2px solid #1E66FF", bgcolor: "#fff" }} />
-                  <Typography variant="caption" sx={{ color: "rgba(11,27,51,0.72)", fontWeight: 700 }}>
+                <Stack direction="row" spacing={0.6} alignItems="center" sx={{ px: 1.05, py: 0.46, borderRadius: 999, bgcolor: "rgba(30,102,255,0.12)", border: "1px solid rgba(30,102,255,0.26)" }}>
+                  <Typography variant="caption" sx={{ color: "#1E66FF", fontWeight: 900, letterSpacing: 0.3 }}>
                     DISPONÍVEL
                   </Typography>
                 </Stack>
-                <Stack direction="row" spacing={0.8} alignItems="center">
-                  <Box sx={{ width: 10, height: 10, borderRadius: 999, bgcolor: "rgba(15,23,42,0.35)" }} />
-                  <Typography variant="caption" sx={{ color: "rgba(11,27,51,0.72)", fontWeight: 700 }}>
+                <Stack direction="row" spacing={0.6} alignItems="center" sx={{ px: 1.05, py: 0.46, borderRadius: 999, border: "1px solid rgba(30,102,255,0.48)", bgcolor: "rgba(30,102,255,0.12)" }}>
+                  <Typography variant="caption" sx={{ color: "#1E66FF", fontWeight: 900, letterSpacing: 0.3 }}>
+                    RESERVADO
+                  </Typography>
+                </Stack>
+                <Stack direction="row" spacing={0.6} alignItems="center" sx={{ px: 1.05, py: 0.46, borderRadius: 999, border: "1px solid rgba(15,23,42,0.22)", bgcolor: "rgba(15,23,42,0.10)" }}>
+                  <Typography variant="caption" sx={{ color: "rgba(11,27,51,0.80)", fontWeight: 900, letterSpacing: 0.3 }}>
                     INDISPONÍVEL
                   </Typography>
                 </Stack>
-                <Typography variant="body2" sx={{ ml: 0.5, color: "text.secondary" }}>
+                <Typography variant="body2" sx={{ ml: 0.5, color: "rgba(11,27,51,0.72)" }}>
                   {Number.isFinite(limitUsage.max) && Number.isFinite(limitUsage.current)
                     ? `• Você tem ${Math.max(
                         0,
@@ -984,44 +861,89 @@ export default function NewStorePage({
                     : " "}
                 </Typography>
                 {!!selecionados.length && (
-                  <Typography variant="body2" sx={{ ml: 1, color: "text.secondary" }}>
+                  <Typography variant="body2" sx={{ ml: 1, color: "rgba(11,27,51,0.72)" }}>
                     • {selecionados.length} selecionado(s) (máx. {maxSelect} por seleção)
                   </Typography>
                 )}
               </Stack>
 
-              <Box id="produtos" />
+              <Stack direction="row" spacing={1.1} alignItems="stretch" sx={{ width: { xs: "100%", md: 360 } }}>
+                <Button
+                  fullWidth
+                  variant="outlined"
+                  disabled={!selecionados.length}
+                  onClick={limparSelecao}
+                  sx={{
+                    borderRadius: 1.6,
+                    fontWeight: 900,
+                    borderColor: "rgba(30,102,255,0.45)",
+                    color: "#1E66FF",
+                    bgcolor: "#FFFFFF",
+                    py: 1.02,
+                    textTransform: "uppercase",
+                    fontSize: 12,
+                    "&:hover": {
+                      borderColor: "rgba(30,102,255,0.62)",
+                      bgcolor: "rgba(244,248,255,0.98)",
+                    },
+                  }}
+                >
+                  Limpar Seleção
+                </Button>
+                <Button
+                  fullWidth
+                  variant="contained"
+                  disabled={continuarDisabled}
+                  onClick={handleAbrirConfirmacao}
+                  sx={{
+                    borderRadius: 1.6,
+                    fontWeight: 1000,
+                    color: "#FFFFFF",
+                    bgcolor: "#1E66FF",
+                    boxShadow: "0 12px 18px rgba(30, 102, 255, 0.28)",
+                    py: 1.02,
+                    textTransform: "uppercase",
+                    fontSize: 12,
+                    "&:hover": {
+                      bgcolor: "#2B73FF",
+                    },
+                  }}
+                >
+                  Continuar
+                </Button>
+              </Stack>
+
+              <Box id="produtos" sx={{ width: 0, height: 0 }} />
             </Stack>
 
-            <Stack
-              direction={{ xs: "column", md: "row" }}
-              spacing={2}
-              alignItems="stretch"
-            >
-              {/* Coluna esquerda: grade */}
-              <Box sx={{ flex: 1, minWidth: 0 }}>
-                {/* Grid (00..49 como referência) */}
+            <Box sx={{ minWidth: 0 }}>
+                {/* Grid expandida para visual mais denso e moderno */}
                 <Box
                   sx={{
-                    width: "100%",
-                    maxWidth: 540,
-                    mx: { xs: "auto", md: 0 },
+                    width: "fit-content",
+                    maxWidth: "100%",
+                    mx: "auto",
                   }}
                 >
                   <Box
                     sx={{
                       display: "grid",
-                      gridTemplateColumns: "repeat(10, minmax(0, 1fr))",
-                      gridTemplateRows: "repeat(5, minmax(0, 1fr))",
-                      gap: { xs: 1, md: 1.1 },
+                      gridTemplateColumns: {
+                        xs: "repeat(5, 42px)",
+                        sm: "repeat(8, 48px)",
+                        md: "repeat(10, 56px)",
+                        lg: "repeat(10, 56px)",
+                      },
+                      justifyContent: "center",
+                      gap: { xs: 0.95, md: 1.15 },
                       boxSizing: "border-box",
-                      p: { xs: 1.2, md: 1.4 },
-                      borderRadius: 4,
-                      border: "1px solid rgba(15, 23, 42, 0.08)",
-                      background: "#FFFFFF",
+                      p: 0,
+                      border: "none",
+                      background: "transparent",
+                      boxShadow: "none",
                     }}
                   >
-                    {Array.from({ length: 50 }).map((_, idx) => {
+                    {Array.from({ length: totalGridNumbers }).map((_, idx) => {
                       const sold = isIndisponivel(idx);
                       const initials = soldInitials[idx];
                       return (
@@ -1030,10 +952,12 @@ export default function NewStorePage({
                           onClick={() => handleClickNumero(idx)}
                           sx={{
                             ...getCellSx(idx),
-                            borderRadius: 2.6,
+                            borderRadius: 1.1,
                             userSelect: "none",
                             cursor: sold ? "not-allowed" : "pointer",
-                            height: { xs: 36, md: 42 },
+                            aspectRatio: "1 / 1",
+                            width: "100%",
+                            height: { xs: 42, md: 56 },
                             display: "flex",
                             alignItems: "center",
                             justifyContent: "center",
@@ -1043,7 +967,7 @@ export default function NewStorePage({
                           }}
                         >
                           <Stack spacing={0.2} alignItems="center" sx={{ pointerEvents: "none" }}>
-                            <Box component="span" sx={{ fontSize: { xs: 12.5, md: 13.5 }, lineHeight: 1 }}>
+                            <Box component="span" sx={{ fontSize: { xs: 14.5, md: 15.5 }, lineHeight: 1 }}>
                               {pad2(idx)}
                             </Box>
                             {sold && initials && (
@@ -1057,9 +981,9 @@ export default function NewStorePage({
                                   fontSize: 10,
                                   fontWeight: 900,
                                   letterSpacing: 0.6,
-                                  bgcolor: "rgba(11,27,51,0.08)",
-                                  border: "1px solid rgba(15,23,42,0.10)",
-                                  color: "rgba(11,27,51,0.80)",
+                                  bgcolor: "rgba(11,27,51,0.10)",
+                                  border: "1px solid rgba(15,23,42,0.12)",
+                                  color: "rgba(11,27,51,0.86)",
                                 }}
                               >
                                 {initials}
@@ -1071,154 +995,7 @@ export default function NewStorePage({
                     })}
                   </Box>
                 </Box>
-              </Box>
-
-              {/* Coluna direita: painel */}
-              <Stack
-                spacing={1.5}
-                sx={{
-                  width: { xs: "100%", md: 360 },
-                  flexShrink: 0,
-                }}
-              >
-                <Stack direction="row" spacing={1.2}>
-                  <Button
-                    fullWidth
-                    variant="outlined"
-                    disabled={!selecionados.length}
-                    onClick={limparSelecao}
-                    sx={{
-                      borderRadius: 999,
-                      fontWeight: 900,
-                      borderColor: "rgba(30,102,255,0.45)",
-                      color: "#1E66FF",
-                      bgcolor: "#fff",
-                      py: 1.1,
-                      textTransform: "uppercase",
-                      fontSize: 12,
-                      "&:hover": { borderColor: "rgba(30, 102, 255, 0.55)", bgcolor: "rgba(244,248,255,0.90)" },
-                    }}
-                    startIcon={<DeleteOutlineRoundedIcon />}
-                  >
-                    Limpar seleção
-                  </Button>
-                  <Button
-                    fullWidth
-                    variant="contained"
-                    disabled={continuarDisabled}
-                    onClick={handleAbrirConfirmacao}
-                    sx={{
-                      borderRadius: 999,
-                      fontWeight: 1000,
-                      color: "#fff",
-                      bgcolor: "#1E66FF",
-                      backgroundImage: "linear-gradient(90deg, #1E66FF 0%, #0DABFF 100%)",
-                      boxShadow: "0 14px 24px rgba(30, 102, 255, 0.26)",
-                      py: 1.1,
-                      textTransform: "uppercase",
-                      fontSize: 12,
-                    }}
-                    endIcon={<ArrowForwardRoundedIcon />}
-                  >
-                    Continuar
-                  </Button>
-                </Stack>
-
-                <Paper
-                  variant="outlined"
-                  sx={{
-                    p: 2,
-                    borderRadius: 4,
-                    bgcolor: "#F4F8FF",
-                    borderColor: "rgba(15,23,42,0.08)",
-                    boxShadow: "0 12px 24px rgba(15, 23, 42, 0.06)",
-                  }}
-                >
-                  <Stack direction="row" spacing={1.4} alignItems="center">
-                    <Box
-                      sx={{
-                        width: 42,
-                        height: 42,
-                        borderRadius: 999,
-                        bgcolor: "rgba(30,102,255,0.14)",
-                        display: "grid",
-                        placeItems: "center",
-                        flexShrink: 0,
-                      }}
-                    >
-                      <ConfirmationNumberOutlinedIcon sx={{ color: "#1E66FF" }} />
-                    </Box>
-                    <Box>
-                      <Typography sx={{ fontWeight: 900, mb: 0.2 }}>
-                        Cartão Presente Digital
-                      </Typography>
-                      <Typography variant="body2" sx={{ color: "rgba(11,27,51,0.72)" }}>
-                        Cada número selecionado gera um Cartão Presente Digital no valor da sua participação.
-                      </Typography>
-                    </Box>
-                  </Stack>
-                </Paper>
-
-                <Paper
-                  variant="outlined"
-                  sx={{
-                    p: 2,
-                    borderRadius: 4,
-                    bgcolor: "#F4F8FF",
-                    borderColor: "rgba(15,23,42,0.08)",
-                    boxShadow: "0 12px 24px rgba(15, 23, 42, 0.06)",
-                  }}
-                >
-                  <Stack direction="row" spacing={1.4} alignItems="center">
-                    <Box
-                      sx={{
-                        width: 42,
-                        height: 42,
-                        borderRadius: 999,
-                        bgcolor: "rgba(30,102,255,0.14)",
-                        display: "grid",
-                        placeItems: "center",
-                        flexShrink: 0,
-                      }}
-                    >
-                      <EmojiEventsOutlinedIcon sx={{ color: "#1E66FF" }} />
-                    </Box>
-                    <Box>
-                      <Typography sx={{ fontWeight: 900, letterSpacing: 0.6, color: "rgba(11,27,51,0.82)" }}>
-                        1 GANHADOR
-                      </Typography>
-                      <Typography sx={{ fontWeight: 1000, fontSize: 20, color: "#1E66FF", lineHeight: 1.15 }}>
-                        R$ 5.000
-                        <Box component="span" sx={{ fontWeight: 900, fontSize: 14, color: "rgba(11,27,51,0.72)" }}>
-                          {" "}EM CRÉDITOS
-                        </Box>
-                      </Typography>
-                      <Typography variant="body2" sx={{ color: "rgba(11,27,51,0.62)" }}>
-                        Resultado via Loteria Federal
-                      </Typography>
-                    </Box>
-                  </Stack>
-                </Paper>
-
-                <Paper
-                  variant="outlined"
-                  sx={{
-                    p: 1.8,
-                    borderRadius: 4,
-                    bgcolor: "#F4F8FF",
-                    borderColor: "rgba(15,23,42,0.08)",
-                    boxShadow: "0 12px 24px rgba(15, 23, 42, 0.06)",
-                  }}
-                >
-                  <Stack direction="row" spacing={1} alignItems="center">
-                    <LockRoundedIcon sx={{ color: "primary.main" }} />
-                    <Typography variant="body2" sx={{ color: "rgba(11,27,51,0.72)" }}>
-                      Seus dados e participação estão 100% seguros e criptografados.
-                    </Typography>
-                  </Stack>
-                </Paper>
-              </Stack>
-            </Stack>
+            </Box>
 
             {/* >>>>> LINHA INFERIOR (apenas texto adicionado) */}
             <Box sx={{ mt: 2.5, textAlign: "center" }}>
@@ -1227,7 +1004,7 @@ export default function NewStorePage({
                 d.setDate(d.getDate() + 7);
                 const dia = String(d.getDate()).padStart(2, "0");
                 return (
-                  <Typography variant="subtitle1" sx={{ opacity: 0.95, fontWeight: 800 }}>
+                  <Typography variant="subtitle1" sx={{ opacity: 0.95, fontWeight: 800, color: "rgba(11,27,51,0.82)" }}>
                     📅 Utilizaremos o sorteio do dia <strong>{dia}</strong> ou o
                     primeiro sorteio da <strong>Loteria Federal</strong> após a tabela fechada.
                   </Typography>
@@ -1364,13 +1141,40 @@ export default function NewStorePage({
   </Stack>
 </Paper>
 
-             
               <Box
-                component="img"
-                src={imgCardExemplo}
-                alt="Cartão presente - exemplo"
-                sx={{ width: "100%", maxWidth: 800, mx: "auto", display: "block", borderRadius: 2 }}
-              />
+                sx={{
+                  width: "100%",
+                  maxWidth: 800,
+                  mx: "auto",
+                  mt: { xs: 10, md: 16 },
+                }}
+              >
+                <Typography
+                  variant="body2"
+                  sx={{
+                    color: "#1E66FF",
+                    fontStyle: "italic",
+                    fontFamily: "Georgia, 'Times New Roman', serif",
+                    fontSize: { xs: 15, sm: 16 },
+                    mb: "22px",
+                    textAlign: "left",
+                    lineHeight: 1.35,
+                    whiteSpace: "pre-line",
+                  }}
+                >
+                  {`imagem ilustrativa do\ncartão presente`}
+                </Typography>
+                <Box
+                  component="img"
+                  src="/assets/cartao-presente.png"
+                  alt="Cartão presente - exemplo"
+                  sx={{
+                    width: "100%",
+                    display: "block",
+                    borderRadius: 2,
+                  }}
+                />
+              </Box>
              
             </Stack>
           </Paper>
@@ -1620,23 +1424,19 @@ export default function NewStorePage({
 
 
 
-          <Paper variant="outlined" sx={{ p: { xs: 2, md: 3 } }}>
-            <Stack spacing={1.5}>
-              <Typography>
-                Dica: A cada participação o valor investido se soma ao 
-                valor investido no sorteio anterior e sua validade é automaticamente renovada.
-
-              </Typography>
-              <Stack
-                direction={{ xs: "column", md: "row" }}
-                spacing={2}
-                alignItems="center"
-                sx={{ mt: 1 }}
-              >
-                <Box component="img" src={imgAcumulo1} alt="Exemplo de acúmulo 1" sx={{ width: "100%", maxWidth: 560, borderRadius: 2 }} />
-                <Box component="img" src={imgAcumulo2} alt="Exemplo de acúmulo 2" sx={{ width: "100%", maxWidth: 560, borderRadius: 2 }} />
-              </Stack>
-            </Stack>
+          <Paper variant="outlined" sx={{ p: 0, overflow: "hidden" }}>
+            <Box
+              component="img"
+              src={imgDicaAcumuloUnificada}
+              srcSet={`${imgDicaAcumuloUnificada} 1x, ${imgDicaAcumuloUnificada2x} 2x, ${imgDicaAcumuloUnificada3x} 3x`}
+              sizes="100vw"
+              alt="Dica de acúmulo com exemplos de participação e renovação de validade"
+              sx={{
+                width: "100%",
+                display: "block",
+                imageRendering: "auto",
+              }}
+            />
           </Paper>
 
           {/* Convite grupo */}
