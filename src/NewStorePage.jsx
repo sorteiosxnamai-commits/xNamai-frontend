@@ -49,12 +49,11 @@ import {
 import AccountCircleRoundedIcon from "@mui/icons-material/AccountCircleRounded";
 import LockRoundedIcon from "@mui/icons-material/LockRounded";
 
-// Imagens institucionais (neutras, marca xNaMai)
-import imgAcumulo1 from "./assets/images/accumulo-1.svg";
-import imgAcumulo2 from "./assets/images/accumulo-2.svg";
-
 // PNG em `public/assets` (CRA — respeita PUBLIC_URL em deploy)
 const imgTabelaUtilizacao = `${process.env.PUBLIC_URL ?? ""}/assets/tabela-utilizacao-cartao.png`;
+const imgDicaAcumuloUnificada = `${process.env.PUBLIC_URL ?? ""}/assets/dica-acumulo-unificada.png`;
+const imgDicaAcumuloUnificada2x = `${process.env.PUBLIC_URL ?? ""}/assets/dica-acumulo-unificada@2x.png`;
+const imgDicaAcumuloUnificada3x = `${process.env.PUBLIC_URL ?? ""}/assets/dica-acumulo-unificada@3x.png`;
 
 // Tema
 const theme = createTheme({
@@ -1425,23 +1424,19 @@ export default function NewStorePage({
 
 
 
-          <Paper variant="outlined" sx={{ p: { xs: 2, md: 3 } }}>
-            <Stack spacing={1.5}>
-              <Typography>
-                Dica: A cada participação o valor investido se soma ao 
-                valor investido no sorteio anterior e sua validade é automaticamente renovada.
-
-              </Typography>
-              <Stack
-                direction={{ xs: "column", md: "row" }}
-                spacing={2}
-                alignItems="center"
-                sx={{ mt: 1 }}
-              >
-                <Box component="img" src={imgAcumulo1} alt="Exemplo de acúmulo 1" sx={{ width: "100%", maxWidth: 560, borderRadius: 2 }} />
-                <Box component="img" src={imgAcumulo2} alt="Exemplo de acúmulo 2" sx={{ width: "100%", maxWidth: 560, borderRadius: 2 }} />
-              </Stack>
-            </Stack>
+          <Paper variant="outlined" sx={{ p: 0, overflow: "hidden" }}>
+            <Box
+              component="img"
+              src={imgDicaAcumuloUnificada}
+              srcSet={`${imgDicaAcumuloUnificada} 1x, ${imgDicaAcumuloUnificada2x} 2x, ${imgDicaAcumuloUnificada3x} 3x`}
+              sizes="100vw"
+              alt="Dica de acúmulo com exemplos de participação e renovação de validade"
+              sx={{
+                width: "100%",
+                display: "block",
+                imageRendering: "auto",
+              }}
+            />
           </Paper>
 
           {/* Convite grupo */}
