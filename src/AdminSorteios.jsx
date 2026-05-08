@@ -1,5 +1,6 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
+import ArrowBackIosNewRoundedIcon from "@mui/icons-material/ArrowBackIosNewRounded";
 import AdminDrawsList from "./components/AdminDrawsList";
 
 export default function AdminSorteios() {
@@ -41,11 +42,6 @@ export default function AdminSorteios() {
     navigate("/");
   }, [navigate]);
 
-  const handleSwitchAccount = React.useCallback(() => {
-    clearAdminSession();
-    navigate("/login");
-  }, [clearAdminSession, navigate]);
-
   const handleLogoutAdmin = React.useCallback(() => {
     clearAdminSession();
     navigate("/");
@@ -54,8 +50,8 @@ export default function AdminSorteios() {
   return (
     <main className="admin-sorteios-page">
       <header className="admin-topbar">
-        <button className="admin-back-btn" onClick={goToMainMenu} type="button">
-          ← Voltar ao menu principal
+        <button className="admin-back-icon" onClick={goToMainMenu} type="button" aria-label="Voltar">
+          <ArrowBackIosNewRoundedIcon fontSize="small" />
         </button>
 
         <div className="admin-profile-area" ref={profileRef}>
@@ -72,9 +68,6 @@ export default function AdminSorteios() {
 
           {profileOpen && (
             <div className="admin-profile-menu">
-              <button type="button" onClick={handleSwitchAccount}>
-                Trocar de conta
-              </button>
               <button type="button" onClick={handleLogoutAdmin}>
                 Sair do admin
               </button>
@@ -114,22 +107,22 @@ export default function AdminSorteios() {
           z-index: 20;
         }
 
-        .admin-back-btn {
+        .admin-back-icon {
+          width: 44px;
+          height: 44px;
+          display: inline-grid;
+          place-items: center;
+          border-radius: 999px;
           border: 1px solid rgba(37, 99, 235, 0.18);
           background: rgba(255, 255, 255, 0.72);
           color: #001f4f;
-          font-weight: 900;
-          font-size: 14px;
-          letter-spacing: 0.01em;
-          padding: 12px 18px;
-          border-radius: 999px;
           cursor: pointer;
           box-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
           transition: all 0.22s ease;
           backdrop-filter: blur(12px);
         }
 
-        .admin-back-btn:hover {
+        .admin-back-icon:hover {
           transform: translateY(-1px);
           background: #ffffff;
           border-color: rgba(37, 99, 235, 0.35);
@@ -254,11 +247,6 @@ export default function AdminSorteios() {
 
           .admin-topbar {
             margin-bottom: 18px;
-          }
-
-          .admin-back-btn {
-            font-size: 13px;
-            padding: 10px 14px;
           }
 
           .admin-profile-label {

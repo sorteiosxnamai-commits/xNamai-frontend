@@ -957,56 +957,61 @@ export default function AccountPage() {
                 </Box>
               </Paper>
 
-          {/* ====== Números cativos ====== */}
-              <Paper className="xn-card" variant="outlined" sx={{ p: { xs: 2, md: 2.5 } }}>
-                <Stack spacing={1.6}>
-                  <Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 2, flexWrap: "wrap" }}>
-                    <Box>
-                      <Typography variant="h6" className="xn-sectionTitle">Números cativos</Typography>
-                      <Typography variant="body2" className="xn-muted" sx={{ mt: 0.6, maxWidth: 780 }}>
-                Garanta seus números preferidos em todo sorteio novo. Configure um cartão e o sistema compra automaticamente quando o sorteio abre.
-              </Typography>
-                    </Box>
-                    <Button variant="contained" className="xn-btnPrimary" onClick={() => setAutoOpen(true)}>
-                      CONFIGURAR NÚMERO CATIVO
-                    </Button>
-                  </Box>
+          {/*
+            Seção de Números Cativos temporariamente ocultada.
+            Motivo: funcionalidade ainda não será exibida nesta versão.
 
-                  <Stack direction="row" spacing={1} alignItems="center" sx={{ flexWrap: "wrap" }}>
-                    <Chip size="small" label="Seu cativo" sx={{ bgcolor: "rgba(37,109,255,0.14)", color: "#16325c", border: "1px solid rgba(37,109,255,0.28)", fontWeight: 900 }} />
-                    <Chip size="small" label="Ocupado" sx={{ bgcolor: "rgba(11,27,51,0.06)", color: "rgba(22,50,92,0.70)", border: "1px solid rgba(11,27,51,0.10)", fontWeight: 900 }} />
-                    <Chip size="small" label="Livre" sx={{ bgcolor: "#fff", color: "rgba(22,50,92,0.72)", border: "1px solid rgba(37,109,255,0.22)", fontWeight: 900 }} />
-                  </Stack>
-
-                  <Box sx={{ display: "flex", justifyContent: "space-between", gap: 2, flexWrap: "wrap", alignItems: "center" }}>
-                    <Typography className="xn-muted" sx={{ fontWeight: 700 }}>
-                      Selecionados: <b>{claims?.mine?.length || 0}</b> • Para alterar, use “Configurar número cativo”.
+            ====== Números cativos ======
+            <Paper className="xn-card" variant="outlined" sx={{ p: { xs: 2, md: 2.5 } }}>
+              <Stack spacing={1.6}>
+                <Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 2, flexWrap: "wrap" }}>
+                  <Box>
+                    <Typography variant="h6" className="xn-sectionTitle">Números cativos</Typography>
+                    <Typography variant="body2" className="xn-muted" sx={{ mt: 0.6, maxWidth: 780 }}>
+                      Garanta seus números preferidos em todo sorteio novo. Configure um cartão e o sistema compra automaticamente quando o sorteio abre.
                     </Typography>
                   </Box>
+                  <Button variant="contained" className="xn-btnPrimary" onClick={() => setAutoOpen(true)}>
+                    CONFIGURAR NÚMERO CATIVO
+                  </Button>
+                </Box>
 
-                  {(claims?.mine?.length || 0) + (claims?.taken?.length || 0) === 0 ? (
-                    <Box className="xn-emptyState">
-                      <Typography sx={{ fontWeight: 900, color: "#16325c" }}>Nenhum dado de números cativos ainda.</Typography>
-                      <Typography className="xn-muted" sx={{ mt: 0.4, fontWeight: 700 }}>
-                        Clique em “Configurar número cativo” para escolher seus números e ativar a compra automática.
-                      </Typography>
-                    </Box>
-                  ) : (
-                    <Box className="xn-numbersGrid" sx={{ mt: 0.5 }}>
-                      {Array.from({ length: 100 }, (_, n) => {
-                        const isMine = claims.mine.includes(n);
-                        const isTaken = claims.taken.includes(n);
-                        const cls = isMine ? "xn-numberPill xn-numberPill--mine" : isTaken ? "xn-numberPill xn-numberPill--taken" : "xn-numberPill xn-numberPill--free";
-                        return (
-                          <Box key={n} className={cls}>
-                            {String(n).padStart(2, "0")}
-                          </Box>
-                        );
-                      })}
-                    </Box>
-                  )}
+                <Stack direction="row" spacing={1} alignItems="center" sx={{ flexWrap: "wrap" }}>
+                  <Chip size="small" label="Seu cativo" sx={{ bgcolor: "rgba(37,109,255,0.14)", color: "#16325c", border: "1px solid rgba(37,109,255,0.28)", fontWeight: 900 }} />
+                  <Chip size="small" label="Ocupado" sx={{ bgcolor: "rgba(11,27,51,0.06)", color: "rgba(22,50,92,0.70)", border: "1px solid rgba(11,27,51,0.10)", fontWeight: 900 }} />
+                  <Chip size="small" label="Livre" sx={{ bgcolor: "#fff", color: "rgba(22,50,92,0.72)", border: "1px solid rgba(37,109,255,0.22)", fontWeight: 900 }} />
                 </Stack>
-              </Paper>
+
+                <Box sx={{ display: "flex", justifyContent: "space-between", gap: 2, flexWrap: "wrap", alignItems: "center" }}>
+                  <Typography className="xn-muted" sx={{ fontWeight: 700 }}>
+                    Selecionados: <b>{claims?.mine?.length || 0}</b> • Para alterar, use “Configurar número cativo”.
+                  </Typography>
+                </Box>
+
+                {(claims?.mine?.length || 0) + (claims?.taken?.length || 0) === 0 ? (
+                  <Box className="xn-emptyState">
+                    <Typography sx={{ fontWeight: 900, color: "#16325c" }}>Nenhum dado de números cativos ainda.</Typography>
+                    <Typography className="xn-muted" sx={{ mt: 0.4, fontWeight: 700 }}>
+                      Clique em “Configurar número cativo” para escolher seus números e ativar a compra automática.
+                    </Typography>
+                  </Box>
+                ) : (
+                  <Box className="xn-numbersGrid" sx={{ mt: 0.5 }}>
+                    {Array.from({ length: 100 }, (_, n) => {
+                      const isMine = claims.mine.includes(n);
+                      const isTaken = claims.taken.includes(n);
+                      const cls = isMine ? "xn-numberPill xn-numberPill--mine" : isTaken ? "xn-numberPill xn-numberPill--taken" : "xn-numberPill xn-numberPill--free";
+                      return (
+                        <Box key={n} className={cls}>
+                          {String(n).padStart(2, "0")}
+                        </Box>
+                      );
+                    })}
+                  </Box>
+                )}
+              </Stack>
+            </Paper>
+          */}
 
           {/* Tabela */}
               <Paper className="xn-card" variant="outlined" sx={{ p: { xs: 2, md: 2.5 } }}>

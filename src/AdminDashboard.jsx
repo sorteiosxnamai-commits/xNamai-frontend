@@ -1,6 +1,7 @@
 // src/AdminDashboard.jsx
 import React from "react";
 import { useNavigate } from "react-router-dom";
+import ArrowBackIosNewRoundedIcon from "@mui/icons-material/ArrowBackIosNewRounded";
 import {
   createAdminDraw,
   getAdminSummary,
@@ -398,11 +399,6 @@ export default function AdminDashboard() {
     navigate("/");
   }, [navigate]);
 
-  const handleSwitchAccount = React.useCallback(() => {
-    clearAdminSession();
-    navigate("/login");
-  }, [clearAdminSession, navigate]);
-
   const handleLogoutAdmin = React.useCallback(() => {
     clearAdminSession();
     navigate("/");
@@ -429,19 +425,20 @@ export default function AdminDashboard() {
           <button
             type="button"
             onClick={goToMainMenu}
+            aria-label="Voltar"
             style={{
+              width: 44,
+              height: 44,
               border: "1px solid rgba(37, 99, 235, 0.18)",
               background: "rgba(255, 255, 255, 0.72)",
               color: "#001f4f",
-              fontWeight: 900,
-              fontSize: "14px",
-              letterSpacing: "0.01em",
-              padding: "12px 18px",
               borderRadius: "999px",
               cursor: "pointer",
               boxShadow: "0 12px 28px rgba(15, 23, 42, 0.08)",
               transition: "all 0.22s ease",
               backdropFilter: "blur(12px)",
+              display: "grid",
+              placeItems: "center",
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.transform = "translateY(-1px)";
@@ -456,7 +453,7 @@ export default function AdminDashboard() {
               e.currentTarget.style.boxShadow = "0 12px 28px rgba(15, 23, 42, 0.08)";
             }}
           >
-            ← Voltar ao menu principal
+            <ArrowBackIosNewRoundedIcon fontSize="small" />
           </button>
 
           <div
@@ -526,33 +523,6 @@ export default function AdminDashboard() {
                   zIndex: 50,
                 }}
               >
-                <button
-                  type="button"
-                  onClick={handleSwitchAccount}
-                  style={{
-                    width: "100%",
-                    border: "none",
-                    background: "transparent",
-                    color: "#001f4f",
-                    textAlign: "left",
-                    padding: "12px 14px",
-                    borderRadius: 12,
-                    cursor: "pointer",
-                    fontSize: 14,
-                    fontWeight: 800,
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = "rgba(15, 91, 255, 0.08)";
-                    e.currentTarget.style.color = "#0f5bff";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = "transparent";
-                    e.currentTarget.style.color = "#001f4f";
-                  }}
-                >
-                  Trocar de conta
-                </button>
-
                 <button
                   type="button"
                   onClick={handleLogoutAdmin}

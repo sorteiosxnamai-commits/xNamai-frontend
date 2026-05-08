@@ -20,6 +20,9 @@
     "recharts": "^2.15.4",
     "web-vitals": "^2.1.4"
   },
+  "overrides": {
+    "eslint-scope": "6.0.0"
+  },
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",

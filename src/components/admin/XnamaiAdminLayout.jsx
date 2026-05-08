@@ -3,21 +3,17 @@ import { Link as RouterLink, useNavigate } from "react-router-dom";
 import {
   AppBar,
   Box,
-  Button,
   Container,
   CssBaseline,
   IconButton,
   Menu,
   MenuItem,
-  Stack,
   ThemeProvider,
   Toolbar,
   Typography,
   createTheme,
 } from "@mui/material";
 import ArrowBackIosNewRoundedIcon from "@mui/icons-material/ArrowBackIosNewRounded";
-import HomeRoundedIcon from "@mui/icons-material/HomeRounded";
-import SwapHorizRoundedIcon from "@mui/icons-material/SwapHorizRounded";
 import LogoutRoundedIcon from "@mui/icons-material/LogoutRounded";
 import ExpandMoreRoundedIcon from "@mui/icons-material/ExpandMoreRounded";
 import BrandLogo from "../branding/BrandLogo";
@@ -45,7 +41,15 @@ export default function XnamaiAdminLayout({
 }) {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
-  const handleBack = onBack || (() => navigate("/admin"));
+  const handleBack =
+    onBack ||
+    (() => {
+      try {
+        navigate("/");
+      } catch {
+        window.location.href = "/";
+      }
+    });
 
   const [profileAnchor, setProfileAnchor] = React.useState(null);
   const profileOpen = Boolean(profileAnchor);
@@ -71,17 +75,6 @@ export default function XnamaiAdminLayout({
       // ignore
     }
   }, []);
-
-  const goToMainMenu = React.useCallback(() => {
-    navigate("/");
-  }, [navigate]);
-
-  const handleSwitchAccount = React.useCallback(() => {
-    closeProfile();
-    clearAdminSession();
-    logout();
-    navigate("/login");
-  }, [clearAdminSession, logout, navigate]);
 
   const handleLogoutAdmin = React.useCallback(() => {
     closeProfile();
@@ -109,39 +102,9 @@ export default function XnamaiAdminLayout({
             sx={{ bgcolor: "transparent", color: "text.primary" }}
           >
             <Toolbar className="xnamai-admin-toolbar" sx={{ position: "relative" }}>
-              <Stack direction="row" spacing={1} alignItems="center">
-                <Button
-                  type="button"
-                  onClick={goToMainMenu}
-                  startIcon={<HomeRoundedIcon />}
-                  sx={{
-                    borderRadius: 999,
-                    px: 2,
-                    py: 1,
-                    textTransform: "none",
-                    fontWeight: 900,
-                    letterSpacing: ".01em",
-                    border: "1px solid rgba(30,102,255,0.20)",
-                    bgcolor: "rgba(255,255,255,0.78)",
-                    color: "#001f4f",
-                    boxShadow: "0 12px 28px rgba(15,23,42,0.08)",
-                    backdropFilter: "blur(12px)",
-                    "&:hover": {
-                      bgcolor: "#fff",
-                      borderColor: "rgba(30,102,255,0.36)",
-                      boxShadow: "0 16px 34px rgba(15,23,42,0.12)",
-                      transform: "translateY(-1px)",
-                    },
-                    display: { xs: "none", sm: "inline-flex" },
-                  }}
-                >
-                  Voltar ao menu principal
-                </Button>
-
-                <IconButton edge="start" color="inherit" onClick={handleBack} aria-label="Voltar">
-                  <ArrowBackIosNewRoundedIcon />
-                </IconButton>
-              </Stack>
+              <IconButton edge="start" color="inherit" onClick={handleBack} aria-label="Voltar">
+                <ArrowBackIosNewRoundedIcon />
+              </IconButton>
 
               <Box
                 component={RouterLink}
@@ -154,51 +117,57 @@ export default function XnamaiAdminLayout({
               <Box sx={{ ml: "auto" }} className="xnamai-admin-actions">
                 {actions ? <Box sx={{ display: "flex", alignItems: "center" }}>{actions}</Box> : null}
 
-                <Button
+                <Box
+                  component="button"
                   type="button"
                   onClick={openProfile}
                   aria-label="Abrir menu de perfil"
-                  endIcon={<ExpandMoreRoundedIcon sx={{ opacity: 0.8 }} />}
-                  sx={{
-                    ml: 0.5,
-                    borderRadius: 999,
-                    pl: 1,
-                    pr: 1.5,
-                    py: 0.8,
-                    minWidth: 0,
-                    textTransform: "none",
-                    fontWeight: 900,
-                    letterSpacing: ".01em",
-                    border: "1px solid rgba(30,102,255,0.18)",
-                    bgcolor: "rgba(255,255,255,0.80)",
-                    color: "#001f4f",
-                    boxShadow: "0 12px 28px rgba(15,23,42,0.08)",
-                    backdropFilter: "blur(12px)",
-                    "&:hover": {
-                      bgcolor: "#fff",
-                      boxShadow: "0 16px 34px rgba(15,23,42,0.12)",
-                      transform: "translateY(-1px)",
-                    },
-                  }}
+                  style={{ border: "none", background: "transparent", padding: 0, cursor: "pointer" }}
                 >
                   <Box
                     sx={{
-                      width: 34,
-                      height: 34,
-                      borderRadius: "50%",
-                      background: "linear-gradient(135deg, #0f5bff, #6ea8ff)",
-                      color: "#fff",
-                      display: "grid",
-                      placeItems: "center",
-                      fontSize: 14,
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 1,
+                      borderRadius: 999,
+                      pl: 1,
+                      pr: 1.5,
+                      py: 0.8,
+                      minWidth: 0,
                       fontWeight: 900,
-                      mr: { xs: 0, sm: 1 },
+                      letterSpacing: ".01em",
+                      border: "1px solid rgba(30,102,255,0.18)",
+                      bgcolor: "rgba(255,255,255,0.80)",
+                      color: "#001f4f",
+                      boxShadow: "0 12px 28px rgba(15,23,42,0.08)",
+                      backdropFilter: "blur(12px)",
+                      transition: "transform 220ms ease, box-shadow 220ms ease, background 220ms ease",
+                      "&:hover": {
+                        bgcolor: "#fff",
+                        boxShadow: "0 16px 34px rgba(15,23,42,0.12)",
+                        transform: "translateY(-1px)",
+                      },
                     }}
                   >
-                    {profileInitial}
+                    <Box
+                      sx={{
+                        width: 34,
+                        height: 34,
+                        borderRadius: "50%",
+                        background: "linear-gradient(135deg, #0f5bff, #6ea8ff)",
+                        color: "#fff",
+                        display: "grid",
+                        placeItems: "center",
+                        fontSize: 14,
+                        fontWeight: 900,
+                      }}
+                    >
+                      {profileInitial}
+                    </Box>
+                    <Box sx={{ display: { xs: "none", sm: "block" } }}>{profileName}</Box>
+                    <ExpandMoreRoundedIcon sx={{ opacity: 0.8 }} />
                   </Box>
-                  <Box sx={{ display: { xs: "none", sm: "block" } }}>{profileName}</Box>
-                </Button>
+                </Box>
 
                 <Menu
                   anchorEl={profileAnchor}
@@ -219,10 +188,6 @@ export default function XnamaiAdminLayout({
                     },
                   }}
                 >
-                  <MenuItem onClick={handleSwitchAccount} sx={{ fontWeight: 800 }}>
-                    <SwapHorizRoundedIcon fontSize="small" style={{ marginRight: 10 }} />
-                    Trocar de conta
-                  </MenuItem>
                   <MenuItem onClick={handleLogoutAdmin} sx={{ fontWeight: 800 }}>
                     <LogoutRoundedIcon fontSize="small" style={{ marginRight: 10 }} />
                     Sair do admin
