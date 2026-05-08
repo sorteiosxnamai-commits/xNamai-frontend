@@ -2,6 +2,9 @@
   "name": "newstore-sorteios",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": "20.x"
+  },
   "dependencies": {
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
@@ -21,7 +24,9 @@
     "web-vitals": "^2.1.4"
   },
   "overrides": {
-    "eslint-scope": "6.0.0"
+    "webpack": {
+      "eslint-scope": "5.1.1"
+    }
   },
   "scripts": {
     "start": "react-scripts start",
