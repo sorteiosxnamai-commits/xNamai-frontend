@@ -1,23 +1,7 @@
-import * as React from "react";
-import { Link as RouterLink, useNavigate } from "react-router-dom";
-import {
-  AppBar,
-  Box,
-  Container,
-  CssBaseline,
-  IconButton,
-  Menu,
-  MenuItem,
-  ThemeProvider,
-  Toolbar,
-  Typography,
-  createTheme,
-} from "@mui/material";
-import ArrowBackIosNewRoundedIcon from "@mui/icons-material/ArrowBackIosNewRounded";
-import LogoutRoundedIcon from "@mui/icons-material/LogoutRounded";
-import ExpandMoreRoundedIcon from "@mui/icons-material/ExpandMoreRounded";
+import React, { useState } from "react";
+import { Link as RouterLink, useLocation, useNavigate } from "react-router-dom";
+import { Box, Container, CssBaseline, ThemeProvider, Typography, createTheme } from "@mui/material";
 import BrandLogo from "../branding/BrandLogo";
-import { useAuth } from "../../authContext";
 import "../../styles/xnamai-admin.css";
 
 const theme = createTheme({
@@ -40,82 +24,87 @@ export default function XnamaiAdminLayout({
   maxWidth = "lg",
 }) {
   const navigate = useNavigate();
-  const { user, logout } = useAuth();
-  const handleBack =
-    onBack ||
-    (() => {
-      try {
-        navigate("/");
-      } catch {
-        window.location.href = "/";
-      }
-    });
+  const location = useLocation();
+  const [profileOpen, setProfileOpen] = useState(false);
 
-  const [profileAnchor, setProfileAnchor] = React.useState(null);
-  const profileOpen = Boolean(profileAnchor);
+  const normalizedPath = location.pathname.replace(/\/+$/, "");
+  const isAdminHome = normalizedPath === "/admin";
 
-  const openProfile = (e) => setProfileAnchor(e.currentTarget);
-  const closeProfile = () => setProfileAnchor(null);
-
-  const clearAdminSession = React.useCallback(() => {
+  const clearAdminSession = () => {
     try {
-      [
+      const keysToRemove = [
         "adminToken",
-        "authToken",
-        "adminUser",
         "token",
+        "authToken",
+        "accessToken",
+        "refreshToken",
+        "user",
+        "adminUser",
         "isAdmin",
         "xnamaiUser",
         "xnamaiAdmin",
-        "access_token",
-        "user",
-        "ns_auth_token",
-      ].forEach((k) => {
-        localStorage.removeItem(k);
-        sessionStorage.removeItem(k);
+        "newstoreUser",
+        "newstoreAdmin",
+      ];
+
+      keysToRemove.forEach((key) => {
+        localStorage.removeItem(key);
+        sessionStorage.removeItem(key);
       });
-      sessionStorage.clear();
-    } catch {
-      // ignore
-    }
-  }, []);
 
-  const handleAdminLogout = React.useCallback(() => {
-    closeProfile();
-    try {
-      localStorage.removeItem("adminToken");
-      localStorage.removeItem("token");
-      localStorage.removeItem("authToken");
-      localStorage.removeItem("user");
-      localStorage.removeItem("adminUser");
-      localStorage.removeItem("isAdmin");
-      localStorage.removeItem("xnamaiUser");
-      localStorage.removeItem("xnamaiAdmin");
+      Object.keys(localStorage).forEach((key) => {
+        const lower = key.toLowerCase();
 
-      sessionStorage.clear();
+        if (
+          lower.includes("token") ||
+          lower.includes("auth") ||
+          lower.includes("admin") ||
+          lower.includes("user") ||
+          lower.includes("xnamai") ||
+          lower.includes("newstore")
+        ) {
+          localStorage.removeItem(key);
+        }
+      });
+
+      Object.keys(sessionStorage).forEach((key) => {
+        const lower = key.toLowerCase();
+
+        if (
+          lower.includes("token") ||
+          lower.includes("auth") ||
+          lower.includes("admin") ||
+          lower.includes("user") ||
+          lower.includes("xnamai") ||
+          lower.includes("newstore")
+        ) {
+          sessionStorage.removeItem(key);
+        }
+      });
 
       document.cookie.split(";").forEach((cookie) => {
         const name = cookie.split("=")[0].trim();
-        document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
+
+        document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;
+        document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/admin`;
       });
     } catch (error) {
       // eslint-disable-next-line no-console
       console.warn("Erro ao limpar sessão admin:", error);
     }
+  };
 
-    try {
-      clearAdminSession();
-      logout();
-    } catch {}
+  const handleBackToAdmin = () => {
+    navigate("/admin");
+  };
 
-    window.location.href = "/";
-  }, [clearAdminSession, logout]);
+  const handleSwitchAccount = () => {
+    clearAdminSession();
 
-  const profileName =
-    (user?.name || user?.full_name || user?.display_name || user?.email || "Admin")
-      .toString()
-      .trim();
-  const profileInitial = (profileName?.[0] || "A").toUpperCase();
+    setTimeout(() => {
+      window.location.replace("/");
+    }, 80);
+  };
 
   return (
     <ThemeProvider theme={theme}>
@@ -123,111 +112,54 @@ export default function XnamaiAdminLayout({
       <div className="xnamai-admin-page">
         <div className="xnamai-admin-bg" />
         <div className="xnamai-admin-shell">
-          <AppBar
-            position="sticky"
-            elevation={0}
-            className="xnamai-admin-header"
-            sx={{ bgcolor: "transparent", color: "text.primary" }}
-          >
-            <Toolbar className="xnamai-admin-toolbar" sx={{ position: "relative" }}>
-              <IconButton edge="start" color="inherit" onClick={handleBack} aria-label="Voltar">
-                <ArrowBackIosNewRoundedIcon />
-              </IconButton>
-
-              <Box
-                component={RouterLink}
-                to="/admin"
-                sx={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%, -50%)" }}
-              >
-                <BrandLogo size={34} />
-              </Box>
-
-              <Box sx={{ ml: "auto" }} className="xnamai-admin-actions">
-                {actions ? <Box sx={{ display: "flex", alignItems: "center" }}>{actions}</Box> : null}
-
-                <Box
-                  component="button"
+          <header className="xnamai-admin-topbar">
+            <div className="xnamai-admin-topbar-left">
+              {!isAdminHome && (
+                <button
                   type="button"
-                  onClick={openProfile}
-                  aria-label="Abrir menu de perfil"
-                  style={{ border: "none", background: "transparent", padding: 0, cursor: "pointer" }}
+                  className="xnamai-admin-back-button"
+                  onClick={onBack || handleBackToAdmin}
+                  aria-label="Voltar ao painel"
+                  title="Voltar ao painel"
                 >
-                  <Box
-                    sx={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: 1,
-                      borderRadius: 999,
-                      pl: 1,
-                      pr: 1.5,
-                      py: 0.8,
-                      minWidth: 0,
-                      fontWeight: 900,
-                      letterSpacing: ".01em",
-                      border: "1px solid rgba(30,102,255,0.18)",
-                      bgcolor: "rgba(255,255,255,0.80)",
-                      color: "#001f4f",
-                      boxShadow: "0 12px 28px rgba(15,23,42,0.08)",
-                      backdropFilter: "blur(12px)",
-                      transition: "transform 220ms ease, box-shadow 220ms ease, background 220ms ease",
-                      "&:hover": {
-                        bgcolor: "#fff",
-                        boxShadow: "0 16px 34px rgba(15,23,42,0.12)",
-                        transform: "translateY(-1px)",
-                      },
-                    }}
-                  >
-                    <Box
-                      sx={{
-                        width: 34,
-                        height: 34,
-                        borderRadius: "50%",
-                        background: "linear-gradient(135deg, #0f5bff, #6ea8ff)",
-                        color: "#fff",
-                        display: "grid",
-                        placeItems: "center",
-                        fontSize: 14,
-                        fontWeight: 900,
-                      }}
-                    >
-                      {profileInitial}
-                    </Box>
-                    <Box sx={{ display: { xs: "none", sm: "block" } }}>{profileName}</Box>
-                    <ExpandMoreRoundedIcon sx={{ opacity: 0.8 }} />
-                  </Box>
-                </Box>
+                  ←
+                </button>
+              )}
+            </div>
 
-                <Menu
-                  anchorEl={profileAnchor}
-                  open={profileOpen}
-                  onClose={closeProfile}
-                  anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
-                  transformOrigin={{ vertical: "top", horizontal: "right" }}
-                  slotProps={{
-                    paper: {
-                      sx: {
-                        mt: 1,
-                        borderRadius: 3,
-                        border: "1px solid rgba(15,23,42,0.08)",
-                        boxShadow: "0 22px 60px rgba(15, 23, 42, 0.16)",
-                        minWidth: 220,
-                        overflow: "hidden",
-                      },
-                    },
-                  }}
-                >
-                  <MenuItem onClick={handleAdminLogout} sx={{ fontWeight: 800 }}>
-                    <LogoutRoundedIcon fontSize="small" style={{ marginRight: 10 }} />
-                    Sair do admin
-                  </MenuItem>
-                </Menu>
-              </Box>
-            </Toolbar>
-          </AppBar>
+            <Box
+              component={RouterLink}
+              to="/admin"
+              sx={{ position: "absolute", left: "50%", transform: "translateX(-50%)", display: "flex" }}
+            >
+              <BrandLogo size={34} />
+            </Box>
+
+            <div className="xnamai-admin-profile-area">
+              <div className="xnamai-admin-actions">{actions}</div>
+
+              <button
+                type="button"
+                className="xnamai-admin-profile-button"
+                onClick={() => setProfileOpen((prev) => !prev)}
+                aria-label="Abrir menu de perfil"
+              >
+                👤
+              </button>
+
+              {profileOpen && (
+                <div className="xnamai-admin-profile-menu">
+                  <button type="button" onClick={handleSwitchAccount}>
+                    Trocar de conta
+                  </button>
+                </div>
+              )}
+            </div>
+          </header>
 
           <Container maxWidth={maxWidth} className="xnamai-admin-section">
             {(title || subtitle) && (
-              <Stack spacing={0.75} sx={{ mb: 2.5 }}>
+              <div className="xnamai-admin-stack" style={{ marginBottom: 20 }}>
                 {title && (
                   <Typography className="xnamai-admin-title" sx={{ fontSize: { xs: 24, md: 36 } }}>
                     {title}
@@ -238,7 +170,7 @@ export default function XnamaiAdminLayout({
                     {subtitle}
                   </Typography>
                 )}
-              </Stack>
+              </div>
             )}
 
             {children}

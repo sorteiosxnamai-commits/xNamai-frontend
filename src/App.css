@@ -36,3 +36,107 @@
     transform: rotate(360deg);
   }
 }
+
+.xnamai-admin-topbar {
+  width: 100%;
+  min-height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 22px;
+  position: relative;
+  z-index: 30;
+}
+
+.xnamai-admin-topbar-left {
+  display: flex;
+  align-items: center;
+  min-width: 56px;
+}
+
+.xnamai-admin-back-button {
+  width: 44px;
+  height: 44px;
+  border: none;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.82);
+  color: #002b66;
+  font-size: 30px;
+  line-height: 1;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
+  transition: all 0.2s ease;
+}
+
+.xnamai-admin-back-button:hover {
+  background: #ffffff;
+  transform: translateY(-1px);
+  box-shadow: 0 16px 34px rgba(15, 23, 42, 0.12);
+}
+
+.xnamai-admin-profile-area {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.xnamai-admin-profile-button {
+  width: 44px;
+  height: 44px;
+  border: 1px solid rgba(37, 99, 235, 0.16);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.82);
+  color: #002b66;
+  cursor: pointer;
+  font-size: 20px;
+  display: grid;
+  place-items: center;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
+  transition: all 0.2s ease;
+}
+
+.xnamai-admin-profile-button:hover {
+  background: #ffffff;
+  transform: translateY(-1px);
+}
+
+.xnamai-admin-profile-menu {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  width: 190px;
+  background: #ffffff;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 16px;
+  padding: 8px;
+  box-shadow: 0 22px 60px rgba(15, 23, 42, 0.16);
+  z-index: 80;
+}
+
+.xnamai-admin-profile-menu button {
+  width: 100%;
+  border: none;
+  background: transparent;
+  color: #001f4f;
+  text-align: left;
+  padding: 12px 14px;
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 800;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.xnamai-admin-profile-menu button:hover {
+  background: rgba(15, 91, 255, 0.08);
+  color: #0f5bff;
+}
+
+.xnamai-admin-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
