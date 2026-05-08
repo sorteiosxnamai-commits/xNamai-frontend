@@ -1,446 +1,652 @@
 // src/AdminDashboard.jsx
-import * as React from "react";
+import React from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  Box,
-  Divider,
-  IconButton,
-  Menu,
-  MenuItem,
-  Paper,
-  Stack,
-  TextField,
-  Typography,
-} from "@mui/material";
-import AccountCircleRoundedIcon from "@mui/icons-material/AccountCircleRounded";
-import PeopleAltRoundedIcon from "@mui/icons-material/PeopleAltRounded";
-import LocalOfferRoundedIcon from "@mui/icons-material/LocalOfferRounded";
-import InsightsRoundedIcon from "@mui/icons-material/InsightsRounded";
-import HistoryRoundedIcon from "@mui/icons-material/HistoryRounded";
-import AccountBalanceWalletRoundedIcon from "@mui/icons-material/AccountBalanceWalletRounded";
-import EmojiEventsRoundedIcon from "@mui/icons-material/EmojiEventsRounded";
-import ArrowForwardRoundedIcon from "@mui/icons-material/ArrowForwardRounded";
-import { useAuth } from "./authContext";
-import { API_CONFIG } from "./config/api";
-import "./styles/xnamai-admin.css";
-import XnamaiAdminLayout from "./components/admin/XnamaiAdminLayout";
+  createAdminDraw,
+  getAdminSummary,
+  updateAdminConfig,
+} from "./services/adminDraws";
 
-/* ---------- helpers de API (robusto com /api) ---------- */
-const RAW_BASE = API_CONFIG.baseUrl || "/api";
-const API_BASE = String(RAW_BASE).replace(/\/+$/, "");
+function moneyFromCents(cents) {
+  const value = Number(cents || 0) / 100;
 
-const apiJoin = (path) => {
-  let p = path.startsWith("/") ? path : `/${path}`;
-  const baseHasApi = /\/api\/?$/.test(API_BASE);
-  if (baseHasApi && p.startsWith("/api/")) p = p.slice(4);
-  if (!baseHasApi && !p.startsWith("/api/")) p = `/api${p}`;
-  return `${API_BASE}${p}`;
-};
-
-const authHeaders = () => {
-  const tk =
-    localStorage.getItem("ns_auth_token") ||
-    sessionStorage.getItem("ns_auth_token") ||
-    localStorage.getItem("token") ||
-    localStorage.getItem("access_token") ||
-    sessionStorage.getItem("token");
-  return tk
-    ? { Authorization: `Bearer ${String(tk).replace(/^Bearer\s+/i, "").replace(/^["']|["']$/g, "")}` }
-    : {};
-};
-
-async function getJSON(path) {
-  const r = await fetch(apiJoin(path), {
-    headers: { "Content-Type": "application/json", ...authHeaders() },
-    credentials: "omit",
-    cache: "no-store", // evita cache 304
+  return value.toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
   });
-  if (!r.ok) {
-    let err = `${r.status}`;
-    try { const j = await r.json(); if (j?.error) err = j.error; } catch {}
-    throw new Error(err);
-  }
-  return r.json();
-}
-async function postJSON(path, body, method = "POST") {
-  const r = await fetch(apiJoin(path), {
-    method,
-    headers: { "Content-Type": "application/json", ...authHeaders() },
-    credentials: "omit",
-    body: JSON.stringify(body || {}),
-  });
-  if (!r.ok) {
-    let err = `${r.status}`;
-    try { const j = await r.json(); if (j?.error) err = j.error; } catch {}
-    throw new Error(err);
-  }
-  return r.json().catch(() => ({}));
 }
 
-function NavCard({ icon, title, desc, onClick }) {
-  return (
-    <Paper
-      role="button"
-      tabIndex={0}
-      onClick={onClick}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") onClick?.();
-      }}
-      className="xnamai-admin-card"
-      sx={{
-        p: { xs: 2, md: 2.5 },
-        cursor: "pointer",
-        transition: "transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease",
-        borderColor: "rgba(15, 23, 42, 0.10)",
-        "&:hover": {
-          transform: "translateY(-2px)",
-          borderColor: "rgba(30, 102, 255, 0.22)",
-          boxShadow: "0 22px 56px rgba(15,23,42,0.12)",
-        },
-        "&:focus-visible": {
-          outline: "3px solid rgba(30, 102, 255, 0.25)",
-          outlineOffset: 2,
-        },
-      }}
-    >
-      <Stack direction="row" spacing={1.5} alignItems="flex-start">
-        <Box
-          sx={{
-            width: 44,
-            height: 44,
-            borderRadius: 999,
-            display: "grid",
-            placeItems: "center",
-            background: "linear-gradient(135deg, rgba(30,102,255,0.14) 0%, rgba(11,95,255,0.10) 100%)",
-            border: "1px solid rgba(30, 102, 255, 0.18)",
-            color: "primary.main",
-            flex: "0 0 auto",
-          }}
-        >
-          {icon}
-        </Box>
-
-        <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Typography sx={{ fontWeight: 900, fontSize: 16, color: "text.primary" }}>
-            {title}
-          </Typography>
-          <Typography sx={{ mt: 0.5, color: "text.secondary", fontWeight: 600, fontSize: 13, lineHeight: 1.35 }}>
-            {desc}
-          </Typography>
-        </Box>
-
-        <Box sx={{ color: "primary.main", opacity: 0.9, pt: 0.5 }}>
-          <ArrowForwardRoundedIcon />
-        </Box>
-      </Stack>
-    </Paper>
-  );
+function onlyNumbers(value) {
+  return String(value || "").replace(/\D/g, "");
 }
+
+const styles = {
+  page: {
+    minHeight: "100vh",
+    padding: "48px 20px 80px",
+    background:
+      "radial-gradient(circle at 10% 15%, rgba(37, 99, 235, 0.13), transparent 30%), radial-gradient(circle at 90% 20%, rgba(34, 211, 238, 0.17), transparent 32%), linear-gradient(180deg, #f8fbff 0%, #eef4ff 100%)",
+    color: "#0f1f3a",
+  },
+  shell: {
+    width: "100%",
+    maxWidth: "1150px",
+    margin: "0 auto",
+  },
+  title: {
+    fontSize: "36px",
+    lineHeight: 1.1,
+    margin: "0 0 10px",
+    fontWeight: 500,
+  },
+  subtitle: {
+    margin: "0 0 22px",
+    color: "#53617a",
+    fontSize: "16px",
+  },
+  card: {
+    background: "rgba(255, 255, 255, 0.92)",
+    border: "1px solid rgba(15, 31, 58, 0.08)",
+    borderRadius: "16px",
+    boxShadow: "0 20px 45px rgba(15, 31, 58, 0.10)",
+    padding: "24px",
+  },
+  topRow: {
+    display: "flex",
+    justifyContent: "space-between",
+    gap: "18px",
+    alignItems: "flex-start",
+    flexWrap: "wrap",
+  },
+  stats: {
+    display: "flex",
+    gap: "28px",
+    flexWrap: "wrap",
+  },
+  statLabel: {
+    fontSize: "15px",
+    color: "#526078",
+    fontWeight: 800,
+  },
+  statValue: {
+    fontSize: "34px",
+    color: "#0b1933",
+    fontWeight: 900,
+    marginTop: "6px",
+  },
+  outlineButton: {
+    border: "1px solid #cfe0ff",
+    background: "#fff",
+    color: "#0b1933",
+    borderRadius: "999px",
+    padding: "12px 22px",
+    fontWeight: 900,
+    cursor: "pointer",
+    letterSpacing: ".02em",
+    boxShadow: "0 10px 28px rgba(37, 99, 235, 0.09)",
+  },
+  primaryButton: {
+    border: "none",
+    background: "linear-gradient(135deg, #1e63ff, #0b58ff)",
+    color: "#fff",
+    borderRadius: "999px",
+    padding: "13px 24px",
+    fontWeight: 900,
+    cursor: "pointer",
+    boxShadow: "0 14px 28px rgba(37, 99, 235, 0.24)",
+  },
+  secondaryButton: {
+    border: "1px solid #dbe6fb",
+    background: "#fff",
+    color: "#1e63ff",
+    borderRadius: "999px",
+    padding: "12px 20px",
+    fontWeight: 900,
+    cursor: "pointer",
+  },
+  divider: {
+    height: "1px",
+    background: "rgba(15, 31, 58, 0.10)",
+    margin: "22px 0",
+  },
+  formGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+    gap: "16px",
+  },
+  full: {
+    gridColumn: "1 / -1",
+  },
+  label: {
+    display: "block",
+    color: "#526078",
+    fontSize: "14px",
+    fontWeight: 900,
+    marginBottom: "8px",
+  },
+  input: {
+    width: "100%",
+    height: "56px",
+    border: "1px solid #d5ddeb",
+    borderRadius: "12px",
+    padding: "0 14px",
+    outline: "none",
+    fontSize: "15px",
+    color: "#0f1f3a",
+    background: "#fff",
+    boxSizing: "border-box",
+  },
+  textarea: {
+    width: "100%",
+    minHeight: "86px",
+    border: "1px solid #d5ddeb",
+    borderRadius: "12px",
+    padding: "14px",
+    outline: "none",
+    fontSize: "15px",
+    color: "#0f1f3a",
+    background: "#fff",
+    boxSizing: "border-box",
+    resize: "vertical",
+  },
+  hint: {
+    marginTop: "8px",
+    fontSize: "13px",
+    color: "#64748b",
+  },
+  quickTitle: {
+    margin: "28px 0 12px",
+    fontWeight: 900,
+  },
+  quickGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+    gap: "14px",
+  },
+  quickCard: {
+    background: "rgba(255,255,255,0.92)",
+    border: "1px solid rgba(15, 31, 58, 0.08)",
+    borderRadius: "14px",
+    padding: "20px",
+    cursor: "pointer",
+    boxShadow: "0 10px 26px rgba(15, 31, 58, 0.08)",
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: "14px",
+  },
+  quickName: {
+    fontWeight: 900,
+    color: "#0b1933",
+    marginBottom: "6px",
+  },
+  quickDesc: {
+    color: "#53617a",
+    fontSize: "14px",
+  },
+  error: {
+    marginTop: "14px",
+    padding: "12px 14px",
+    borderRadius: "12px",
+    background: "#fff1f2",
+    border: "1px solid #fecdd3",
+    color: "#be123c",
+    fontWeight: 800,
+  },
+  success: {
+    marginTop: "14px",
+    padding: "12px 14px",
+    borderRadius: "12px",
+    background: "#ecfdf5",
+    border: "1px solid #bbf7d0",
+    color: "#047857",
+    fontWeight: 800,
+  },
+};
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
-  const { logout } = useAuth();
 
-  // resumo
-  const [drawId, setDrawId] = React.useState(null);
-  const [sold, setSold] = React.useState(0);
-  const [remaining, setRemaining] = React.useState(0);
-
-  // preço (em centavos)
-  const [price, setPrice] = React.useState("");
-
-  // novos campos
-  const [maxSelect, setMaxSelect] = React.useState(5);
-  const [bannerTitle, setBannerTitle] = React.useState("");
-
-  const [loading, setLoading] = React.useState(true);
-  const [saving, setSaving] = React.useState(false);
+  const [summary, setSummary] = React.useState(null);
+  const [showCreate, setShowCreate] = React.useState(false);
+  const [loading, setLoading] = React.useState(false);
+  const [savingConfig, setSavingConfig] = React.useState(false);
   const [creating, setCreating] = React.useState(false);
+  const [message, setMessage] = React.useState("");
+  const [error, setError] = React.useState("");
 
-  const loadSummary = React.useCallback(async () => {
-    setLoading(true);
+  const [configForm, setConfigForm] = React.useState({
+    ticket_price_cents: "5500",
+    max_numbers_per_selection: "5",
+    promo_text: "",
+  });
+
+  const [createForm, setCreateForm] = React.useState({
+    title: "",
+    prize_title: "",
+    promo_text: "",
+    ticket_price_cents: "5500",
+    max_numbers_per_selection: "5",
+  });
+
+  async function loadSummary() {
     try {
-      // resumo do dashboard
-      const r = await getJSON("/admin/dashboard/summary");
-      setDrawId(r.draw_id ?? null);
-      setSold(r.sold ?? 0);
-      setRemaining(r.remaining ?? 0);
-      if (Number.isFinite(Number(r.price_cents))) {
-        setPrice(String(Number(r.price_cents)));
-      }
+      setLoading(true);
+      setError("");
 
-      // configurações públicas
-      try {
-        const cfg = await getJSON("/config");
+      const data = await getAdminSummary();
+      setSummary(data);
 
-        const cfgCents =
-          cfg?.ticket_price_cents ??
-          cfg?.price_cents ??
-          cfg?.current?.price_cents ??
-          cfg?.current_draw?.price_cents ??
-          null;
-        if (cfgCents != null && Number.isFinite(Number(cfgCents))) {
-          setPrice(String(Number(cfgCents)));
-        }
+      const draw = data?.draw || data?.current_draw || data?.currentDraw;
+      const config = data?.config || {};
 
-        const maxSel =
-          cfg?.max_numbers_per_selection ??
-          cfg?.max_per_selection ??
-          cfg?.max_select ??
-          null;
-        if (maxSel != null && !Number.isNaN(Number(maxSel))) {
-          setMaxSelect(Number(maxSel));
-        }
+      setConfigForm({
+        ticket_price_cents: String(
+          draw?.ticket_price_cents ||
+            config.ticket_price_cents ||
+            config.price_cents ||
+            5500
+        ),
+        max_numbers_per_selection: String(
+          draw?.max_numbers_per_user ||
+            config.max_numbers_per_selection ||
+            config.max_numbers_per_user ||
+            5
+        ),
+        promo_text: draw?.promo_text || config.promo_text || config.banner_title || "",
+      });
 
-        const banner =
-          cfg?.banner_title ??
-          cfg?.promo_title ??
-          cfg?.headline ??
-          "";
-        if (banner != null) setBannerTitle(String(banner));
-      } catch (e) {
-        console.warn("[AdminDashboard] GET /config opcional:", e?.message || e);
-      }
-    } catch (e) {
-      console.error("[AdminDashboard] GET /summary failed:", e);
-      setDrawId(null);
-      setSold(0);
-      setRemaining(0);
+      setCreateForm((old) => ({
+        ...old,
+        ticket_price_cents: String(
+          draw?.ticket_price_cents ||
+            config.ticket_price_cents ||
+            config.price_cents ||
+            5500
+        ),
+        max_numbers_per_selection: String(
+          draw?.max_numbers_per_user ||
+            config.max_numbers_per_selection ||
+            config.max_numbers_per_user ||
+            5
+        ),
+      }));
+    } catch (err) {
+      setError(err.message || "Erro ao carregar painel admin.");
     } finally {
       setLoading(false);
     }
+  }
+
+  React.useEffect(() => {
+    loadSummary();
   }, []);
 
-  React.useEffect(() => { loadSummary(); }, [loadSummary]);
+  const draw = summary?.draw || summary?.current_draw || summary?.currentDraw;
 
-  // SALVAR: mantém o fluxo do preço que já funciona e tenta salvar os novos campos
-  const onSaveAll = async () => {
-    setSaving(true);
-    let msg = "Configurações atualizadas.";
+  const sold = Number(draw?.sold_numbers || summary?.sold_numbers || 0);
+  const remaining = Number(draw?.remaining_numbers || summary?.remaining_numbers || 0);
+
+  async function handleSaveConfig(event) {
+    event.preventDefault();
+
     try {
-      // 1) preço — usa a rota que já funciona hoje
-      const priceCents = Math.max(0, Math.floor(Number(price || 0)));
-      await postJSON("/admin/dashboard/ticket-price", { price_cents: priceCents });
+      setSavingConfig(true);
+      setError("");
+      setMessage("");
 
-      // 2) banner + max — tenta POST /config (se seu backend ainda não tiver, isso cairá no catch)
-      try {
-        await postJSON("/config", {
-          banner_title: String(bannerTitle || ""),
-          max_numbers_per_selection: Math.max(1, Math.floor(Number(maxSelect || 1))),
-        });
-      } catch (e) {
-        console.warn("[AdminDashboard] POST /config falhou:", e?.message || e);
-        msg =
-          "Preço atualizado. Para salvar 'Frase promocional' e 'Máximo de tickets', habilite POST /api/config no backend.";
-      }
+      await updateAdminConfig({
+        ticket_price_cents: Number(onlyNumbers(configForm.ticket_price_cents) || 5500),
+        max_numbers_per_selection: Number(
+          onlyNumbers(configForm.max_numbers_per_selection) || 5
+        ),
+        promo_text: configForm.promo_text,
+      });
 
+      setMessage("Configurações atualizadas com sucesso.");
       await loadSummary();
-      alert(msg);
-    } catch (e) {
-      console.error("[AdminDashboard] salvar configs falhou:", e);
-      alert("Não foi possível atualizar as configurações agora.");
+    } catch (err) {
+      setError(err.message || "Erro ao atualizar configurações.");
     } finally {
-      setSaving(false);
+      setSavingConfig(false);
     }
-  };
+  }
 
-  const onNewDraw = async () => {
+  async function handleCreateDraw(event) {
+    event.preventDefault();
+
+    const title = createForm.title.trim();
+    const prizeTitle = createForm.prize_title.trim();
+
+    if (!title && !prizeTitle) {
+      setError("Informe pelo menos o nome ou o prêmio do sorteio.");
+      return;
+    }
+
     try {
       setCreating(true);
-      await postJSON("/admin/dashboard/new", {});
+      setError("");
+      setMessage("");
+
+      const payload = {
+        title,
+        prize_title: prizeTitle,
+        promo_text: createForm.promo_text.trim(),
+        ticket_price_cents: Number(onlyNumbers(createForm.ticket_price_cents) || 5500),
+        max_numbers_per_selection: Number(
+          onlyNumbers(createForm.max_numbers_per_selection) || 5
+        ),
+        numbers_count: 100,
+        numbers_start: 0,
+        numbers_end: 99,
+      };
+
+      const data = await createAdminDraw(payload);
+
+      setMessage(`Sorteio #${data?.draw?.id || ""} criado com sucesso com números de 00 a 99.`);
+      setShowCreate(false);
+      setCreateForm({
+        title: "",
+        prize_title: "",
+        promo_text: "",
+        ticket_price_cents: payload.ticket_price_cents,
+        max_numbers_per_selection: payload.max_numbers_per_selection,
+      });
+
       await loadSummary();
-      // Notifica o frontend para refetch imediato de config/numbers (reservados) sem esperar polling
-      try {
-        window.dispatchEvent(new CustomEvent("ns:draw:changed"));
-        window.dispatchEvent(new CustomEvent("ns:numbers:reload"));
-      } catch {}
-    } catch (e) {
-      console.error("[AdminDashboard] POST /new failed:", e);
+    } catch (err) {
+      setError(err.message || "Erro ao criar sorteio.");
     } finally {
       setCreating(false);
     }
-  };
-
-  // menu
-  const [menuEl, setMenuEl] = React.useState(null);
-  const open = Boolean(menuEl);
-  const openMenu = (e) => setMenuEl(e.currentTarget);
-  const closeMenu = () => setMenuEl(null);
-  const goPainel = () => { closeMenu(); navigate("/admin"); };
-  const doLogout = () => { closeMenu(); logout(); navigate("/"); };
+  }
 
   return (
-    <XnamaiAdminLayout
-      title="Painel Admin"
-      subtitle="Configure o sorteio atual e acesse rapidamente as áreas principais."
-      onBack={() => navigate("/")}
-      actions={
-        <>
-          <IconButton color="inherit" onClick={openMenu} aria-label="Conta">
-            <AccountCircleRoundedIcon />
-          </IconButton>
-          <Menu
-            anchorEl={menuEl}
-            open={open}
-            onClose={closeMenu}
-            anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
-            transformOrigin={{ vertical: "top", horizontal: "right" }}
-          >
-            <MenuItem onClick={goPainel}>Painel (Admin)</MenuItem>
-            <Divider />
-            <MenuItem onClick={doLogout}>Sair</MenuItem>
-          </Menu>
-        </>
-      }
-    >
-      <Stack spacing={3}>
+    <main style={styles.page}>
+      <div style={styles.shell}>
+        <h1 style={styles.title}>Painel Admin</h1>
+        <p style={styles.subtitle}>
+          Configure o sorteio atual e acesse rapidamente as áreas principais.
+        </p>
 
-          {/* Painel (resumo + preço e configs) */}
-          <Paper className="xnamai-admin-card" variant="outlined" sx={{ p: { xs: 2, md: 3 } }}>
-            <Stack direction={{ xs: "column", md: "row" }} spacing={2} alignItems={{ xs: "stretch", md: "center" }} flexWrap="wrap">
-              <Stack>
-                <Typography sx={{ color: "text.secondary", fontWeight: 800 }}>Nº Sorteio atual</Typography>
-                <Typography variant="h4" sx={{ fontWeight: 900, color: "text.primary" }}>
-                  {loading ? "…" : drawId ?? "-"}
-                </Typography>
-              </Stack>
+        <section style={styles.card}>
+          <div style={styles.topRow}>
+            <div style={styles.stats}>
+              <div>
+                <div style={styles.statLabel}>Nº Sorteio atual</div>
+                <div style={styles.statValue}>{loading ? "..." : draw?.id || "-"}</div>
+              </div>
 
-              <Stack>
-                <Typography sx={{ color: "text.secondary", fontWeight: 800 }}>Números vendidos</Typography>
-                <Typography variant="h4" sx={{ fontWeight: 900, color: "text.primary" }}>
-                  {loading ? "…" : sold}
-                </Typography>
-              </Stack>
+              <div>
+                <div style={styles.statLabel}>Números vendidos</div>
+                <div style={styles.statValue}>{loading ? "..." : sold}</div>
+              </div>
 
-              <Stack>
-                <Typography sx={{ color: "text.secondary", fontWeight: 800 }}>Números restantes</Typography>
-                <Typography variant="h4" sx={{ fontWeight: 900, color: "text.primary" }}>
-                  {loading ? "…" : remaining}
-                </Typography>
-              </Stack>
+              <div>
+                <div style={styles.statLabel}>Números restantes</div>
+                <div style={styles.statValue}>{loading ? "..." : remaining}</div>
+              </div>
 
-              <Box sx={{ flex: 1 }} />
+              <div>
+                <div style={styles.statLabel}>Valor atual</div>
+                <div style={{ ...styles.statValue, fontSize: 24 }}>
+                  {moneyFromCents(draw?.ticket_price_cents || configForm.ticket_price_cents)}
+                </div>
+              </div>
+            </div>
 
-              <Box
-                component="button"
-                onClick={onNewDraw}
-                disabled={creating}
-                className="xnamai-admin-button secondary"
-                style={{ cursor: creating ? "not-allowed" : "pointer" }}
-              >
-                {creating ? "Criando..." : "NOVO SORTEIO"}
-              </Box>
-            </Stack>
-
-            <Divider sx={{ my: 2.5 }} />
-
-            {/* Valor por Ticket (centavos) */}
-            <Typography sx={{ color: "text.secondary", fontWeight: 800, mb: 1 }}>Valor por ticket</Typography>
-            <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} alignItems={{ xs: "stretch", sm: "center" }} sx={{ mb: 2 }}>
-              <TextField
-                value={price}
-                onChange={(e) => setPrice(e.target.value)}
-                placeholder="em centavos (ex.: 100 = R$ 1,00)"
-                inputProps={{ inputMode: "numeric", pattern: "[0-9]*" }}
-                sx={{ maxWidth: 360 }}
-              />
-            </Stack>
-
-            {/* Máximo de tickets por seleção */}
-            <Typography sx={{ color: "text.secondary", fontWeight: 800, mb: 1 }}>
-              Máximo de Tickets permitidos
-            </Typography>
-            <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} alignItems={{ xs: "stretch", sm: "center" }} sx={{ mb: 2 }}>
-              <TextField
-                type="number"
-                value={maxSelect}
-                onChange={(e) => setMaxSelect(e.target.value)}
-                placeholder="Ex.: 5"
-                inputProps={{ min: 1 }}
-                sx={{ maxWidth: 220 }}
-              />
-            </Stack>
-
-            {/* Frase promocional */}
-            <Typography sx={{ color: "text.secondary", fontWeight: 800, mb: 1 }}>
-              Frase promocional
-            </Typography>
-            <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} alignItems={{ xs: "stretch", sm: "center" }} sx={{ mb: 2.5 }}>
-              <TextField
-                value={bannerTitle}
-                onChange={(e) => setBannerTitle(e.target.value)}
-                placeholder="Ex.: Sorteio de um Watch Winder…"
-                fullWidth
-              />
-            </Stack>
-
-            <Box
-              component="button"
-              onClick={onSaveAll}
-              disabled={saving}
-              className="xnamai-admin-button"
-              style={{ cursor: saving ? "not-allowed" : "pointer" }}
+            <button
+              type="button"
+              style={styles.outlineButton}
+              onClick={() => {
+                setShowCreate((value) => !value);
+                setError("");
+                setMessage("");
+              }}
             >
-              {saving ? "Salvando..." : "ATUALIZAR"}
-            </Box>
-          </Paper>
+              NOVO SORTEIO
+            </button>
+          </div>
 
-          <Box>
-            <Typography sx={{ fontWeight: 900, fontSize: 16, mb: 1, color: "text.primary" }}>
-              Acessos rápidos
-            </Typography>
-            <Box className="xnamai-admin-grid">
-              <Box sx={{ gridColumn: { xs: "span 12", md: "span 6" } }}>
-                <NavCard
-                  icon={<PeopleAltRoundedIcon />}
-                  title="Cadastro e manutenção de clientes"
-                  desc="Criar/editar clientes, saldo de cupom e permissões."
-                  onClick={() => navigate("/admin/AdminClientesUser")}
-                />
-              </Box>
-              <Box sx={{ gridColumn: { xs: "span 12", md: "span 6" } }}>
-                <NavCard
-                  icon={<LocalOfferRoundedIcon />}
-                  title="Sorteio ativo — compradores"
-                  desc="Ver compradores e exportar CSV/PNG do sorteio aberto."
-                  onClick={() => navigate("/admin/sorteiosAtivos")}
-                />
-              </Box>
-              <Box sx={{ gridColumn: { xs: "span 12", md: "span 6" } }}>
-                <NavCard
-                  icon={<InsightsRoundedIcon />}
-                  title="Dashboard — análise"
-                  desc="KPIs, gráficos e tabelas de performance."
-                  onClick={() => navigate("/admin/analytics")}
-                />
-              </Box>
-              <Box sx={{ gridColumn: { xs: "span 12", md: "span 6" } }}>
-                <NavCard
-                  icon={<HistoryRoundedIcon />}
-                  title="Lista de sorteios realizados"
-                  desc="Histórico, vencedor e detalhes por sorteio."
-                  onClick={() => navigate("/admin/sorteios")}
-                />
-              </Box>
-              <Box sx={{ gridColumn: { xs: "span 12", md: "span 6" } }}>
-                <NavCard
-                  icon={<AccountBalanceWalletRoundedIcon />}
-                  title="Lista de clientes com saldo ativo"
-                  desc="Clientes com saldo de cupom e expiração."
-                  onClick={() => navigate("/admin/clientes")}
-                />
-              </Box>
-              <Box sx={{ gridColumn: { xs: "span 12", md: "span 6" } }}>
-                <NavCard
-                  icon={<EmojiEventsRoundedIcon />}
-                  title="Lista de vencedores dos sorteios"
-                  desc="Vencedores, status do prêmio e dados do produto."
-                  onClick={() => navigate("/admin/vencedores")}
-                />
-              </Box>
-            </Box>
-          </Box>
-      </Stack>
-    </XnamaiAdminLayout>
+          {error ? <div style={styles.error}>{error}</div> : null}
+          {message ? <div style={styles.success}>{message}</div> : null}
+
+          {showCreate ? (
+            <>
+              <div style={styles.divider} />
+
+              <form onSubmit={handleCreateDraw}>
+                <h2 style={{ margin: "0 0 18px", fontSize: 24 }}>
+                  Criar novo sorteio
+                </h2>
+
+                <div style={styles.formGrid}>
+                  <label>
+                    <span style={styles.label}>Nome do sorteio</span>
+                    <input
+                      style={styles.input}
+                      value={createForm.title}
+                      onChange={(e) =>
+                        setCreateForm((old) => ({ ...old, title: e.target.value }))
+                      }
+                      placeholder="Ex.: Sorteio Watch Winder"
+                    />
+                  </label>
+
+                  <label>
+                    <span style={styles.label}>Prêmio / item</span>
+                    <input
+                      style={styles.input}
+                      value={createForm.prize_title}
+                      onChange={(e) =>
+                        setCreateForm((old) => ({
+                          ...old,
+                          prize_title: e.target.value,
+                        }))
+                      }
+                      placeholder="Ex.: Watch Winder Premium"
+                    />
+                  </label>
+
+                  <label>
+                    <span style={styles.label}>Valor por ticket em centavos</span>
+                    <input
+                      style={styles.input}
+                      value={createForm.ticket_price_cents}
+                      onChange={(e) =>
+                        setCreateForm((old) => ({
+                          ...old,
+                          ticket_price_cents: onlyNumbers(e.target.value),
+                        }))
+                      }
+                      placeholder="5500"
+                    />
+                    <div style={styles.hint}>
+                      5500 = R$ 55,00
+                    </div>
+                  </label>
+
+                  <label>
+                    <span style={styles.label}>Máximo de tickets por compra</span>
+                    <input
+                      style={styles.input}
+                      value={createForm.max_numbers_per_selection}
+                      onChange={(e) =>
+                        setCreateForm((old) => ({
+                          ...old,
+                          max_numbers_per_selection: onlyNumbers(e.target.value),
+                        }))
+                      }
+                      placeholder="5"
+                    />
+                  </label>
+
+                  <label style={styles.full}>
+                    <span style={styles.label}>Frase promocional</span>
+                    <textarea
+                      style={styles.textarea}
+                      value={createForm.promo_text}
+                      onChange={(e) =>
+                        setCreateForm((old) => ({
+                          ...old,
+                          promo_text: e.target.value,
+                        }))
+                      }
+                      placeholder="Ex.: Participe e concorra..."
+                    />
+                  </label>
+
+                  <div style={styles.full}>
+                    <span style={styles.label}>Grade de números</span>
+                    <input
+                      style={{
+                        ...styles.input,
+                        background: "#f8fbff",
+                        color: "#53617a",
+                        fontWeight: 800,
+                      }}
+                      value="00 até 99 — 100 números fixos"
+                      readOnly
+                    />
+                  </div>
+                </div>
+
+                <div style={{ display: "flex", gap: 12, marginTop: 18, flexWrap: "wrap" }}>
+                  <button type="submit" style={styles.primaryButton} disabled={creating}>
+                    {creating ? "CRIANDO..." : "CRIAR SORTEIO"}
+                  </button>
+
+                  <button
+                    type="button"
+                    style={styles.secondaryButton}
+                    onClick={() => setShowCreate(false)}
+                    disabled={creating}
+                  >
+                    CANCELAR
+                  </button>
+                </div>
+              </form>
+            </>
+          ) : (
+            <>
+              <div style={styles.divider} />
+
+              <form onSubmit={handleSaveConfig}>
+                <div style={styles.formGrid}>
+                  <label>
+                    <span style={styles.label}>Valor por ticket</span>
+                    <input
+                      style={styles.input}
+                      value={configForm.ticket_price_cents}
+                      onChange={(e) =>
+                        setConfigForm((old) => ({
+                          ...old,
+                          ticket_price_cents: onlyNumbers(e.target.value),
+                        }))
+                      }
+                      placeholder="em centavos (ex.: 5500)"
+                    />
+                  </label>
+
+                  <label>
+                    <span style={styles.label}>Máximo de Tickets permitidos</span>
+                    <input
+                      style={styles.input}
+                      value={configForm.max_numbers_per_selection}
+                      onChange={(e) =>
+                        setConfigForm((old) => ({
+                          ...old,
+                          max_numbers_per_selection: onlyNumbers(e.target.value),
+                        }))
+                      }
+                      placeholder="5"
+                    />
+                  </label>
+
+                  <label style={styles.full}>
+                    <span style={styles.label}>Frase promocional</span>
+                    <input
+                      style={styles.input}
+                      value={configForm.promo_text}
+                      onChange={(e) =>
+                        setConfigForm((old) => ({
+                          ...old,
+                          promo_text: e.target.value,
+                        }))
+                      }
+                      placeholder="Ex.: Sorteio de um Watch Winder..."
+                    />
+                  </label>
+                </div>
+
+                <button
+                  type="submit"
+                  style={{ ...styles.primaryButton, marginTop: 20 }}
+                  disabled={savingConfig}
+                >
+                  {savingConfig ? "ATUALIZANDO..." : "ATUALIZAR"}
+                </button>
+              </form>
+            </>
+          )}
+        </section>
+
+        <h3 style={styles.quickTitle}>Acessos rápidos</h3>
+
+        <section style={styles.quickGrid}>
+          <div
+            style={styles.quickCard}
+            onClick={() => navigate("/admin/AdminClientesUser")}
+          >
+            <div>
+              <div style={styles.quickName}>Cadastro e manutenção de clientes</div>
+              <div style={styles.quickDesc}>
+                Criar/editar clientes, saldo de cupom e permissões.
+              </div>
+            </div>
+            <strong>→</strong>
+          </div>
+
+          <div
+            style={styles.quickCard}
+            onClick={() => navigate("/admin/sorteiosAtivos")}
+          >
+            <div>
+              <div style={styles.quickName}>Sorteio ativo — compradores</div>
+              <div style={styles.quickDesc}>
+                Ver compradores e exportar CSV/PNG do sorteio aberto.
+              </div>
+            </div>
+            <strong>→</strong>
+          </div>
+
+          <div
+            style={styles.quickCard}
+            onClick={() => navigate("/admin/analytics")}
+          >
+            <div>
+              <div style={styles.quickName}>Dashboard — análise</div>
+              <div style={styles.quickDesc}>
+                KPIs, gráficos e tabelas de performance.
+              </div>
+            </div>
+            <strong>→</strong>
+          </div>
+
+          <div
+            style={styles.quickCard}
+            onClick={() => navigate("/admin/sorteios")}
+          >
+            <div>
+              <div style={styles.quickName}>Lista de sorteios realizados</div>
+              <div style={styles.quickDesc}>
+                Histórico, status e organização dos sorteios.
+              </div>
+            </div>
+            <strong>→</strong>
+          </div>
+        </section>
+      </div>
+    </main>
   );
 }
