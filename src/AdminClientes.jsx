@@ -2,11 +2,8 @@
 import * as React from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  IconButton, Menu, MenuItem, Divider,
   Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
 } from "@mui/material";
-import AccountCircleRoundedIcon from "@mui/icons-material/AccountCircleRounded";
-import { useAuth } from "./authContext";
 import { API_CONFIG } from "./config/api";
 import "./styles/xnamai-admin.css";
 import XnamaiAdminLayout from "./components/admin/XnamaiAdminLayout";
@@ -160,7 +157,6 @@ function buildRowsFallback({ usersPayload, paymentsPayload, drawsPayload }) {
 
 export default function AdminClientes() {
   const navigate = useNavigate();
-  const { logout } = useAuth();
 
   const [rows, setRows] = React.useState([]);
   const [loading, setLoading] = React.useState(true);
@@ -222,37 +218,11 @@ export default function AdminClientes() {
     return () => { alive = false; };
   }, []);
 
-  // menu
-  const [menuEl, setMenuEl] = React.useState(null);
-  const open = Boolean(menuEl);
-  const openMenu = (e) => setMenuEl(e.currentTarget);
-  const closeMenu = () => setMenuEl(null);
-  const goPainel = () => { closeMenu(); navigate("/admin"); };
-  const doLogout = () => { closeMenu(); logout(); navigate("/"); };
-
   return (
     <XnamaiAdminLayout
       title="Clientes com saldo ativo"
       subtitle="Lista de clientes com saldo de cupom e informações de expiração."
       onBack={() => navigate("/admin")}
-      actions={
-        <>
-          <IconButton color="inherit" sx={{ ml: "auto" }} onClick={openMenu} aria-label="Conta">
-            <AccountCircleRoundedIcon />
-          </IconButton>
-          <Menu
-            anchorEl={menuEl}
-            open={open}
-            onClose={closeMenu}
-            anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
-            transformOrigin={{ vertical: "top", horizontal: "right" }}
-          >
-            <MenuItem onClick={goPainel}>Painel (Admin)</MenuItem>
-            <Divider />
-            <MenuItem onClick={doLogout}>Sair</MenuItem>
-          </Menu>
-        </>
-      }
     >
       <Paper className="xnamai-admin-card" variant="outlined" sx={{ p: { xs: 1, md: 1.5 } }}>
         <div className="xnamai-admin-table-wrap">

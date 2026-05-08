@@ -207,6 +207,9 @@ const styles = {
 export default function AdminDashboard() {
   const navigate = useNavigate();
 
+  const [profileOpen, setProfileOpen] = React.useState(false);
+  const profileRef = React.useRef(null);
+
   const [summary, setSummary] = React.useState(null);
   const [showCreate, setShowCreate] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
@@ -281,6 +284,17 @@ export default function AdminDashboard() {
   React.useEffect(() => {
     loadSummary();
   }, []);
+
+  React.useEffect(() => {
+    function onDocMouseDown(e) {
+      if (!profileOpen) return;
+      if (!profileRef.current) return;
+      if (profileRef.current.contains(e.target)) return;
+      setProfileOpen(false);
+    }
+    document.addEventListener("mousedown", onDocMouseDown);
+    return () => document.removeEventListener("mousedown", onDocMouseDown);
+  }, [profileOpen]);
 
   const draw = summary?.draw || summary?.current_draw || summary?.currentDraw;
 
@@ -361,9 +375,215 @@ export default function AdminDashboard() {
     }
   }
 
+  const clearAdminSession = React.useCallback(() => {
+    try {
+      [
+        "adminToken",
+        "adminUser",
+        "token",
+        "access_token",
+        "user",
+        "ns_auth_token",
+      ].forEach((k) => {
+        localStorage.removeItem(k);
+        sessionStorage.removeItem(k);
+      });
+      sessionStorage.clear();
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  const goToMainMenu = React.useCallback(() => {
+    navigate("/");
+  }, [navigate]);
+
+  const handleSwitchAccount = React.useCallback(() => {
+    clearAdminSession();
+    navigate("/login");
+  }, [clearAdminSession, navigate]);
+
+  const handleLogoutAdmin = React.useCallback(() => {
+    clearAdminSession();
+    navigate("/");
+  }, [clearAdminSession, navigate]);
+
   return (
     <main style={styles.page}>
       <div style={styles.shell}>
+        <header
+          style={{
+            width: "100%",
+            maxWidth: "1150px",
+            margin: "0 auto 24px auto",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: "16px",
+            padding: "10px 0 4px",
+            position: "relative",
+            zIndex: 20,
+            flexWrap: "wrap",
+          }}
+        >
+          <button
+            type="button"
+            onClick={goToMainMenu}
+            style={{
+              border: "1px solid rgba(37, 99, 235, 0.18)",
+              background: "rgba(255, 255, 255, 0.72)",
+              color: "#001f4f",
+              fontWeight: 900,
+              fontSize: "14px",
+              letterSpacing: "0.01em",
+              padding: "12px 18px",
+              borderRadius: "999px",
+              cursor: "pointer",
+              boxShadow: "0 12px 28px rgba(15, 23, 42, 0.08)",
+              transition: "all 0.22s ease",
+              backdropFilter: "blur(12px)",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = "translateY(-1px)";
+              e.currentTarget.style.background = "#ffffff";
+              e.currentTarget.style.borderColor = "rgba(37, 99, 235, 0.35)";
+              e.currentTarget.style.boxShadow = "0 16px 34px rgba(15, 23, 42, 0.12)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = "translateY(0px)";
+              e.currentTarget.style.background = "rgba(255, 255, 255, 0.72)";
+              e.currentTarget.style.borderColor = "rgba(37, 99, 235, 0.18)";
+              e.currentTarget.style.boxShadow = "0 12px 28px rgba(15, 23, 42, 0.08)";
+            }}
+          >
+            ← Voltar ao menu principal
+          </button>
+
+          <div
+            ref={profileRef}
+            style={{ position: "relative", display: "flex", alignItems: "center" }}
+          >
+            <button
+              type="button"
+              onClick={() => setProfileOpen((prev) => !prev)}
+              aria-label="Abrir menu de perfil"
+              style={{
+                border: "1px solid rgba(37, 99, 235, 0.18)",
+                background: "rgba(255, 255, 255, 0.78)",
+                color: "#001f4f",
+                borderRadius: "999px",
+                padding: "8px 12px 8px 8px",
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                cursor: "pointer",
+                boxShadow: "0 12px 28px rgba(15, 23, 42, 0.08)",
+                transition: "all 0.22s ease",
+                backdropFilter: "blur(12px)",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "#ffffff";
+                e.currentTarget.style.transform = "translateY(-1px)";
+                e.currentTarget.style.boxShadow = "0 16px 34px rgba(15, 23, 42, 0.12)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "rgba(255, 255, 255, 0.78)";
+                e.currentTarget.style.transform = "translateY(0px)";
+                e.currentTarget.style.boxShadow = "0 12px 28px rgba(15, 23, 42, 0.08)";
+              }}
+            >
+              <span
+                style={{
+                  width: 34,
+                  height: 34,
+                  borderRadius: "50%",
+                  background: "linear-gradient(135deg, #0f5bff, #6ea8ff)",
+                  color: "#ffffff",
+                  display: "grid",
+                  placeItems: "center",
+                  fontSize: 14,
+                  fontWeight: 900,
+                }}
+              >
+                A
+              </span>
+              <span style={{ fontSize: 14, fontWeight: 900 }}>Admin</span>
+              <span style={{ fontSize: 16, lineHeight: 1, opacity: 0.75 }}>⌄</span>
+            </button>
+
+            {profileOpen ? (
+              <div
+                style={{
+                  position: "absolute",
+                  top: "calc(100% + 10px)",
+                  right: 0,
+                  width: 210,
+                  background: "#ffffff",
+                  border: "1px solid rgba(15, 23, 42, 0.08)",
+                  borderRadius: 18,
+                  boxShadow: "0 22px 60px rgba(15, 23, 42, 0.16)",
+                  padding: 8,
+                  zIndex: 50,
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={handleSwitchAccount}
+                  style={{
+                    width: "100%",
+                    border: "none",
+                    background: "transparent",
+                    color: "#001f4f",
+                    textAlign: "left",
+                    padding: "12px 14px",
+                    borderRadius: 12,
+                    cursor: "pointer",
+                    fontSize: 14,
+                    fontWeight: 800,
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = "rgba(15, 91, 255, 0.08)";
+                    e.currentTarget.style.color = "#0f5bff";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = "transparent";
+                    e.currentTarget.style.color = "#001f4f";
+                  }}
+                >
+                  Trocar de conta
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleLogoutAdmin}
+                  style={{
+                    width: "100%",
+                    border: "none",
+                    background: "transparent",
+                    color: "#001f4f",
+                    textAlign: "left",
+                    padding: "12px 14px",
+                    borderRadius: 12,
+                    cursor: "pointer",
+                    fontSize: 14,
+                    fontWeight: 800,
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = "rgba(15, 91, 255, 0.08)";
+                    e.currentTarget.style.color = "#0f5bff";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = "transparent";
+                    e.currentTarget.style.color = "#001f4f";
+                  }}
+                >
+                  Sair do admin
+                </button>
+              </div>
+            ) : null}
+          </div>
+        </header>
+
         <h1 style={styles.title}>Painel Admin</h1>
         <p style={styles.subtitle}>
           Configure o sorteio atual e acesse rapidamente as áreas principais.
