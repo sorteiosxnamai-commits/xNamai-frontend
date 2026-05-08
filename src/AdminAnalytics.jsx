@@ -13,7 +13,6 @@ import {
 } from "recharts";
 import AdminDrawsList from "./components/AdminDrawsList";
 import "./styles/xnamai-admin.css";
-import XnamaiAdminLayout from "./components/admin/XnamaiAdminLayout";
 
 /* ============================ HELPERS API ============================ */
 /**
@@ -251,12 +250,15 @@ export default function AdminAnalytics() {
   /* ================================ UI ================================ */
 
   return (
-    <XnamaiAdminLayout
-      title="Analytics"
-      subtitle="KPIs, gráficos e tabelas com visão geral e por sorteio."
-      onBack={() => nav("/admin")}
-      maxWidth="xl"
-    >
+    <>
+      <div className="xnamai-admin-stack" style={{ marginBottom: 20 }}>
+        <Typography className="xnamai-admin-title" sx={{ fontSize: { xs: 24, md: 36 } }}>
+          Analytics
+        </Typography>
+        <Typography className="xnamai-admin-subtitle">
+          KPIs, gráficos e tabelas com visão geral e por sorteio.
+        </Typography>
+      </div>
         <Paper className="xnamai-admin-card" sx={{ mb: 2 }} variant="outlined">
           <Tabs
             value={tab}
@@ -693,6 +695,6 @@ export default function AdminAnalytics() {
             </Section>
           </Stack>
         )}
-    </XnamaiAdminLayout>
+    </>
   );
 }

@@ -22,6 +22,7 @@ import DrawBoardPage from "./DrawBoardPage";
 import AdminOpenDrawBuyers from "./AdminOpenDrawBuyers";
 import AdminAnalytics from './AdminAnalytics';
 import AdminErrorBoundary from "./components/admin/AdminErrorBoundary";
+import XnamaiAdminLayout from "./XnamaiAdminLayout";
 
 export default function App() {
   const [selecionados, setSelecionados] = React.useState([]);
@@ -62,80 +63,76 @@ export default function App() {
               path="/admin"
               element={
                 <AdminRoute>
+                  <XnamaiAdminLayout />
+                </AdminRoute>
+              }
+            >
+              <Route
+                index
+                element={
                   <AdminErrorBoundary>
                     <AdminDashboard />
                   </AdminErrorBoundary>
-                </AdminRoute>
-              }
-            />
-            <Route
-              path="/admin/sorteios"
-              element={
-                <AdminRoute>
-                  <AdminErrorBoundary>
-                    <AdminSorteios />
-                  </AdminErrorBoundary>
-                </AdminRoute>
-              }
-            />
-            <Route
-              path="/admin/clientes"
-              element={
-                <AdminRoute>
+                }
+              />
+              <Route
+                path="clientes"
+                element={
                   <AdminErrorBoundary>
                     <AdminUsersPage />
                   </AdminErrorBoundary>
-                </AdminRoute>
-              }
-            />
-            <Route
-              path="/admin/clientes-saldo"
-              element={
-                <AdminRoute>
+                }
+              />
+              <Route
+                path="clientes-saldo"
+                element={
                   <AdminErrorBoundary>
                     <AdminClientes />
                   </AdminErrorBoundary>
-                </AdminRoute>
-              }
-            />
-            <Route
-              path="/admin/vencedores"
-              element={
-                <AdminRoute>
-                  <AdminErrorBoundary>
-                    <AdminVencedores />
-                  </AdminErrorBoundary>
-                </AdminRoute>
-              }
-            />
-            <Route path="/me/draw/:id" element={<DrawBoardPage />} />
-            <Route
-              path="/admin/compradores"
-              element={
-                <AdminRoute>
+                }
+              />
+              <Route
+                path="compradores"
+                element={
                   <AdminErrorBoundary>
                     <AdminOpenDrawBuyers />
                   </AdminErrorBoundary>
-                </AdminRoute>
-              }
-            />
-            <Route
-              path="/admin/analytics"
-              element={
-                <AdminRoute>
+                }
+              />
+              <Route
+                path="analytics"
+                element={
                   <AdminErrorBoundary>
                     <AdminAnalytics />
                   </AdminErrorBoundary>
-                </AdminRoute>
-              }
-            />
+                }
+              />
+              <Route
+                path="sorteios"
+                element={
+                  <AdminErrorBoundary>
+                    <AdminSorteios />
+                  </AdminErrorBoundary>
+                }
+              />
+              <Route
+                path="vencedores"
+                element={
+                  <AdminErrorBoundary>
+                    <AdminVencedores />
+                  </AdminErrorBoundary>
+                }
+              />
+
+              {/* fallback admin (nunca tela vazia) */}
+              <Route path="*" element={<Navigate to="/admin" replace />} />
+            </Route>
+
+            <Route path="/me/draw/:id" element={<DrawBoardPage />} />
 
             {/* redirects/compat (evitar rotas com maiúsculas e antigas) */}
             <Route path="/admin/AdminClientesUser" element={<Navigate to="/admin/clientes" replace />} />
             <Route path="/admin/sorteiosAtivos" element={<Navigate to="/admin/compradores" replace />} />
-
-            {/* fallback admin (nunca tela vazia) */}
-            <Route path="/admin/*" element={<Navigate to="/admin" replace />} />
           </Routes>
         </BrowserRouter>
       </SelectionContext.Provider>

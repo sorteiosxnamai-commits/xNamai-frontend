@@ -2,11 +2,10 @@
 import * as React from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
+  Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography,
 } from "@mui/material";
 import { API_CONFIG } from "./config/api";
 import "./styles/xnamai-admin.css";
-import XnamaiAdminLayout from "./components/admin/XnamaiAdminLayout";
 
 /* ---------- API base ---------- */
 const RAW_BASE = API_CONFIG.baseUrl || "";
@@ -219,11 +218,15 @@ export default function AdminClientes() {
   }, []);
 
   return (
-    <XnamaiAdminLayout
-      title="Clientes com saldo ativo"
-      subtitle="Lista de clientes com saldo de cupom e informações de expiração."
-      onBack={() => navigate("/admin")}
-    >
+    <>
+      <div className="xnamai-admin-stack" style={{ marginBottom: 20 }}>
+        <Typography className="xnamai-admin-title" sx={{ fontSize: { xs: 24, md: 36 } }}>
+          Clientes com saldo ativo
+        </Typography>
+        <Typography className="xnamai-admin-subtitle">
+          Lista de clientes com saldo de cupom e informações de expiração.
+        </Typography>
+      </div>
       <Paper className="xnamai-admin-card" variant="outlined" sx={{ p: { xs: 1, md: 1.5 } }}>
         <div className="xnamai-admin-table-wrap">
           <div className="xnamai-admin-table">
@@ -266,6 +269,6 @@ export default function AdminClientes() {
           </div>
         </div>
       </Paper>
-    </XnamaiAdminLayout>
+    </>
   );
 }

@@ -1,7 +1,6 @@
 // src/AdminDashboard.jsx
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import ArrowBackIosNewRoundedIcon from "@mui/icons-material/ArrowBackIosNewRounded";
 import {
   createAdminDraw,
   getAdminSummary,
@@ -208,9 +207,6 @@ const styles = {
 export default function AdminDashboard() {
   const navigate = useNavigate();
 
-  const [profileOpen, setProfileOpen] = React.useState(false);
-  const profileRef = React.useRef(null);
-
   const [summary, setSummary] = React.useState(null);
   const [showCreate, setShowCreate] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
@@ -285,17 +281,6 @@ export default function AdminDashboard() {
   React.useEffect(() => {
     loadSummary();
   }, []);
-
-  React.useEffect(() => {
-    function onDocMouseDown(e) {
-      if (!profileOpen) return;
-      if (!profileRef.current) return;
-      if (profileRef.current.contains(e.target)) return;
-      setProfileOpen(false);
-    }
-    document.addEventListener("mousedown", onDocMouseDown);
-    return () => document.removeEventListener("mousedown", onDocMouseDown);
-  }, [profileOpen]);
 
   const draw = summary?.draw || summary?.current_draw || summary?.currentDraw;
 
@@ -376,185 +361,9 @@ export default function AdminDashboard() {
     }
   }
 
-  const handleAdminLogout = React.useCallback(() => {
-    try {
-      localStorage.removeItem("adminToken");
-      localStorage.removeItem("token");
-      localStorage.removeItem("authToken");
-      localStorage.removeItem("user");
-      localStorage.removeItem("adminUser");
-      localStorage.removeItem("isAdmin");
-      localStorage.removeItem("xnamaiUser");
-      localStorage.removeItem("xnamaiAdmin");
-
-      sessionStorage.clear();
-
-      document.cookie.split(";").forEach((cookie) => {
-        const name = cookie.split("=")[0].trim();
-        document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
-      });
-    } catch (error) {
-      // eslint-disable-next-line no-console
-      console.warn("Erro ao limpar sessão admin:", error);
-    }
-
-    window.location.href = "/";
-  }, []);
-
-  const goToMainMenu = React.useCallback(() => {
-    navigate("/");
-  }, [navigate]);
-
   return (
-    <main style={styles.page}>
-      <div style={styles.shell}>
-        <header
-          style={{
-            width: "100%",
-            maxWidth: "1150px",
-            margin: "0 auto 24px auto",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: "16px",
-            padding: "10px 0 4px",
-            position: "relative",
-            zIndex: 20,
-            flexWrap: "wrap",
-          }}
-        >
-          <button
-            type="button"
-            onClick={goToMainMenu}
-            aria-label="Voltar"
-            style={{
-              width: 44,
-              height: 44,
-              border: "1px solid rgba(37, 99, 235, 0.18)",
-              background: "rgba(255, 255, 255, 0.72)",
-              color: "#001f4f",
-              borderRadius: "999px",
-              cursor: "pointer",
-              boxShadow: "0 12px 28px rgba(15, 23, 42, 0.08)",
-              transition: "all 0.22s ease",
-              backdropFilter: "blur(12px)",
-              display: "grid",
-              placeItems: "center",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = "translateY(-1px)";
-              e.currentTarget.style.background = "#ffffff";
-              e.currentTarget.style.borderColor = "rgba(37, 99, 235, 0.35)";
-              e.currentTarget.style.boxShadow = "0 16px 34px rgba(15, 23, 42, 0.12)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = "translateY(0px)";
-              e.currentTarget.style.background = "rgba(255, 255, 255, 0.72)";
-              e.currentTarget.style.borderColor = "rgba(37, 99, 235, 0.18)";
-              e.currentTarget.style.boxShadow = "0 12px 28px rgba(15, 23, 42, 0.08)";
-            }}
-          >
-            <ArrowBackIosNewRoundedIcon fontSize="small" />
-          </button>
-
-          <div
-            ref={profileRef}
-            style={{ position: "relative", display: "flex", alignItems: "center" }}
-          >
-            <button
-              type="button"
-              onClick={() => setProfileOpen((prev) => !prev)}
-              aria-label="Abrir menu de perfil"
-              style={{
-                border: "1px solid rgba(37, 99, 235, 0.18)",
-                background: "rgba(255, 255, 255, 0.78)",
-                color: "#001f4f",
-                borderRadius: "999px",
-                padding: "8px 12px 8px 8px",
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-                cursor: "pointer",
-                boxShadow: "0 12px 28px rgba(15, 23, 42, 0.08)",
-                transition: "all 0.22s ease",
-                backdropFilter: "blur(12px)",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = "#ffffff";
-                e.currentTarget.style.transform = "translateY(-1px)";
-                e.currentTarget.style.boxShadow = "0 16px 34px rgba(15, 23, 42, 0.12)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = "rgba(255, 255, 255, 0.78)";
-                e.currentTarget.style.transform = "translateY(0px)";
-                e.currentTarget.style.boxShadow = "0 12px 28px rgba(15, 23, 42, 0.08)";
-              }}
-            >
-              <span
-                style={{
-                  width: 34,
-                  height: 34,
-                  borderRadius: "50%",
-                  background: "linear-gradient(135deg, #0f5bff, #6ea8ff)",
-                  color: "#ffffff",
-                  display: "grid",
-                  placeItems: "center",
-                  fontSize: 14,
-                  fontWeight: 900,
-                }}
-              >
-                A
-              </span>
-              <span style={{ fontSize: 14, fontWeight: 900 }}>Admin</span>
-              <span style={{ fontSize: 16, lineHeight: 1, opacity: 0.75 }}>⌄</span>
-            </button>
-
-            {profileOpen ? (
-              <div
-                style={{
-                  position: "absolute",
-                  top: "calc(100% + 10px)",
-                  right: 0,
-                  width: 210,
-                  background: "#ffffff",
-                  border: "1px solid rgba(15, 23, 42, 0.08)",
-                  borderRadius: 18,
-                  boxShadow: "0 22px 60px rgba(15, 23, 42, 0.16)",
-                  padding: 8,
-                  zIndex: 50,
-                }}
-              >
-                <button
-                  type="button"
-                  onClick={handleAdminLogout}
-                  style={{
-                    width: "100%",
-                    border: "none",
-                    background: "transparent",
-                    color: "#001f4f",
-                    textAlign: "left",
-                    padding: "12px 14px",
-                    borderRadius: 12,
-                    cursor: "pointer",
-                    fontSize: 14,
-                    fontWeight: 800,
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = "rgba(15, 91, 255, 0.08)";
-                    e.currentTarget.style.color = "#0f5bff";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = "transparent";
-                    e.currentTarget.style.color = "#001f4f";
-                  }}
-                >
-                  Sair do admin
-                </button>
-              </div>
-            ) : null}
-          </div>
-        </header>
-
+    <main style={{ ...styles.page, padding: 0, background: "transparent" }}>
+      <div style={{ ...styles.shell, margin: 0, maxWidth: "100%" }}>
         <h1 style={styles.title}>Painel Admin</h1>
         <p style={styles.subtitle}>
           Configure o sorteio atual e acesse rapidamente as áreas principais.

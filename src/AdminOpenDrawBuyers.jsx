@@ -12,7 +12,6 @@ import xNamaiWordmark from "./assets/branding/xnamai-wordmark.svg";
 import { useAuth } from "./authContext";
 import { API_CONFIG } from "./config/api";
 import "./styles/xnamai-admin.css";
-import XnamaiAdminLayout from "./components/admin/XnamaiAdminLayout";
 
 /* ---------- helpers de API (iguais ao AdminDashboard) ---------- */
 const RAW_BASE = API_CONFIG.baseUrl || "/api";
@@ -672,11 +671,15 @@ export default function AdminOpenDrawBuyers() {
   };
 
   return (
-    <XnamaiAdminLayout
-      title="Sorteio ativo — compradores"
-      subtitle="Visualize compradores, busque por nome/e-mail/número e exporte CSV/PNG."
-      onBack={() => navigate("/admin")}
-    >
+    <>
+      <div className="xnamai-admin-stack" style={{ marginBottom: 20 }}>
+        <Typography className="xnamai-admin-title" sx={{ fontSize: { xs: 24, md: 36 } }}>
+          Sorteio ativo — compradores
+        </Typography>
+        <Typography className="xnamai-admin-subtitle">
+          Visualize compradores, busque por nome/e-mail/número e exporte CSV/PNG.
+        </Typography>
+      </div>
       <Paper className="xnamai-admin-card" variant="outlined" sx={{ p: { xs: 2, md: 3 } }}>
         <Stack direction={{ xs: "column", md: "row" }} spacing={2} alignItems={{ xs: "stretch", md: "center" }} flexWrap="wrap">
           <Stack sx={{ mr: 1 }}>
@@ -816,6 +819,6 @@ export default function AdminOpenDrawBuyers() {
           </Box>
         )}
       </Paper>
-    </XnamaiAdminLayout>
+    </>
   );
 }
