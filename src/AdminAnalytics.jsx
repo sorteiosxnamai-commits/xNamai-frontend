@@ -11,6 +11,7 @@ import {
   ResponsiveContainer, AreaChart, Area, LineChart, Line, BarChart, Bar,
   XAxis, YAxis, CartesianGrid, Tooltip as RTooltip, Legend
 } from "recharts";
+import AdminDrawsList from "./components/AdminDrawsList";
 import "./styles/xnamai-admin.css";
 import XnamaiAdminLayout from "./components/admin/XnamaiAdminLayout";
 
@@ -456,84 +457,9 @@ export default function AdminAnalytics() {
 
         {/* ================== TAB 1 — TODOS OS SORTEIOS ================== */}
         {tab === 1 && (
-          <Stack spacing={2}>
-            <Section
-              title="Fill-rate por sorteio"
-              right={
-                <Button onClick={() => loadDrawLists()} startIcon={<RefreshRoundedIcon />} size="small" variant="outlined">
-                  Atualizar
-                </Button>
-              }
-            >
-              <Box height={320}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={(drawsSummary || []).map(d => ({ id: d.id, fr: Number(d.fill_rate || 0) * 100 }))}>
-                    <CartesianGrid vertical={false} />
-                    <XAxis dataKey="id" />
-                    <YAxis unit="%" />
-                    <RTooltip />
-                    <Bar dataKey="fr" name="Fill %" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </Box>
-            </Section>
-
-            <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
-              <Section title="GMV por data (realized_at/closed_at/opened_at)">
-                <Box height={320}>
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart
-                      data={(drawsSummary || [])
-                        .map(d => ({
-                          date: new Date(d.realized_at || d.closed_at || d.opened_at || Date.now()).toISOString().slice(0, 10),
-                          gmv: Number(d.gmv_cents || 0) / 100
-                        }))
-                        .sort((a, b) => a.date.localeCompare(b.date))}
-                    >
-                      <CartesianGrid vertical={false} />
-                      <XAxis dataKey="date" />
-                      <YAxis />
-                      <RTooltip formatter={(v) => `R$ ${Number(v).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`} />
-                      <Line type="monotone" dataKey="gmv" name="GMV (R$)" />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </Box>
-              </Section>
-
-              <Section title="Tabela resumida">
-                <TableContainer>
-                  <Table size="small">
-                    <TableHead>
-                      <TableRow>
-                        <TableCell>ID</TableCell>
-                        <TableCell>Produto</TableCell>
-                        <TableCell>Status</TableCell>
-                        <TableCell align="right">Vendidos</TableCell>
-                        <TableCell align="right">Fill %</TableCell>
-                        <TableCell align="right">GMV</TableCell>
-                        <TableCell align="right">Ticket médio</TableCell>
-                        <TableCell align="right">Pedidos pagos</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {(drawsSummary || []).map(d => (
-                        <TableRow key={d.id} hover>
-                          <TableCell>#{d.id}</TableCell>
-                          <TableCell>{d.product_name || "-"}</TableCell>
-                          <TableCell>{d.status}</TableCell>
-                          <TableCell align="right">{d.sold || 0}</TableCell>
-                          <TableCell align="right">{pct(d.fill_rate || 0)}</TableCell>
-                          <TableCell align="right">{BRL(d.gmv_cents)}</TableCell>
-                          <TableCell align="right">{BRL(d.avg_ticket_cents)}</TableCell>
-                          <TableCell align="right">{d.paid_orders || 0}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-              </Section>
-            </Stack>
-          </Stack>
+          <section className="admin-analytics-card">
+            <AdminDrawsList compact />
+          </section>
         )}
 
         {/* ================== TAB 2 — RFM & AÇÕES ================== */}
