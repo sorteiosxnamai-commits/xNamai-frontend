@@ -1,6 +1,6 @@
 // src/App.js
 import React from "react";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 import { SelectionContext } from "./selectionContext";
 import NewStorePage from "./NewStorePage";
@@ -21,6 +21,7 @@ import AdminUsersPage from "./AdminUsersPage";
 import DrawBoardPage from "./DrawBoardPage";
 import AdminOpenDrawBuyers from "./AdminOpenDrawBuyers";
 import AdminAnalytics from './AdminAnalytics';
+import AdminErrorBoundary from "./components/admin/AdminErrorBoundary";
 
 export default function App() {
   const [selecionados, setSelecionados] = React.useState([]);
@@ -61,7 +62,9 @@ export default function App() {
               path="/admin"
               element={
                 <AdminRoute>
-                  <AdminDashboard />
+                  <AdminErrorBoundary>
+                    <AdminDashboard />
+                  </AdminErrorBoundary>
                 </AdminRoute>
               }
             />
@@ -69,7 +72,9 @@ export default function App() {
               path="/admin/sorteios"
               element={
                 <AdminRoute>
-                  <AdminSorteios />
+                  <AdminErrorBoundary>
+                    <AdminSorteios />
+                  </AdminErrorBoundary>
                 </AdminRoute>
               }
             />
@@ -77,7 +82,19 @@ export default function App() {
               path="/admin/clientes"
               element={
                 <AdminRoute>
-                  <AdminClientes />
+                  <AdminErrorBoundary>
+                    <AdminUsersPage />
+                  </AdminErrorBoundary>
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/admin/clientes-saldo"
+              element={
+                <AdminRoute>
+                  <AdminErrorBoundary>
+                    <AdminClientes />
+                  </AdminErrorBoundary>
                 </AdminRoute>
               }
             />
@@ -85,14 +102,40 @@ export default function App() {
               path="/admin/vencedores"
               element={
                 <AdminRoute>
-                  <AdminVencedores />
+                  <AdminErrorBoundary>
+                    <AdminVencedores />
+                  </AdminErrorBoundary>
                 </AdminRoute>
               }
             />
-            <Route path="/admin/AdminClientesUser" element={<AdminUsersPage />} />
             <Route path="/me/draw/:id" element={<DrawBoardPage />} />
-            <Route path="/admin/sorteiosAtivos" element={<AdminOpenDrawBuyers />} />
-            <Route path="/admin/analytics" element={<AdminAnalytics />} />
+            <Route
+              path="/admin/compradores"
+              element={
+                <AdminRoute>
+                  <AdminErrorBoundary>
+                    <AdminOpenDrawBuyers />
+                  </AdminErrorBoundary>
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/admin/analytics"
+              element={
+                <AdminRoute>
+                  <AdminErrorBoundary>
+                    <AdminAnalytics />
+                  </AdminErrorBoundary>
+                </AdminRoute>
+              }
+            />
+
+            {/* redirects/compat (evitar rotas com maiúsculas e antigas) */}
+            <Route path="/admin/AdminClientesUser" element={<Navigate to="/admin/clientes" replace />} />
+            <Route path="/admin/sorteiosAtivos" element={<Navigate to="/admin/compradores" replace />} />
+
+            {/* fallback admin (nunca tela vazia) */}
+            <Route path="/admin/*" element={<Navigate to="/admin" replace />} />
           </Routes>
         </BrowserRouter>
       </SelectionContext.Provider>

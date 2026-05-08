@@ -61,8 +61,12 @@ export default function XnamaiAdminLayout({
     try {
       [
         "adminToken",
+        "authToken",
         "adminUser",
         "token",
+        "isAdmin",
+        "xnamaiUser",
+        "xnamaiAdmin",
         "access_token",
         "user",
         "ns_auth_token",
@@ -76,12 +80,36 @@ export default function XnamaiAdminLayout({
     }
   }, []);
 
-  const handleLogoutAdmin = React.useCallback(() => {
+  const handleAdminLogout = React.useCallback(() => {
     closeProfile();
-    clearAdminSession();
-    logout();
-    navigate("/");
-  }, [clearAdminSession, logout, navigate]);
+    try {
+      localStorage.removeItem("adminToken");
+      localStorage.removeItem("token");
+      localStorage.removeItem("authToken");
+      localStorage.removeItem("user");
+      localStorage.removeItem("adminUser");
+      localStorage.removeItem("isAdmin");
+      localStorage.removeItem("xnamaiUser");
+      localStorage.removeItem("xnamaiAdmin");
+
+      sessionStorage.clear();
+
+      document.cookie.split(";").forEach((cookie) => {
+        const name = cookie.split("=")[0].trim();
+        document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
+      });
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.warn("Erro ao limpar sessão admin:", error);
+    }
+
+    try {
+      clearAdminSession();
+      logout();
+    } catch {}
+
+    window.location.href = "/";
+  }, [clearAdminSession, logout]);
 
   const profileName =
     (user?.name || user?.full_name || user?.display_name || user?.email || "Admin")
@@ -188,7 +216,7 @@ export default function XnamaiAdminLayout({
                     },
                   }}
                 >
-                  <MenuItem onClick={handleLogoutAdmin} sx={{ fontWeight: 800 }}>
+                  <MenuItem onClick={handleAdminLogout} sx={{ fontWeight: 800 }}>
                     <LogoutRoundedIcon fontSize="small" style={{ marginRight: 10 }} />
                     Sair do admin
                   </MenuItem>

@@ -19,33 +19,34 @@ export default function AdminSorteios() {
     return () => document.removeEventListener("mousedown", onDocMouseDown);
   }, [profileOpen]);
 
-  const clearAdminSession = React.useCallback(() => {
+  const handleAdminLogout = React.useCallback(() => {
     try {
-      [
-        "adminToken",
-        "adminUser",
-        "token",
-        "access_token",
-        "user",
-        "ns_auth_token",
-      ].forEach((k) => {
-        localStorage.removeItem(k);
-        sessionStorage.removeItem(k);
-      });
+      localStorage.removeItem("adminToken");
+      localStorage.removeItem("token");
+      localStorage.removeItem("authToken");
+      localStorage.removeItem("user");
+      localStorage.removeItem("adminUser");
+      localStorage.removeItem("isAdmin");
+      localStorage.removeItem("xnamaiUser");
+      localStorage.removeItem("xnamaiAdmin");
+
       sessionStorage.clear();
-    } catch {
-      // ignore
+
+      document.cookie.split(";").forEach((cookie) => {
+        const name = cookie.split("=")[0].trim();
+        document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
+      });
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.warn("Erro ao limpar sessão admin:", error);
     }
+
+    window.location.href = "/";
   }, []);
 
   const goToMainMenu = React.useCallback(() => {
     navigate("/");
   }, [navigate]);
-
-  const handleLogoutAdmin = React.useCallback(() => {
-    clearAdminSession();
-    navigate("/");
-  }, [clearAdminSession, navigate]);
 
   return (
     <main className="admin-sorteios-page">
@@ -68,7 +69,7 @@ export default function AdminSorteios() {
 
           {profileOpen && (
             <div className="admin-profile-menu">
-              <button type="button" onClick={handleLogoutAdmin}>
+              <button type="button" onClick={handleAdminLogout}>
                 Sair do admin
               </button>
             </div>

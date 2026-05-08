@@ -376,33 +376,34 @@ export default function AdminDashboard() {
     }
   }
 
-  const clearAdminSession = React.useCallback(() => {
+  const handleAdminLogout = React.useCallback(() => {
     try {
-      [
-        "adminToken",
-        "adminUser",
-        "token",
-        "access_token",
-        "user",
-        "ns_auth_token",
-      ].forEach((k) => {
-        localStorage.removeItem(k);
-        sessionStorage.removeItem(k);
-      });
+      localStorage.removeItem("adminToken");
+      localStorage.removeItem("token");
+      localStorage.removeItem("authToken");
+      localStorage.removeItem("user");
+      localStorage.removeItem("adminUser");
+      localStorage.removeItem("isAdmin");
+      localStorage.removeItem("xnamaiUser");
+      localStorage.removeItem("xnamaiAdmin");
+
       sessionStorage.clear();
-    } catch {
-      // ignore
+
+      document.cookie.split(";").forEach((cookie) => {
+        const name = cookie.split("=")[0].trim();
+        document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
+      });
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.warn("Erro ao limpar sessão admin:", error);
     }
+
+    window.location.href = "/";
   }, []);
 
   const goToMainMenu = React.useCallback(() => {
     navigate("/");
   }, [navigate]);
-
-  const handleLogoutAdmin = React.useCallback(() => {
-    clearAdminSession();
-    navigate("/");
-  }, [clearAdminSession, navigate]);
 
   return (
     <main style={styles.page}>
@@ -525,7 +526,7 @@ export default function AdminDashboard() {
               >
                 <button
                   type="button"
-                  onClick={handleLogoutAdmin}
+                  onClick={handleAdminLogout}
                   style={{
                     width: "100%",
                     border: "none",
@@ -786,7 +787,7 @@ export default function AdminDashboard() {
         <section style={styles.quickGrid}>
           <div
             style={styles.quickCard}
-            onClick={() => navigate("/admin/AdminClientesUser")}
+            onClick={() => navigate("/admin/clientes")}
           >
             <div>
               <div style={styles.quickName}>Cadastro e manutenção de clientes</div>
@@ -799,7 +800,7 @@ export default function AdminDashboard() {
 
           <div
             style={styles.quickCard}
-            onClick={() => navigate("/admin/sorteiosAtivos")}
+            onClick={() => navigate("/admin/compradores")}
           >
             <div>
               <div style={styles.quickName}>Sorteio ativo — compradores</div>
