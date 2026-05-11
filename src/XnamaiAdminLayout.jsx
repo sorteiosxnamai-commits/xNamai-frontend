@@ -24,8 +24,7 @@ export default function XnamaiAdminLayout() {
     return () => document.removeEventListener("mousedown", handleOutsideClick);
   }, []);
 
-  function goAdminHome() {
-    setProfileOpen(false);
+  function handleBackToPanel() {
     navigate("/admin");
   }
 
@@ -44,13 +43,20 @@ export default function XnamaiAdminLayout() {
   return (
     <div className="xnamai-admin-page">
       <header className="xnamai-admin-site-header">
-        <button
-          type="button"
-          className="xnamai-admin-header-link"
-          onClick={() => navigate("/cadastro")}
-        >
-          CRIAR CONTA
-        </button>
+        <div className="xnamai-admin-header-left">
+          {!isAdminHome && (
+            <button
+              type="button"
+              className="xnamai-admin-back-to-panel"
+              onClick={handleBackToPanel}
+              aria-label="Voltar ao painel"
+              title="Voltar ao painel"
+            >
+              <span>←</span>
+              Voltar ao painel
+            </button>
+          )}
+        </div>
 
         <button
           type="button"
@@ -67,21 +73,16 @@ export default function XnamaiAdminLayout() {
             className="xnamai-admin-profile-icon"
             onClick={() => setProfileOpen((value) => !value)}
             aria-label="Abrir menu de perfil"
+          title="Perfil"
           >
-            <span>●</span>
+            <span />
           </button>
 
           {profileOpen && (
             <div className="xnamai-admin-profile-menu">
-              {!isAdminHome && (
-                <button type="button" onClick={goAdminHome}>
-                  Painel Admin
-                </button>
-              )}
-
-                <button type="button" onClick={handleSwitchAccount}>
-                  Trocar de conta
-                </button>
+              <button type="button" onClick={handleSwitchAccount}>
+                Trocar de conta
+              </button>
             </div>
           )}
         </div>

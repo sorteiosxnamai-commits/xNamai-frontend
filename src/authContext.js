@@ -54,13 +54,27 @@ function saveToken(tk, persist = true) {
 function clearToken() {
   dlog("clearToken()");
   try {
-    localStorage.removeItem(TOKEN_KEY);
-    sessionStorage.removeItem(TOKEN_KEY);
-    COMPAT_KEYS.forEach((k) => {
+    [
+      TOKEN_KEY,
+      ...COMPAT_KEYS,
+      "adminToken",
+      "authToken",
+      "accessToken",
+      "refreshToken",
+      "user",
+      "adminUser",
+      "isAdmin",
+      "xnamaiUser",
+      "xnamaiAdmin",
+      "newstoreUser",
+      "newstoreAdmin",
+    ].forEach((k) => {
       localStorage.removeItem(k);
       sessionStorage.removeItem(k);
     });
-  } catch {}
+  } catch (error) {
+    console.warn("[authContext] erro ao limpar sessão:", error);
+  }
 }
 
 const AuthCtx = createContext(null);
