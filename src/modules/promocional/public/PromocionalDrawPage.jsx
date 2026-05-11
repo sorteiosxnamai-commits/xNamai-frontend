@@ -1,6 +1,7 @@
 import React from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { useAuth } from "../../../authContext";
+import PublicTopbar from "../../../components/PublicTopbar";
 import PromocionalNumbersGrid from "../components/PromocionalNumbersGrid";
 import {
   getPromocionalDraw,
@@ -38,7 +39,6 @@ function buildNumbersFromRange(draw) {
 
 export default function PromocionalDrawPage() {
   const { id } = useParams();
-  const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
   const [draw, setDraw] = React.useState(null);
   const [numbers, setNumbers] = React.useState([]);
@@ -111,7 +111,8 @@ export default function PromocionalDrawPage() {
     if (authLoading) return;
 
     if (!user) {
-      navigate("/login", { state: { from: `/promocional/${id}` } });
+      setMessage("");
+      setError("Entre ou crie uma conta para reservar números promocionais.");
       return;
     }
 
@@ -157,56 +158,55 @@ export default function PromocionalDrawPage() {
   }
 
   return (
-    <main className="promocional-page">
-      <Link className="promocional-back-link" to="/promocional">
-        ← Voltar para promocionais
-      </Link>
+    <>
+      <PublicTopbar />
+      <main className="promocional-page">
+        {loading && <p className="promocional-info">Carregando sorteio promocional...</p>}
+        {!loading && error && !draw && <p className="promocional-error">{error}</p>}
 
-      {loading && <p className="promocional-info">Carregando sorteio promocional...</p>}
-      {!loading && error && !draw && <p className="promocional-error">{error}</p>}
+        {!loading && draw && (
+          <>
+            <section className="promocional-hero promocional-hero--compact">
+              <p className="promocional-eyebrow">xNaMai Promocional</p>
+              <h1>{draw.title || draw.name || "Sorteio promocional"}</h1>
+              {draw.description && <p>{draw.description}</p>}
+              {(draw.prize || draw.award) && (
+                <strong className="promocional-prize">Premio: {draw.prize || draw.award}</strong>
+              )}
+            </section>
 
-      {!loading && draw && (
-        <>
-          <section className="promocional-hero promocional-hero--compact">
-            <p className="promocional-eyebrow">xNaMai Promocional</p>
-            <h1>{draw.title || draw.name || "Sorteio promocional"}</h1>
-            {draw.description && <p>{draw.description}</p>}
-            {(draw.prize || draw.award) && (
-              <strong className="promocional-prize">Premio: {draw.prize || draw.award}</strong>
-            )}
-          </section>
-
-          <section className="promocional-panel">
-            <div className="promocional-panel-heading">
-              <div>
-                <h2>Escolha seus numeros</h2>
-                <p>Numeros reservados, vendidos ou bloqueados nao podem ser selecionados.</p>
+            <section className="promocional-panel">
+              <div className="promocional-panel-heading">
+                <div>
+                  <h2>Escolha seus numeros</h2>
+                  <p>Numeros reservados, vendidos ou bloqueados nao podem ser selecionados.</p>
+                </div>
+                <span className="promocional-selected-count">
+                  {selectedNumbers.length} selecionado(s)
+                </span>
               </div>
-              <span className="promocional-selected-count">
-                {selectedNumbers.length} selecionado(s)
-              </span>
-            </div>
 
-            {error && <p className="promocional-error">{error}</p>}
-            {message && <p className="promocional-success">{message}</p>}
+              {error && <p className="promocional-error">{error}</p>}
+              {message && <p className="promocional-success">{message}</p>}
 
-            <PromocionalNumbersGrid
-              numbers={numbers}
-              selectedNumbers={selectedNumbers}
-              onToggleNumber={toggleNumber}
-            />
+              <PromocionalNumbersGrid
+                numbers={numbers}
+                selectedNumbers={selectedNumbers}
+                onToggleNumber={toggleNumber}
+              />
 
-            <button
-              type="button"
-              className="promocional-primary-button promocional-primary-button--wide"
-              onClick={handleReserve}
-              disabled={saving || !selectedNumbers.length}
-            >
-              {saving ? "Reservando..." : "Reservar / continuar"}
-            </button>
-          </section>
-        </>
-      )}
-    </main>
+              <button
+                type="button"
+                className="promocional-primary-button promocional-primary-button--wide"
+                onClick={handleReserve}
+                disabled={saving || !selectedNumbers.length}
+              >
+                {saving ? "Reservando..." : "Reservar / continuar"}
+              </button>
+            </section>
+          </>
+        )}
+      </main>
+    </>
   );
 }

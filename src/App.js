@@ -58,6 +58,7 @@ export default function App() {
             <Route path="/login" element={<LoginPage />} />
             <Route path="/promocional" element={<PromocionalHome />} />
             <Route path="/promocional/:id" element={<PromocionalDrawPage />} />
+            <Route path="/promocional/draw/:id" element={<PromocionalDrawPage />} />
 
             <Route
               path="/promocional/admin"

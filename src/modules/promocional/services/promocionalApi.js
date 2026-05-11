@@ -50,8 +50,23 @@ export function getPromocionalNumbers(id) {
   return getJSON(`/promotional/${encodePathValue(id)}/numbers`);
 }
 
-export function reservePromocionalNumbers(id, payload) {
-  return postJSON(`/promotional/${encodePathValue(id)}/reserve`, payload);
+export async function reservePromocionalNumbers(id, payload) {
+  const response = await fetch(apiJoin(`/promotional/${encodePathValue(id)}/reserve`), {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...authHeaders(),
+    },
+    credentials: "omit",
+    body: JSON.stringify(payload || {}),
+  });
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok || data?.ok === false) {
+    throw new Error(data?.error || data?.message || "Erro ao reservar números promocionais.");
+  }
+
+  return data;
 }
 
 export async function getMyPromocionalParticipations() {

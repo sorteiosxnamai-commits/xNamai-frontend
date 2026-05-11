@@ -1,5 +1,6 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
+import PublicTopbar from "../../../components/PublicTopbar";
 import PromocionalDrawCard from "../components/PromocionalDrawCard";
 import { getPromocionalDraws } from "../services/promocionalApi";
 
@@ -46,32 +47,35 @@ export default function PromocionalHome() {
   }, []);
 
   return (
-    <main className="promocional-page">
-      <section className="promocional-hero">
-        <p className="promocional-eyebrow">xNaMai Promocional</p>
-        <h1>Sorteios promocionais</h1>
-        <p>Campanhas promocionais separadas do sorteio principal do xNaMai.</p>
-      </section>
+    <>
+      <PublicTopbar />
+      <main className="promocional-page">
+        <section className="promocional-hero">
+          <p className="promocional-eyebrow">xNaMai Promocional</p>
+          <h1>Sorteios promocionais</h1>
+          <p>Campanhas promocionais separadas do sorteio principal do xNaMai.</p>
+        </section>
 
-      {loading && <p className="promocional-info">Carregando sorteios promocionais...</p>}
-      {error && <p className="promocional-error">{error}</p>}
+        {loading && <p className="promocional-info">Carregando sorteios promocionais...</p>}
+        {error && <p className="promocional-error">{error}</p>}
 
-      {!loading && !error && draws.length === 0 && (
-        <p className="promocional-empty">Nenhum sorteio promocional ativo no momento.</p>
-      )}
+        {!loading && !error && draws.length === 0 && (
+          <p className="promocional-empty">Nenhum sorteio promocional ativo no momento.</p>
+        )}
 
-      <section className="promocional-list">
-        {draws.map((draw) => {
-          const id = getDrawId(draw);
-          return (
-            <PromocionalDrawCard
-              key={String(id)}
-              draw={draw}
-              onParticipate={() => navigate(`/promocional/${id}`)}
-            />
-          );
-        })}
-      </section>
-    </main>
+        <section className="promocional-list">
+          {draws.map((draw) => {
+            const id = getDrawId(draw);
+            return (
+              <PromocionalDrawCard
+                key={String(id)}
+                draw={draw}
+                onParticipate={() => navigate(`/promocional/${id}`)}
+              />
+            );
+          })}
+        </section>
+      </main>
+    </>
   );
 }
