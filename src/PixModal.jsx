@@ -116,6 +116,18 @@ export default function PixModal({ open, onClose, loading, data, onCopy, onRefre
             <Typography variant="caption" color="text.secondary">
               Escaneie o QR ou use o texto acima no seu aplicativo bancário.
             </Typography>
+
+            {data?.ticket_url && (
+              <Button
+                component="a"
+                href={data.ticket_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                variant="outlined"
+              >
+                Abrir link de pagamento
+              </Button>
+            )}
           </Stack>
         )}
       </DialogContent>

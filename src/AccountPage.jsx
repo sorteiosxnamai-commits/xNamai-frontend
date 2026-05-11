@@ -19,10 +19,13 @@ import { apiJoin, authHeaders, getJSON } from "./lib/api";
 
 // ▼ PIX
 import PixModal from "./PixModal";
-import { checkPixStatus } from "./services/pix";
+import { checkPixStatus, generateMainReservationPix } from "./services/pix";
 // ▲ PIX
 import AutoPaySection from "./AutoPaySection";
-import { getMyPromocionalParticipations } from "./modules/promocional/services/promocionalApi";
+import {
+  generatePromocionalPix,
+  getMyPromocionalParticipations,
+} from "./modules/promocional/services/promocionalApi";
 
 const theme = createTheme({
   palette: {
@@ -208,6 +211,7 @@ function normalizeToEntries(payPayload, reservationsPayload) {
       const when = p.paid_at || p.updated_at || p.created_at || null;
       return numbers.map(n => ({
         payment_id: p.id ?? p.payment_id ?? null,
+        reservation_id: p.reservation_id ?? p.reservationId ?? null,
         draw_id: drawId,
         number: Number(n),
         status: String(payStatus).toLowerCase(),
@@ -272,6 +276,12 @@ function normalizePromocionalParticipationRows(participations) {
       id: item?.id || item?._id || `promocional-${index}`,
       type: "promotional",
       typeLabel: "Promocional",
+      reservation_id:
+        item?.reservation_id ||
+        item?.reservationId ||
+        item?.id ||
+        item?._id ||
+        item?.reservation?.id,
       draw_id: drawId,
       sorteio:
         item?.draw_title ||
@@ -285,7 +295,10 @@ function normalizePromocionalParticipationRows(participations) {
       pagamento: item?.payment || item?.payment_status || item?.paymentStatus || "pending",
       resultado: item?.status || item?.reservation_status || "reserved",
       whenMs,
-      canPay: false,
+      canPay:
+        item?.can_pay === true ||
+        item?.canPay === true ||
+        String(item?.payment_status || item?.paymentStatus || item?.payment || "").toLowerCase() === "pending",
     };
   });
 }
@@ -363,6 +376,7 @@ export default function AccountPage() {
   const [pixData, setPixData] = React.useState(null);
   const [pixAmount, setPixAmount] = React.useState(null);
   const [pixMsg, setPixMsg] = React.useState("");
+  const [loadingPixId, setLoadingPixId] = React.useState(null);
 
   // AutoPay
   const [autoOpen, setAutoOpen] = React.useState(false);
@@ -469,9 +483,51 @@ export default function AccountPage() {
     setPixMsg("Gerando PIX…");
     setPixOpen(true);
     setPixLoading(true);
+    setPixData(null);
+    setLoadingPixId(row?.reservation_id || row?.id || `${row?.type || "main"}-${row?.draw_id || row?.sorteio}`);
 
     try {
       const drawId = Number(row?.draw_id ?? row?.sorteio ?? row?.draw ?? row?.id);
+
+      if (row?.type === "promotional") {
+        const reservationId = row?.reservation_id || row?.reservationId;
+        if (!reservationId || !Number.isFinite(drawId)) {
+          setPixMsg("Falha ao gerar PIX: reserva promocional não encontrada.");
+          return;
+        }
+
+        const created = await generatePromocionalPix(drawId, reservationId);
+        const pix = normalizePixData(created);
+        setPixData(pix);
+        const cents =
+          pix?.amount_cents ??
+          pix?.amountCents ??
+          created?.amount_cents ??
+          created?.amountCents ??
+          row?.amount_cents;
+        setPixAmount(typeof cents === "number" ? cents / 100 : pix?.amount || null);
+        setPixMsg(pix?.status ? `Status: ${pix.status}` : "PIX promocional gerado.");
+        return;
+      }
+
+      if (row?.reservation_id) {
+        try {
+          const created = await generateMainReservationPix(row.reservation_id);
+          const pix = normalizePixData(created);
+          setPixData(pix);
+          const cents =
+            pix?.amount_cents ??
+            pix?.amountCents ??
+            created?.amount_cents ??
+            created?.amountCents ??
+            row?.amount_cents;
+          setPixAmount(typeof cents === "number" ? cents / 100 : pix?.amount || null);
+          setPixMsg(pix?.status ? `Status: ${pix.status}` : "PIX criado.");
+          return;
+        } catch (error) {
+          console.warn("[AccountPage] generateMainReservationPix fallback:", error);
+        }
+      }
 
       // ► Prioriza a ÚLTIMA reserva ATIVA dentro dos números exibidos na linha
       const hintNumbers = Array.isArray(row?.numeros)
@@ -533,7 +589,7 @@ export default function AccountPage() {
       const created = await requestPix(latest.reservationId);
       if (!created) return;
 
-      setPixData(created);
+      setPixData(normalizePixData(created));
 
       // Descobre o valor (centavos)
       let amountCents =
@@ -558,10 +614,11 @@ export default function AccountPage() {
       setPixAmount(amountCents != null ? amountCents / 100 : null);
       setPixMsg(created?.status ? `Status: ${created.status}` : `PIX criado para o nº ${pad2(selectedNumber)}.`);
     } catch (e) {
-      console.error("[AccountPage] createPixPayment error:", e);
-      setPixMsg("Falha ao gerar PIX.");
+      console.error("[GENERATE_PIX_ERROR]", e);
+      setPixMsg("Não foi possível gerar o PIX. Tente novamente.");
     } finally {
       setPixLoading(false);
+      setLoadingPixId(null);
     }
   }
 
@@ -581,6 +638,19 @@ export default function AccountPage() {
   function copyPix() {
     const key = pixData?.copy || pixData?.copy_paste || pixData?.copy_paste_code || pixData?.emv || pixData?.qr_code || "";
     if (key) navigator.clipboard.writeText(key).catch(() => {});
+  }
+
+  function normalizePixData(payload) {
+    const source = payload?.payment || payload?.pix || payload?.data || payload || {};
+    return {
+      ...source,
+      paymentId: source.paymentId || source.payment_id || source.id || payload?.paymentId || payload?.id,
+      qr_code: source.qr_code || source.copy_paste_code || payload?.qr_code,
+      copy_paste_code:
+        source.copy_paste_code || source.qr_code || payload?.copy_paste_code || payload?.qr_code,
+      qr_code_base64: source.qr_code_base64 || payload?.qr_code_base64,
+      ticket_url: source.ticket_url || payload?.ticket_url,
+    };
   }
 
   const doLogout = () => { setMenuEl(null); logout(); navigate("/"); };
@@ -768,6 +838,7 @@ export default function AccountPage() {
             if (!byDraw.has(id)) {
               byDraw.set(id, {
                 draw_id: id,
+                reservation_id: e.reservation_id || null,
                 numeros: [],
                 when: e.when ? new Date(e.when).getTime() : 0,
                 hasPending: false,
@@ -775,6 +846,7 @@ export default function AccountPage() {
               });
             }
             const g = byDraw.get(id);
+            if (!g.reservation_id && e.reservation_id) g.reservation_id = e.reservation_id;
             g.numeros.push(Number(e.number));
             g.when = Math.max(g.when, e.when ? new Date(e.when).getTime() : 0);
             g.hasPending  = g.hasPending  || isPendingStatus(e.status);
@@ -787,6 +859,7 @@ export default function AccountPage() {
             return {
               type: "main",
               typeLabel: "Principal",
+              reservation_id: g.reservation_id,
               draw_id: g.draw_id,
               sorteio: g.draw_id != null ? String(g.draw_id) : "--",
               numeros: Array.from(new Set(g.numeros)).sort((a,b)=>a-b),
@@ -1140,10 +1213,9 @@ export default function AccountPage() {
                           {promotionalError}
                         </Alert>
                       )}
-                      <Table size="small" sx={{ minWidth: { xs: 820, sm: 1040 } }}>
+                      <Table size="small" sx={{ minWidth: { xs: 720, sm: 920 } }}>
                         <TableHead>
                           <TableRow>
-                            <TableCell sx={{ fontWeight: 900, whiteSpace: "nowrap", color: "rgba(22,50,92,0.72)" }}>TIPO</TableCell>
                             <TableCell sx={{ fontWeight: 900, whiteSpace: "nowrap", color: "rgba(22,50,92,0.72)" }}>SORTEIO</TableCell>
                             <TableCell sx={{ fontWeight: 900, whiteSpace: "nowrap", color: "rgba(22,50,92,0.72)" }}>NÚMERO</TableCell>
                             <TableCell sx={{ fontWeight: 900, whiteSpace: "nowrap", color: "rgba(22,50,92,0.72)" }}>DIA</TableCell>
@@ -1155,7 +1227,7 @@ export default function AccountPage() {
                         <TableBody>
                           {rows.length === 0 && (
                             <TableRow>
-                              <TableCell colSpan={7}>
+                              <TableCell colSpan={6}>
                                 <Box className="xn-emptyState">
                                   <Typography sx={{ fontWeight: 900, color: "#16325c" }}>Nenhuma participação encontrada.</Typography>
                                   <Typography className="xn-muted" sx={{ mt: 0.4, fontWeight: 700 }}>
@@ -1166,16 +1238,19 @@ export default function AccountPage() {
                             </TableRow>
                           )}
                           {rows.map((row, idx) => {
-                      const canPay = row.canPay !== false && row.type !== "promotional";
-                      const isPending = canPay && /pendente|pending|await|aguard|open|ativo|active/i.test(String(row.pagamento || ""));
-                      const clickable = canPay;
+                      const rowLoadingPixId = row?.reservation_id || row?.id || `${row?.type || "main"}-${row?.draw_id || row?.sorteio}`;
+                      const paymentStatus = String(row.pagamento || "").toLowerCase();
+                      const canGeneratePix =
+                        row.canPay === true ||
+                        /pendente|pending|await|aguard|open|ativo|active/i.test(paymentStatus);
+                      const clickable = row.type !== "promotional" && canGeneratePix;
 
                       const isPaid   = /^(approved|paid|pago)$/i.test(String(row.pagamento || ""));
                       const isClosed = /(closed|fechado|sorteado)/i.test(String(row.resultado || ""));
                       const isOpen   = /(open|aberto)/i.test(String(row.resultado || ""));
 
                       const handleRowClick = () => {
-                        if (!canPay) return;
+                        if (!clickable) return;
                         const drawId = Number(row.draw_id ?? row.sorteio);
                         if (isPaid && isClosed && Number.isFinite(drawId)) navigate(`/me/draw/${drawId}`);
                         else if (isOpen) navigate("/");
@@ -1188,7 +1263,6 @@ export default function AccountPage() {
                           onClick={clickable ? handleRowClick : undefined}
                           sx={{ cursor: clickable ? "pointer" : "default" }}
                         >
-                          <TableCell sx={{ width: 120, fontWeight: 900 }}>{row.typeLabel || "Principal"}</TableCell>
                           <TableCell sx={{ width: 100, fontWeight: 700 }}>{String(row.sorteio || "--")}</TableCell>
                           <TableCell sx={{ minWidth: 160, fontWeight: 700 }}>
                             {row.numbers_label || (Array.isArray(row.numeros) ? row.numeros.map(pad2).join(", ") : (row.numero != null ? pad2(row.numero) : "--"))}
@@ -1203,16 +1277,15 @@ export default function AccountPage() {
                             )}
                           </TableCell>
                           <TableCell align="right" sx={{ width: 120 }}>
-                            {row.type === "promotional" ? (
-                              <Typography sx={{ fontWeight: 900, color: "rgba(22,50,92,0.58)" }}>-</Typography>
-                            ) : isPending ? (
+                            {canGeneratePix && !isPaid ? (
                               <Button
                                 size="small"
                                 variant="contained"
                                 className="xn-btnPrimary"
+                                disabled={loadingPixId === rowLoadingPixId}
                                 onClick={(e) => { e.stopPropagation(); handleGeneratePix(row); }}
                               >
-                                Gerar PIX
+                                {loadingPixId === rowLoadingPixId ? "GERANDO..." : "GERAR PIX"}
                               </Button>
                             ) : null}
                           </TableCell>

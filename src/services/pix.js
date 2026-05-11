@@ -73,6 +73,28 @@ export async function createPixPayment(payload = {}) {
   };
 }
 
+export async function generateMainReservationPix(reservationId) {
+  const res = await fetch(`${API_BASE}/api/reservations/${encodeURIComponent(String(reservationId))}/pix`, {
+    method: "POST",
+    credentials: "include",
+    headers: authHeaders(),
+  });
+
+  const json = await res.json().catch(() => ({}));
+
+  if (!res.ok || json?.ok === false) {
+    throw new Error(json?.error || json?.message || "Erro ao gerar PIX.");
+  }
+
+  return {
+    ...json,
+    paymentId: json.paymentId || json.payment_id || json.id,
+    qr_code: json.qr_code || json.copy_paste_code,
+    copy_paste_code: json.copy_paste_code || json.qr_code,
+    qr_code_base64: json.qr_code_base64,
+  };
+}
+
 export async function checkPixStatus(paymentId) {
   if (!paymentId) {
     throw new Error("paymentId obrigatório");

@@ -69,6 +69,29 @@ export async function reservePromocionalNumbers(id, payload) {
   return data;
 }
 
+export async function generatePromocionalPix(drawId, reservationId) {
+  const response = await fetch(
+    apiJoin(
+      `/promotional/${encodePathValue(drawId)}/reservations/${encodePathValue(reservationId)}/pix`
+    ),
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...authHeaders(),
+      },
+      credentials: "omit",
+    }
+  );
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok || data?.ok === false) {
+    throw new Error(data?.error || data?.message || "Erro ao gerar PIX promocional.");
+  }
+
+  return data;
+}
+
 export async function getMyPromocionalParticipations() {
   const payload = await getJSON("/promotional/me/participations");
   return asList(payload, ["participations", "items", "data"]);

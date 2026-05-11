@@ -162,7 +162,22 @@
   box-shadow: 0 12px 24px rgba(37, 99, 235, 0.22);
 }
 
+.promocional-secondary-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(37, 99, 235, 0.18);
+  border-radius: 999px;
+  padding: 11px 16px;
+  background: #ffffff;
+  color: #2563eb;
+  font-size: 14px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
 .promocional-primary-button:disabled,
+.promocional-secondary-button:disabled,
 .promocional-admin-actions button:disabled {
   cursor: not-allowed;
   opacity: 0.55;
@@ -171,6 +186,13 @@
 .promocional-primary-button--wide {
   width: 100%;
   margin-top: 24px;
+}
+
+.promocional-payment-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 14px 0;
 }
 
 .promocional-back-link {

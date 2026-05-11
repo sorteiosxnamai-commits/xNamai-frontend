@@ -2,8 +2,10 @@ import React from "react";
 import { useParams } from "react-router-dom";
 import { useAuth } from "../../../authContext";
 import PublicTopbar from "../../../components/PublicTopbar";
+import PixModal from "../../../PixModal";
 import PromocionalNumbersGrid from "../components/PromocionalNumbersGrid";
 import {
+  generatePromocionalPix,
   getPromocionalDraw,
   getPromocionalNumbers,
   reservePromocionalNumbers,
@@ -37,6 +39,40 @@ function buildNumbersFromRange(draw) {
   }));
 }
 
+function getReservationFromPayload(payload, fallbackDrawId) {
+  const source = payload?.reservation || payload?.data || payload || {};
+  return {
+    reservation_id:
+      source?.reservation_id ||
+      source?.reservationId ||
+      source?.id ||
+      payload?.reservation_id ||
+      payload?.reservationId,
+    draw_id: source?.draw_id || source?.drawId || payload?.draw_id || payload?.drawId || fallbackDrawId,
+    payment_status:
+      source?.payment_status ||
+      source?.paymentStatus ||
+      payload?.payment_status ||
+      payload?.paymentStatus ||
+      "pending",
+    can_pay: source?.can_pay ?? source?.canPay ?? payload?.can_pay ?? payload?.canPay ?? true,
+    amount_cents: source?.amount_cents ?? source?.amountCents ?? payload?.amount_cents ?? payload?.amountCents,
+  };
+}
+
+function normalizePixPayload(payload) {
+  const source = payload?.payment || payload?.pix || payload?.data || payload || {};
+  return {
+    ...source,
+    paymentId: source.paymentId || source.payment_id || source.id || payload?.paymentId || payload?.id,
+    qr_code: source.qr_code || source.copy_paste_code || payload?.qr_code,
+    copy_paste_code:
+      source.copy_paste_code || source.qr_code || payload?.copy_paste_code || payload?.qr_code,
+    qr_code_base64: source.qr_code_base64 || payload?.qr_code_base64,
+    ticket_url: source.ticket_url || payload?.ticket_url,
+  };
+}
+
 export default function PromocionalDrawPage() {
   const { id } = useParams();
   const { user, loading: authLoading } = useAuth();
@@ -47,6 +83,12 @@ export default function PromocionalDrawPage() {
   const [saving, setSaving] = React.useState(false);
   const [message, setMessage] = React.useState("");
   const [error, setError] = React.useState("");
+  const [pendingReservation, setPendingReservation] = React.useState(null);
+  const [pixOpen, setPixOpen] = React.useState(false);
+  const [pixLoading, setPixLoading] = React.useState(false);
+  const [pixData, setPixData] = React.useState(null);
+  const [pixAmount, setPixAmount] = React.useState(null);
+  const [pixMsg, setPixMsg] = React.useState("");
 
   const maxNumbers = Number.parseInt(draw?.max_numbers_per_user ?? draw?.maxNumbersPerUser ?? 0, 10);
 
@@ -91,6 +133,7 @@ export default function PromocionalDrawPage() {
     if (!isPromocionalNumberAvailable(item)) return;
 
     setMessage("");
+    setPendingReservation(null);
     setSelectedNumbers((current) => {
       const key = String(rawNumber);
       if (current.some((value) => String(value) === key)) {
@@ -140,14 +183,16 @@ export default function PromocionalDrawPage() {
       setSaving(true);
       setError("");
       setMessage("");
-      await reservePromocionalNumbers(id, {
+      const payload = await reservePromocionalNumbers(id, {
         numbers: numbersToReserve,
         buyer_name: user.name || user.fullName || user.nome || user.displayName || "",
         buyer_email: user.email || "",
         buyer_phone: user.phone || user.telefone || user.whatsapp || "",
       });
+      const reservation = getReservationFromPayload(payload, id);
       setSelectedNumbers([]);
       setMessage("Números promocionais reservados com sucesso.");
+      setPendingReservation(reservation?.reservation_id ? reservation : null);
       await loadDraw();
     } catch (err) {
       console.error("[PROMOCIONAL_FRONT_ERROR]", err);
@@ -155,6 +200,49 @@ export default function PromocionalDrawPage() {
     } finally {
       setSaving(false);
     }
+  }
+
+  async function handlePayNow() {
+    if (!pendingReservation?.reservation_id || !pendingReservation?.draw_id) {
+      setError("Reserva promocional não encontrada para gerar o PIX.");
+      return;
+    }
+
+    try {
+      setPixOpen(true);
+      setPixLoading(true);
+      setPixData(null);
+      setPixMsg("Gerando PIX promocional...");
+      const payload = await generatePromocionalPix(
+        pendingReservation.draw_id,
+        pendingReservation.reservation_id
+      );
+      const normalized = normalizePixPayload(payload);
+      setPixData(normalized);
+      const cents =
+        normalized?.amount_cents ??
+        normalized?.amountCents ??
+        payload?.amount_cents ??
+        pendingReservation?.amount_cents;
+      setPixAmount(typeof cents === "number" ? cents / 100 : normalized?.amount || null);
+      setPixMsg("");
+    } catch (err) {
+      console.error("[PROMOCIONAL_FRONT_ERROR]", err);
+      setPixMsg("Não foi possível gerar o PIX promocional.");
+      setError("Não foi possível gerar o PIX promocional.");
+    } finally {
+      setPixLoading(false);
+    }
+  }
+
+  function handlePayLater() {
+    setPendingReservation(null);
+    setMessage("Reserva criada. Você pode pagar depois em Minha Conta.");
+  }
+
+  function copyPix() {
+    const code = pixData?.copy_paste_code || pixData?.qr_code || "";
+    if (code) navigator.clipboard.writeText(code).catch(() => {});
   }
 
   return (
@@ -188,6 +276,26 @@ export default function PromocionalDrawPage() {
 
               {error && <p className="promocional-error">{error}</p>}
               {message && <p className="promocional-success">{message}</p>}
+              {pendingReservation?.can_pay && (
+                <div className="promocional-payment-actions">
+                  <button
+                    type="button"
+                    className="promocional-primary-button"
+                    onClick={handlePayNow}
+                    disabled={pixLoading}
+                  >
+                    {pixLoading ? "Gerando..." : "Pagar agora"}
+                  </button>
+                  <button
+                    type="button"
+                    className="promocional-secondary-button"
+                    onClick={handlePayLater}
+                    disabled={pixLoading}
+                  >
+                    Pagar depois
+                  </button>
+                </div>
+              )}
 
               <PromocionalNumbersGrid
                 numbers={numbers}
@@ -207,6 +315,16 @@ export default function PromocionalDrawPage() {
           </>
         )}
       </main>
+
+      <PixModal
+        open={pixOpen}
+        onClose={() => setPixOpen(false)}
+        loading={pixLoading}
+        data={pixData}
+        amount={pixAmount}
+        inlineMessage={pixMsg}
+        onCopy={copyPix}
+      />
     </>
   );
 }
