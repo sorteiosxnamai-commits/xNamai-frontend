@@ -4,6 +4,16 @@ function encodePathValue(value) {
   return encodeURIComponent(String(value));
 }
 
+function asList(payload, keys = []) {
+  if (Array.isArray(payload)) return payload;
+
+  for (const key of keys) {
+    if (Array.isArray(payload?.[key])) return payload[key];
+  }
+
+  return [];
+}
+
 async function patchJSON(path, body) {
   const response = await fetch(apiJoin(path), {
     method: "PATCH",
@@ -42,6 +52,11 @@ export function getPromocionalNumbers(id) {
 
 export function reservePromocionalNumbers(id, payload) {
   return postJSON(`/promotional/${encodePathValue(id)}/reserve`, payload);
+}
+
+export async function getMyPromocionalParticipations() {
+  const payload = await getJSON("/promotional/me/participations");
+  return asList(payload, ["participations", "items", "data"]);
 }
 
 export function adminGetPromocionalDraws() {

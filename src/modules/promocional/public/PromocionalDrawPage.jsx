@@ -1,5 +1,6 @@
 import React from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import { useAuth } from "../../../authContext";
 import PromocionalNumbersGrid from "../components/PromocionalNumbersGrid";
 import {
   getPromocionalDraw,
@@ -37,6 +38,8 @@ function buildNumbersFromRange(draw) {
 
 export default function PromocionalDrawPage() {
   const { id } = useParams();
+  const navigate = useNavigate();
+  const { user, loading: authLoading } = useAuth();
   const [draw, setDraw] = React.useState(null);
   const [numbers, setNumbers] = React.useState([]);
   const [selectedNumbers, setSelectedNumbers] = React.useState([]);
@@ -70,6 +73,20 @@ export default function PromocionalDrawPage() {
     loadDraw();
   }, [loadDraw]);
 
+  React.useEffect(() => {
+    if (!selectedNumbers.length || !numbers.length) return;
+
+    const availableNumbers = new Set(
+      numbers
+        .filter((item) => isPromocionalNumberAvailable(item))
+        .map((item) => String(getNumberValue(item)))
+    );
+
+    setSelectedNumbers((current) =>
+      current.filter((number) => availableNumbers.has(String(number)))
+    );
+  }, [numbers, selectedNumbers.length]);
+
   function toggleNumber(rawNumber, item) {
     if (!isPromocionalNumberAvailable(item)) return;
 
@@ -91,8 +108,30 @@ export default function PromocionalDrawPage() {
   }
 
   async function handleReserve() {
+    if (authLoading) return;
+
+    if (!user) {
+      navigate("/login", { state: { from: `/promocional/${id}` } });
+      return;
+    }
+
     if (!selectedNumbers.length) {
       setError("Selecione pelo menos um numero disponivel.");
+      return;
+    }
+
+    const availableNumbers = new Set(
+      numbers
+        .filter((item) => isPromocionalNumberAvailable(item))
+        .map((item) => String(getNumberValue(item)))
+    );
+    const numbersToReserve = selectedNumbers
+      .map(getNumberValue)
+      .filter((number) => availableNumbers.has(String(number)));
+
+    if (numbersToReserve.length !== selectedNumbers.length) {
+      setSelectedNumbers(numbersToReserve);
+      setError("Alguns numeros selecionados nao estao mais disponiveis.");
       return;
     }
 
@@ -100,12 +139,18 @@ export default function PromocionalDrawPage() {
       setSaving(true);
       setError("");
       setMessage("");
-      await reservePromocionalNumbers(id, { numbers: selectedNumbers.map(getNumberValue) });
+      await reservePromocionalNumbers(id, {
+        numbers: numbersToReserve,
+        buyer_name: user.name || user.fullName || user.nome || user.displayName || "",
+        buyer_email: user.email || "",
+        buyer_phone: user.phone || user.telefone || user.whatsapp || "",
+      });
       setSelectedNumbers([]);
-      setMessage("Numeros reservados com sucesso.");
+      setMessage("Números promocionais reservados com sucesso.");
       await loadDraw();
     } catch (err) {
-      setError(err?.message || "Nao foi possivel reservar os numeros selecionados.");
+      console.error("[PROMOCIONAL_FRONT_ERROR]", err);
+      setError("Não foi possível reservar os números promocionais.");
     } finally {
       setSaving(false);
     }

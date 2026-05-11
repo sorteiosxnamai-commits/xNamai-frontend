@@ -22,6 +22,7 @@ import PixModal from "./PixModal";
 import { checkPixStatus } from "./services/pix";
 // ▲ PIX
 import AutoPaySection from "./AutoPaySection";
+import { getMyPromocionalParticipations } from "./modules/promocional/services/promocionalApi";
 
 const theme = createTheme({
   palette: {
@@ -137,6 +138,36 @@ const ResultChip = ({ result }) => {
   );
 };
 
+const PlainStatusChip = ({ status }) => {
+  const statusLabelMap = {
+    active: "RESERVADO",
+    reserved: "RESERVADO",
+    pending: "RESERVADO",
+    sold: "VENDIDO",
+    paid: "VENDIDO",
+    approved: "VENDIDO",
+    blocked: "BLOQUEADO",
+    closed: "ENCERRADO",
+    inactive: "INATIVO",
+  };
+  const normalized = String(status || "reserved").replace(/_/g, " ").trim().toLowerCase();
+  const label = statusLabelMap[normalized] || normalized.toUpperCase();
+
+  return (
+    <Chip
+      label={label || "RESERVADO"}
+      sx={{
+        bgcolor: "rgba(37,109,255,0.10)",
+        color: "#16325c",
+        fontWeight: 900,
+        borderRadius: 999,
+        px: 1.5,
+        border: "1px solid rgba(37,109,255,0.22)",
+      }}
+    />
+  );
+};
+
 // tenta uma lista de endpoints e retorna o primeiro que responder 2xx com JSON
 async function tryManyJson(paths) {
   for (const p of paths) {
@@ -209,6 +240,56 @@ function normalizeToEntries(payPayload, reservationsPayload) {
   return [];
 }
 
+function getPromocionalNumbers(item) {
+  if (Array.isArray(item?.numbers)) return item.numbers;
+  if (Array.isArray(item?.selected_numbers)) return item.selected_numbers;
+  if (Array.isArray(item?.numeros)) return item.numeros;
+  if (item?.numbers_label) return String(item.numbers_label).split(",");
+  if (item?.number != null) return [item.number];
+  if (item?.numero != null) return [item.numero];
+  return [];
+}
+
+function normalizePromocionalParticipationRows(participations) {
+  return (participations || []).map((item, index) => {
+    const draw = item?.draw || item?.promotional_draw || {};
+    const drawId = item?.draw_id ?? item?.drawId ?? item?.promotional_draw_id ?? draw?.id ?? draw?._id;
+    const numbers = getPromocionalNumbers(item);
+    const whenValue =
+      item?.day ||
+      item?.created_at ||
+      item?.createdAt ||
+      item?.reserved_at ||
+      item?.updated_at ||
+      item?.date;
+    const whenMs = Date.parse(whenValue || "") || 0;
+    const whenDate = whenMs ? new Date(whenMs) : null;
+    const numbersLabel =
+      item?.numbers_label ||
+      numbers.map((number) => pad2(String(number).trim())).join(", ");
+
+    return {
+      id: item?.id || item?._id || `promocional-${index}`,
+      type: "promotional",
+      typeLabel: "Promocional",
+      draw_id: drawId,
+      sorteio:
+        item?.draw_title ||
+        item?.drawTitle ||
+        draw?.title ||
+        draw?.name ||
+        (drawId != null ? String(drawId) : "--"),
+      numeros: numbers,
+      numbers_label: numbersLabel,
+      dia: item?.day || (whenDate ? whenDate.toLocaleDateString("pt-BR") : "--/--/----"),
+      pagamento: item?.payment || item?.payment_status || item?.paymentStatus || "pending",
+      resultado: item?.status || item?.reservation_status || "reserved",
+      whenMs,
+      canPay: false,
+    };
+  });
+}
+
 // parse JSON tolerante
 async function fetchJsonLoose(url, options) {
   const r = await fetch(apiJoin(url), options);
@@ -255,6 +336,7 @@ export default function AccountPage() {
   const [loading, setLoading] = React.useState(true);
   const [user, setUser] = React.useState(ctxUser || null);
   const [rows, setRows] = React.useState([]);
+  const [promotionalError, setPromotionalError] = React.useState("");
 
   // ► saldo composto
   const [, setBaseCents] = React.useState(0); // pode incluir safeUi p/ nunca regredir visualmente
@@ -628,7 +710,10 @@ export default function AccountPage() {
           drawsMap = new Map(arr.map(d => [Number(d.id ?? d.draw_id), (d.status ?? d.result ?? "")]));
         } catch {}
 
-        if (alive && pay) {
+        let deduped = [];
+        let mainRows = [];
+
+        if (pay) {
           const entries = normalizeToEntries(
             from === "/payments/me" ? pay : null,
             from !== "/payments/me" ? pay : null
@@ -671,7 +756,7 @@ export default function AccountPage() {
               if (tNew >= tOld) byKey.set(key, e);
             }
           }
-          const deduped = Array.from(byKey.values());
+          deduped = Array.from(byKey.values());
 
           // AGRUPAR por sorteio (approved só se todos aprovados)
           const byDraw = new Map();
@@ -696,10 +781,12 @@ export default function AccountPage() {
             g.hasApproved = g.hasApproved || isApprovedStatus(e.status);
           }
 
-          const grouped = Array.from(byDraw.values()).map(g => {
+          mainRows = Array.from(byDraw.values()).map(g => {
             const whenDate = g.when ? new Date(g.when) : null;
             const pagamento = g.hasPending ? "pending" : (g.hasApproved ? "approved" : "pending");
             return {
+              type: "main",
+              typeLabel: "Principal",
               draw_id: g.draw_id,
               sorteio: g.draw_id != null ? String(g.draw_id) : "--",
               numeros: Array.from(new Set(g.numeros)).sort((a,b)=>a-b),
@@ -707,13 +794,31 @@ export default function AccountPage() {
               pagamento,
               resultado: drawsMap.get(Number(g.draw_id)) || "aberto",
               whenMs: g.when || 0,
+              canPay: true,
             };
           });
+        }
 
-          // >>> ORDEM: última compra primeiro (decrescente por whenMs)
-          grouped.sort((a, b) => (b.whenMs || 0) - (a.whenMs || 0));
-          setRows(grouped);
+        let promotionalRows = [];
+        let promotionalLoadError = "";
+        try {
+          const promotionalParticipations = await getMyPromocionalParticipations();
+          promotionalRows = normalizePromocionalParticipationRows(promotionalParticipations);
+        } catch (error) {
+          console.error("[PROMOCIONAL_FRONT_ERROR]", error);
+          promotionalLoadError = "Não foi possível carregar participações promocionais.";
+        }
 
+        if (alive) {
+          setPromotionalError(promotionalLoadError);
+          setRows(
+            [...mainRows, ...promotionalRows].sort(
+              (a, b) => (b.whenMs || 0) - (a.whenMs || 0)
+            )
+          );
+        }
+
+        if (pay) {
           // validade (último approved)
           let lastApprovedAtMs = null;
           const listForValidity = from === "/payments/me"
@@ -744,7 +849,10 @@ export default function AccountPage() {
 
     const onFocus = () => reloadBalances();
     window.addEventListener("focus", onFocus);
-    return () => window.removeEventListener("focus", onFocus);
+    return () => {
+      alive = false;
+      window.removeEventListener("focus", onFocus);
+    };
   }, [ctxUser, storedMe, reloadBalances]);
 
   // quando PIX vira approved, atualiza saldo
@@ -1027,9 +1135,15 @@ export default function AccountPage() {
                     <Box sx={{ px: 0.5, py: 0.5 }}><LinearProgress /></Box>
                   ) : (
                     <TableContainer sx={{ width: "100%", overflowX: "auto" }}>
-                      <Table size="small" sx={{ minWidth: { xs: 720, sm: 920 } }}>
+                      {promotionalError && (
+                        <Alert severity="warning" variant="outlined" sx={{ mb: 1.5 }}>
+                          {promotionalError}
+                        </Alert>
+                      )}
+                      <Table size="small" sx={{ minWidth: { xs: 820, sm: 1040 } }}>
                         <TableHead>
                           <TableRow>
+                            <TableCell sx={{ fontWeight: 900, whiteSpace: "nowrap", color: "rgba(22,50,92,0.72)" }}>TIPO</TableCell>
                             <TableCell sx={{ fontWeight: 900, whiteSpace: "nowrap", color: "rgba(22,50,92,0.72)" }}>SORTEIO</TableCell>
                             <TableCell sx={{ fontWeight: 900, whiteSpace: "nowrap", color: "rgba(22,50,92,0.72)" }}>NÚMERO</TableCell>
                             <TableCell sx={{ fontWeight: 900, whiteSpace: "nowrap", color: "rgba(22,50,92,0.72)" }}>DIA</TableCell>
@@ -1041,7 +1155,7 @@ export default function AccountPage() {
                         <TableBody>
                           {rows.length === 0 && (
                             <TableRow>
-                              <TableCell colSpan={6}>
+                              <TableCell colSpan={7}>
                                 <Box className="xn-emptyState">
                                   <Typography sx={{ fontWeight: 900, color: "#16325c" }}>Nenhuma participação encontrada.</Typography>
                                   <Typography className="xn-muted" sx={{ mt: 0.4, fontWeight: 700 }}>
@@ -1052,14 +1166,16 @@ export default function AccountPage() {
                             </TableRow>
                           )}
                           {rows.map((row, idx) => {
-                      const isPending = /pendente|pending|await|aguard|open|ativo|active/i.test(String(row.pagamento || ""));
-                      const clickable = true;
+                      const canPay = row.canPay !== false && row.type !== "promotional";
+                      const isPending = canPay && /pendente|pending|await|aguard|open|ativo|active/i.test(String(row.pagamento || ""));
+                      const clickable = canPay;
 
                       const isPaid   = /^(approved|paid|pago)$/i.test(String(row.pagamento || ""));
                       const isClosed = /(closed|fechado|sorteado)/i.test(String(row.resultado || ""));
                       const isOpen   = /(open|aberto)/i.test(String(row.resultado || ""));
 
                       const handleRowClick = () => {
+                        if (!canPay) return;
                         const drawId = Number(row.draw_id ?? row.sorteio);
                         if (isPaid && isClosed && Number.isFinite(drawId)) navigate(`/me/draw/${drawId}`);
                         else if (isOpen) navigate("/");
@@ -1067,20 +1183,29 @@ export default function AccountPage() {
 
                       return (
                         <TableRow
-                          key={`${row.sorteio}-${idx}`}
+                          key={`${row.type || "main"}-${row.sorteio}-${row.id || idx}`}
                           hover
                           onClick={clickable ? handleRowClick : undefined}
                           sx={{ cursor: clickable ? "pointer" : "default" }}
                         >
+                          <TableCell sx={{ width: 120, fontWeight: 900 }}>{row.typeLabel || "Principal"}</TableCell>
                           <TableCell sx={{ width: 100, fontWeight: 700 }}>{String(row.sorteio || "--")}</TableCell>
                           <TableCell sx={{ minWidth: 160, fontWeight: 700 }}>
-                            {Array.isArray(row.numeros) ? row.numeros.map(pad2).join(", ") : (row.numero != null ? pad2(row.numero) : "--")}
+                            {row.numbers_label || (Array.isArray(row.numeros) ? row.numeros.map(pad2).join(", ") : (row.numero != null ? pad2(row.numero) : "--"))}
                           </TableCell>
                           <TableCell sx={{ width: 140 }}>{row.dia}</TableCell>
                           <TableCell><PayChip status={row.pagamento} /></TableCell>
-                          <TableCell><ResultChip result={row.resultado} /></TableCell>
+                          <TableCell>
+                            {row.type === "promotional" ? (
+                              <PlainStatusChip status={row.resultado} />
+                            ) : (
+                              <ResultChip result={row.resultado} />
+                            )}
+                          </TableCell>
                           <TableCell align="right" sx={{ width: 120 }}>
-                            {isPending ? (
+                            {row.type === "promotional" ? (
+                              <Typography sx={{ fontWeight: 900, color: "rgba(22,50,92,0.58)" }}>-</Typography>
+                            ) : isPending ? (
                               <Button
                                 size="small"
                                 variant="contained"
