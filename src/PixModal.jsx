@@ -9,7 +9,7 @@ import ContentCopyRoundedIcon from '@mui/icons-material/ContentCopyRounded';
 export default function PixModal({ open, onClose, loading, data, onCopy, onRefresh, amount, inlineMessage }) {
   // --- Normalização e fontes do QR ---
   const rawB64 = (data?.qr_code_base64 || '').replace(/\s/g, '');
-  const copyPaste = data?.copy_paste_code || data?.qr_code || '';
+  const copyPaste = data?.copy_paste_code || data?.qr_code || data?.copy_paste || data?.copy || data?.emv || '';
 
   // fonte 1: base64 vindo do backend
   const b64Src = rawB64 ? `data:image/png;base64,${rawB64}` : '';

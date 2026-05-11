@@ -9,6 +9,7 @@ function asList(payload, keys = []) {
 
   for (const key of keys) {
     if (Array.isArray(payload?.[key])) return payload[key];
+    if (Array.isArray(payload?.data?.[key])) return payload.data[key];
   }
 
   return [];
@@ -70,6 +71,10 @@ export async function reservePromocionalNumbers(id, payload) {
 }
 
 export async function generatePromocionalPix(drawId, reservationId) {
+  if (!drawId || !reservationId) {
+    throw new Error("Dados da reserva promocional incompletos para gerar PIX.");
+  }
+
   const response = await fetch(
     apiJoin(
       `/promotional/${encodePathValue(drawId)}/reservations/${encodePathValue(reservationId)}/pix`
@@ -86,6 +91,11 @@ export async function generatePromocionalPix(drawId, reservationId) {
   const data = await response.json().catch(() => ({}));
 
   if (!response.ok || data?.ok === false) {
+    console.error("[PROMOTIONAL_PIX_RESPONSE_ERROR]", {
+      status: response.status,
+      data,
+    });
+
     throw new Error(data?.error || data?.message || "Erro ao gerar PIX promocional.");
   }
 

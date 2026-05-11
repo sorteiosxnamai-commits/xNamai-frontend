@@ -248,16 +248,54 @@ function getPromocionalNumbers(item) {
   if (Array.isArray(item?.numbers)) return item.numbers;
   if (Array.isArray(item?.selected_numbers)) return item.selected_numbers;
   if (Array.isArray(item?.numeros)) return item.numeros;
+  if (Array.isArray(item?.reservation?.numbers)) return item.reservation.numbers;
   if (item?.numbers_label) return String(item.numbers_label).split(",");
+  if (item?.reservation?.numbers_label) return String(item.reservation.numbers_label).split(",");
   if (item?.number != null) return [item.number];
   if (item?.numero != null) return [item.numero];
+  if (item?.reservation?.number != null) return [item.reservation.number];
   return [];
 }
 
 function normalizePromocionalParticipationRows(participations) {
   return (participations || []).map((item, index) => {
-    const draw = item?.draw || item?.promotional_draw || {};
-    const drawId = item?.draw_id ?? item?.drawId ?? item?.promotional_draw_id ?? draw?.id ?? draw?._id;
+    const draw = item?.draw || item?.promotional_draw || item?.promotionalDraw || {};
+    const reservation = item?.reservation || item?.promotional_reservation || item?.promotionalReservation || {};
+    const payment = item?.payment || {};
+    const drawId =
+      item?.draw_id ??
+      item?.drawId ??
+      item?.promotional_draw_id ??
+      item?.promotionalDrawId ??
+      draw?.draw_id ??
+      draw?.drawId ??
+      draw?.id ??
+      draw?._id;
+    const reservationId =
+      item?.reservation_id ??
+      item?.reservationId ??
+      item?.promotional_reservation_id ??
+      reservation?.reservation_id ??
+      reservation?.reservationId ??
+      reservation?.id ??
+      reservation?._id ??
+      payment?.reservation_id ??
+      payment?.reservationId ??
+      item?.id ??
+      item?._id;
+    const paymentStatus =
+      item?.payment_status ??
+      item?.paymentStatus ??
+      payment?.status ??
+      payment?.payment_status ??
+      item?.payment ??
+      "pending";
+    const reservationStatus =
+      item?.reservation_status ??
+      item?.reservationStatus ??
+      reservation?.status ??
+      item?.status ??
+      "reserved";
     const numbers = getPromocionalNumbers(item);
     const whenValue =
       item?.day ||
@@ -276,12 +314,7 @@ function normalizePromocionalParticipationRows(participations) {
       id: item?.id || item?._id || `promocional-${index}`,
       type: "promotional",
       typeLabel: "Promocional",
-      reservation_id:
-        item?.reservation_id ||
-        item?.reservationId ||
-        item?.id ||
-        item?._id ||
-        item?.reservation?.id,
+      reservation_id: reservationId,
       draw_id: drawId,
       sorteio:
         item?.draw_title ||
@@ -292,13 +325,18 @@ function normalizePromocionalParticipationRows(participations) {
       numeros: numbers,
       numbers_label: numbersLabel,
       dia: item?.day || (whenDate ? whenDate.toLocaleDateString("pt-BR") : "--/--/----"),
-      pagamento: item?.payment || item?.payment_status || item?.paymentStatus || "pending",
-      resultado: item?.status || item?.reservation_status || "reserved",
+      payment_status: paymentStatus,
+      pagamento: paymentStatus,
+      resultado: reservationStatus,
       whenMs,
       canPay:
         item?.can_pay === true ||
         item?.canPay === true ||
-        String(item?.payment_status || item?.paymentStatus || item?.payment || "").toLowerCase() === "pending",
+        reservation?.can_pay === true ||
+        reservation?.canPay === true ||
+        String(item?.can_pay || item?.canPay || reservation?.can_pay || reservation?.canPay || "").toLowerCase() === "true" ||
+        String(paymentStatus || "").toLowerCase() === "pending",
+      raw: item,
     };
   });
 }
@@ -480,6 +518,7 @@ export default function AccountPage() {
 
   // --------- GERAR PIX ----------
   async function handleGeneratePix(row) {
+    console.log("[PIX_ITEM]", row);
     setPixMsg("Gerando PIX…");
     setPixOpen(true);
     setPixLoading(true);
@@ -487,16 +526,16 @@ export default function AccountPage() {
     setLoadingPixId(row?.reservation_id || row?.id || `${row?.type || "main"}-${row?.draw_id || row?.sorteio}`);
 
     try {
-      const drawId = Number(row?.draw_id ?? row?.sorteio ?? row?.draw ?? row?.id);
-
       if (row?.type === "promotional") {
+        const drawId = row?.draw_id ?? row?.drawId;
         const reservationId = row?.reservation_id || row?.reservationId;
-        if (!reservationId || !Number.isFinite(drawId)) {
-          setPixMsg("Falha ao gerar PIX: reserva promocional não encontrada.");
-          return;
+
+        if (!drawId || !reservationId) {
+          throw new Error("Dados da reserva promocional incompletos para gerar PIX.");
         }
 
         const created = await generatePromocionalPix(drawId, reservationId);
+        console.log("[PIX_SUCCESS]", created);
         const pix = normalizePixData(created);
         setPixData(pix);
         const cents =
@@ -510,9 +549,12 @@ export default function AccountPage() {
         return;
       }
 
+      const drawId = Number(row?.draw_id ?? row?.sorteio ?? row?.draw ?? row?.id);
+
       if (row?.reservation_id) {
         try {
           const created = await generateMainReservationPix(row.reservation_id);
+          console.log("[PIX_SUCCESS]", created);
           const pix = normalizePixData(created);
           setPixData(pix);
           const cents =
@@ -589,6 +631,7 @@ export default function AccountPage() {
       const created = await requestPix(latest.reservationId);
       if (!created) return;
 
+      console.log("[PIX_SUCCESS]", created);
       setPixData(normalizePixData(created));
 
       // Descobre o valor (centavos)
@@ -614,8 +657,13 @@ export default function AccountPage() {
       setPixAmount(amountCents != null ? amountCents / 100 : null);
       setPixMsg(created?.status ? `Status: ${created.status}` : `PIX criado para o nº ${pad2(selectedNumber)}.`);
     } catch (e) {
-      console.error("[GENERATE_PIX_ERROR]", e);
-      setPixMsg("Não foi possível gerar o PIX. Tente novamente.");
+      console.error("[GENERATE_PIX_ERROR]", {
+        item: row,
+        error: e,
+        message: e?.message,
+      });
+      setPixData(null);
+      setPixMsg(e?.message || "Não foi possível gerar o PIX. Tente novamente.");
     } finally {
       setPixLoading(false);
       setLoadingPixId(null);
@@ -645,9 +693,14 @@ export default function AccountPage() {
     return {
       ...source,
       paymentId: source.paymentId || source.payment_id || source.id || payload?.paymentId || payload?.id,
-      qr_code: source.qr_code || source.copy_paste_code || payload?.qr_code,
+      qr_code: source.qr_code || source.copy_paste_code || source.copy_paste || source.copy || payload?.qr_code,
       copy_paste_code:
-        source.copy_paste_code || source.qr_code || payload?.copy_paste_code || payload?.qr_code,
+        source.copy_paste_code ||
+        source.qr_code ||
+        source.copy_paste ||
+        source.copy ||
+        payload?.copy_paste_code ||
+        payload?.qr_code,
       qr_code_base64: source.qr_code_base64 || payload?.qr_code_base64,
       ticket_url: source.ticket_url || payload?.ticket_url,
     };
@@ -1239,7 +1292,7 @@ export default function AccountPage() {
                           )}
                           {rows.map((row, idx) => {
                       const rowLoadingPixId = row?.reservation_id || row?.id || `${row?.type || "main"}-${row?.draw_id || row?.sorteio}`;
-                      const paymentStatus = String(row.pagamento || "").toLowerCase();
+                      const paymentStatus = String(row.payment_status || row.pagamento || "").toLowerCase();
                       const canGeneratePix =
                         row.canPay === true ||
                         /pendente|pending|await|aguard|open|ativo|active/i.test(paymentStatus);
