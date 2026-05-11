@@ -1,0 +1,433 @@
+.promocional-page,
+.promocional-admin-page {
+  min-height: 100vh;
+  padding: 42px min(5vw, 56px) 72px;
+  background:
+    radial-gradient(circle at 12% 10%, rgba(37, 99, 235, 0.12), transparent 30%),
+    linear-gradient(180deg, #f8fbff 0%, #eef4ff 100%);
+  color: #071833;
+}
+
+.promocional-page {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.promocional-admin-page {
+  width: min(1440px, calc(100% - 48px));
+  margin: 0 auto;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.promocional-hero {
+  max-width: 920px;
+  padding: 38px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow: 0 22px 60px rgba(15, 23, 42, 0.08);
+}
+
+.promocional-hero--compact {
+  padding: 30px;
+}
+
+.promocional-hero h1,
+.promocional-admin-header h1,
+.promocional-admin-section h2 {
+  margin: 0;
+  color: #071833;
+  letter-spacing: -0.03em;
+}
+
+.promocional-hero h1 {
+  font-size: clamp(34px, 6vw, 64px);
+  font-weight: 900;
+}
+
+.promocional-hero p,
+.promocional-admin-header p,
+.promocional-admin-section p {
+  color: #526179;
+}
+
+.promocional-eyebrow {
+  margin: 0 0 8px;
+  color: #2563eb !important;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.promocional-list,
+.promocional-admin-list {
+  display: grid;
+  gap: 18px;
+}
+
+.promocional-list {
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+.promocional-card,
+.promocional-panel,
+.promocional-admin-card,
+.promocional-form,
+.promocional-admin-section {
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 18px 44px rgba(15, 23, 42, 0.08);
+}
+
+.promocional-card,
+.promocional-panel,
+.promocional-admin-card,
+.promocional-admin-section {
+  padding: 24px;
+}
+
+.promocional-card-top,
+.promocional-panel-heading,
+.promocional-admin-card-main,
+.promocional-admin-toolbar,
+.promocional-admin-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.promocional-card-title,
+.promocional-admin-card h3 {
+  margin: 0;
+  color: #071833;
+  font-size: 22px;
+  font-weight: 900;
+}
+
+.promocional-card-description {
+  margin: 16px 0;
+  color: #526179;
+  line-height: 1.55;
+}
+
+.promocional-card-prize,
+.promocional-prize {
+  display: block;
+  color: #172842;
+  font-weight: 900;
+}
+
+.promocional-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 18px 0;
+}
+
+.promocional-card-meta span,
+.promocional-selected-count {
+  border-radius: 999px;
+  padding: 7px 11px;
+  background: #eef4ff;
+  color: #2563eb;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.promocional-primary-button,
+.promocional-admin-actions a,
+.promocional-admin-actions button,
+.promocional-back-link {
+  border: 0;
+  border-radius: 999px;
+  padding: 11px 16px;
+  font-size: 14px;
+  font-weight: 900;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.promocional-primary-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #2563eb;
+  color: #ffffff;
+  box-shadow: 0 12px 24px rgba(37, 99, 235, 0.22);
+}
+
+.promocional-primary-button:disabled,
+.promocional-admin-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.promocional-primary-button--wide {
+  width: 100%;
+  margin-top: 24px;
+}
+
+.promocional-back-link {
+  align-self: flex-start;
+  display: inline-flex;
+  color: #2563eb;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(37, 99, 235, 0.14);
+}
+
+.promocional-info,
+.promocional-empty,
+.promocional-error,
+.promocional-success {
+  margin: 0;
+  border-radius: 16px;
+  padding: 14px 16px;
+  font-weight: 800;
+}
+
+.promocional-info,
+.promocional-empty {
+  background: rgba(255, 255, 255, 0.84);
+  color: #526179;
+}
+
+.promocional-error {
+  background: #fff1f2;
+  color: #be123c;
+}
+
+.promocional-success {
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.promocional-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(62px, 1fr));
+  gap: 10px;
+}
+
+.promocional-number-wrap {
+  display: grid;
+  gap: 8px;
+}
+
+.promocional-number {
+  min-height: 46px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 14px;
+  background: #ffffff;
+  color: #172842;
+  font-weight: 900;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.promocional-number:hover:not(:disabled),
+.promocional-number--selected {
+  transform: translateY(-1px);
+  border-color: #2563eb;
+  background: #2563eb;
+  color: #ffffff;
+  box-shadow: 0 10px 22px rgba(37, 99, 235, 0.18);
+}
+
+.promocional-number--reserved {
+  background: #fff7ed;
+  color: #c2410c;
+}
+
+.promocional-number--sold {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+.promocional-number--blocked {
+  background: #fff1f2;
+  color: #be123c;
+}
+
+.promocional-number:disabled {
+  cursor: not-allowed;
+}
+
+.promocional-number-actions select {
+  width: 100%;
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  border-radius: 10px;
+  padding: 7px;
+  color: #172842;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.promocional-status {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 7px 10px;
+  background: #eef4ff;
+  color: #2563eb;
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.promocional-status--active,
+.promocional-status--available {
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.promocional-status--closed,
+.promocional-status--blocked {
+  background: #fff1f2;
+  color: #be123c;
+}
+
+.promocional-status--reserved {
+  background: #fff7ed;
+  color: #c2410c;
+}
+
+.promocional-status--sold,
+.promocional-status--inactive {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+.promocional-admin-header {
+  margin-bottom: 24px;
+  padding: 24px;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 16px 38px rgba(15, 23, 42, 0.07);
+}
+
+.promocional-admin-nav,
+.promocional-admin-actions,
+.promocional-form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.promocional-nav-link {
+  border-radius: 999px;
+  padding: 10px 14px;
+  color: #172842;
+  background: #eef4ff;
+  font-weight: 900;
+  text-decoration: none;
+}
+
+.promocional-nav-link:hover,
+.promocional-nav-link--active {
+  color: #2563eb;
+}
+
+.promocional-admin-actions {
+  margin-top: 18px;
+}
+
+.promocional-admin-actions a,
+.promocional-admin-actions button {
+  background: #eef4ff;
+  color: #2563eb;
+}
+
+.promocional-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  padding: 24px;
+}
+
+.promocional-field {
+  display: grid;
+  gap: 7px;
+  color: #172842;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.promocional-field--full {
+  grid-column: 1 / -1;
+}
+
+.promocional-field input,
+.promocional-field textarea,
+.promocional-field select {
+  width: 100%;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  border-radius: 14px;
+  padding: 12px 14px;
+  color: #071833;
+  font: inherit;
+  font-weight: 700;
+  background: #ffffff;
+}
+
+.promocional-form-actions {
+  grid-column: 1 / -1;
+  justify-content: flex-end;
+}
+
+.promocional-table-wrap {
+  overflow-x: auto;
+  border-radius: 18px;
+  background: #ffffff;
+}
+
+.promocional-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 760px;
+}
+
+.promocional-table th,
+.promocional-table td {
+  padding: 14px;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+  color: #172842;
+  text-align: left;
+}
+
+.promocional-table th {
+  color: #526179;
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+@media (max-width: 768px) {
+  .promocional-page,
+  .promocional-admin-page {
+    width: 100%;
+    padding: 24px 16px 52px;
+  }
+
+  .promocional-hero,
+  .promocional-admin-header,
+  .promocional-admin-section {
+    padding: 20px;
+    border-radius: 20px;
+  }
+
+  .promocional-card-top,
+  .promocional-panel-heading,
+  .promocional-admin-card-main,
+  .promocional-admin-toolbar,
+  .promocional-admin-header {
+    flex-direction: column;
+  }
+
+  .promocional-form {
+    grid-template-columns: 1fr;
+  }
+}

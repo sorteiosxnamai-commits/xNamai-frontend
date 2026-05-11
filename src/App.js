@@ -26,6 +26,15 @@ import AdminAnalytics from "./AdminAnalytics";
 
 import AdminErrorBoundary from "./components/admin/AdminErrorBoundary";
 import XnamaiAdminLayout from "./XnamaiAdminLayout";
+import {
+  PromocionalHome,
+  PromocionalDrawPage,
+  PromocionalAdminLayout,
+  PromocionalAdminHome,
+  PromocionalDrawForm,
+  PromocionalNumbersManager,
+  PromocionalParticipants,
+} from "./modules/promocional";
 
 export default function App() {
   const [selecionados, setSelecionados] = React.useState([]);
@@ -47,6 +56,25 @@ export default function App() {
 
             <Route path="/cadastro" element={<RegisterPage />} />
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/promocional" element={<PromocionalHome />} />
+            <Route path="/promocional/:id" element={<PromocionalDrawPage />} />
+
+            <Route
+              path="/promocional/admin"
+              element={
+                <AdminRoute>
+                  <AdminErrorBoundary>
+                    <PromocionalAdminLayout />
+                  </AdminErrorBoundary>
+                </AdminRoute>
+              }
+            >
+              <Route index element={<PromocionalAdminHome />} />
+              <Route path="novo" element={<PromocionalDrawForm />} />
+              <Route path=":id" element={<PromocionalDrawForm />} />
+              <Route path=":id/numeros" element={<PromocionalNumbersManager />} />
+              <Route path=":id/participantes" element={<PromocionalParticipants />} />
+            </Route>
 
             <Route
               path="/conta"

@@ -671,6 +671,19 @@ export default function AdminDashboard() {
             </div>
             <strong>→</strong>
           </div>
+
+          <div
+            style={styles.quickCard}
+            onClick={() => navigate("/promocional/admin")}
+          >
+            <div>
+              <div style={styles.quickName}>Sorteios Promocionais</div>
+              <div style={styles.quickDesc}>
+                Gerencie campanhas promocionais separadas do sorteio principal.
+              </div>
+            </div>
+            <strong>→</strong>
+          </div>
         </section>
       </div>
     </main>
