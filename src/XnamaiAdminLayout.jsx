@@ -49,8 +49,6 @@ export default function XnamaiAdminLayout() {
               type="button"
               className="xnamai-admin-back-to-panel"
               onClick={handleBackToPanel}
-              aria-label="Voltar ao painel"
-              title="Voltar ao painel"
             >
               <span>←</span>
               Voltar ao painel
@@ -73,7 +71,7 @@ export default function XnamaiAdminLayout() {
             className="xnamai-admin-profile-icon"
             onClick={() => setProfileOpen((value) => !value)}
             aria-label="Abrir menu de perfil"
-          title="Perfil"
+            title="Perfil"
           >
             <span />
           </button>
