@@ -1,13 +1,11 @@
 // src/AdminVencedores.jsx
 import * as React from "react";
-import { useNavigate } from "react-router-dom";
 import {
   Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   TextField, Button
 } from "@mui/material";
 import { API_CONFIG } from "./config/api";
 import "./styles/xnamai-admin.css";
-import XnamaiAdminLayout from "./components/admin/XnamaiAdminLayout";
 
 /* ---------- API base util ---------- */
 const RAW_BASE = API_CONFIG.baseUrl || "/api";
@@ -58,8 +56,6 @@ const fmtDate = (v) => {
 };
 
 export default function AdminVencedores() {
-  const navigate = useNavigate();
-
   const [rows, setRows] = React.useState([]);
   const [loading, setLoading] = React.useState(true);
   const [savingId, setSavingId] = React.useState(null);
@@ -125,11 +121,12 @@ export default function AdminVencedores() {
   };
 
   return (
-    <XnamaiAdminLayout
-      title="Vencedores"
-      subtitle="Lista de vencedores dos sorteios e dados do prêmio."
-      onBack={() => navigate("/admin")}
-    >
+    <>
+      <div className="xnamai-admin-section-title">
+        <h1>Vencedores</h1>
+        <p>Lista de vencedores dos sorteios e dados do prêmio.</p>
+      </div>
+
       <Paper className="xnamai-admin-card" variant="outlined" sx={{ p: { xs: 1, md: 1.5 } }}>
         <div className="xnamai-admin-table-wrap">
           <div className="xnamai-admin-table">
@@ -201,6 +198,6 @@ export default function AdminVencedores() {
           </div>
         </div>
       </Paper>
-    </XnamaiAdminLayout>
+    </>
   );
 }

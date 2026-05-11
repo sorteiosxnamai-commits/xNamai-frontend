@@ -1,6 +1,5 @@
 // src/AdminAnalytics.jsx
 import * as React from "react";
-import { useNavigate } from "react-router-dom";
 import {
   Box, Button, Chip, Paper, Stack,
   Tab, Tabs, Typography, Table, TableBody, TableCell,
@@ -80,7 +79,6 @@ function Section({ title, right, children }) {
 /* =============================== PÁGINA =============================== */
 
 export default function AdminAnalytics() {
-  const nav = useNavigate();
   const [tab, setTab] = React.useState(0);
 
   // Estado (GERAL / OVERVIEW)

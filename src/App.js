@@ -1,6 +1,8 @@
-// src/App.js
 import React from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+
+import "./App.css";
+import "./styles/xnamai-admin.css";
 
 import { SelectionContext } from "./selectionContext";
 import NewStorePage from "./NewStorePage";
@@ -20,7 +22,8 @@ import AdminVencedores from "./AdminVencedores";
 import AdminUsersPage from "./AdminUsersPage";
 import DrawBoardPage from "./DrawBoardPage";
 import AdminOpenDrawBuyers from "./AdminOpenDrawBuyers";
-import AdminAnalytics from './AdminAnalytics';
+import AdminAnalytics from "./AdminAnalytics";
+
 import AdminErrorBoundary from "./components/admin/AdminErrorBoundary";
 import XnamaiAdminLayout from "./XnamaiAdminLayout";
 
@@ -33,7 +36,6 @@ export default function App() {
       <SelectionContext.Provider value={{ selecionados, setSelecionados, limparSelecao }}>
         <BrowserRouter>
           <Routes>
-            {/* HOME só para não-admin */}
             <Route
               path="/"
               element={
@@ -46,7 +48,6 @@ export default function App() {
             <Route path="/cadastro" element={<RegisterPage />} />
             <Route path="/login" element={<LoginPage />} />
 
-            {/* CONTA: autenticado e não-admin */}
             <Route
               path="/conta"
               element={
@@ -58,7 +59,6 @@ export default function App() {
               }
             />
 
-            {/* ADMIN (somente admin) */}
             <Route
               path="/admin"
               element={
@@ -75,30 +75,44 @@ export default function App() {
                   </AdminErrorBoundary>
                 }
               />
+
               <Route
-                path="clientes"
+                path="AdminClientesUser"
                 element={
                   <AdminErrorBoundary>
                     <AdminUsersPage />
                   </AdminErrorBoundary>
                 }
               />
+
               <Route
-                path="clientes-saldo"
+                path="clientes"
                 element={
                   <AdminErrorBoundary>
                     <AdminClientes />
                   </AdminErrorBoundary>
                 }
               />
+
               <Route
-                path="compradores"
+                path="clientes-saldo"
+                element={<Navigate to="/admin/clientes" replace />}
+              />
+
+              <Route
+                path="sorteiosAtivos"
                 element={
                   <AdminErrorBoundary>
                     <AdminOpenDrawBuyers />
                   </AdminErrorBoundary>
                 }
               />
+
+              <Route
+                path="compradores"
+                element={<Navigate to="/admin/sorteiosAtivos" replace />}
+              />
+
               <Route
                 path="analytics"
                 element={
@@ -107,6 +121,7 @@ export default function App() {
                   </AdminErrorBoundary>
                 }
               />
+
               <Route
                 path="sorteios"
                 element={
@@ -115,6 +130,7 @@ export default function App() {
                   </AdminErrorBoundary>
                 }
               />
+
               <Route
                 path="vencedores"
                 element={
@@ -124,15 +140,19 @@ export default function App() {
                 }
               />
 
-              {/* fallback admin (nunca tela vazia) */}
               <Route path="*" element={<Navigate to="/admin" replace />} />
             </Route>
 
-            <Route path="/me/draw/:id" element={<DrawBoardPage />} />
+            <Route
+              path="/me/draw/:id"
+              element={
+                <ProtectedRoute>
+                  <DrawBoardPage />
+                </ProtectedRoute>
+              }
+            />
 
-            {/* redirects/compat (evitar rotas com maiúsculas e antigas) */}
-            <Route path="/admin/AdminClientesUser" element={<Navigate to="/admin/clientes" replace />} />
-            <Route path="/admin/sorteiosAtivos" element={<Navigate to="/admin/compradores" replace />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </BrowserRouter>
       </SelectionContext.Provider>

@@ -1,13 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { API_CONFIG } from "../config/api";
-
-const API_BASE = String(API_CONFIG?.baseUrl || "").replace(/\/+$/, "");
-
-function makeAdminDrawsUrl() {
-  const baseHasApi = /\/api\/?$/i.test(API_BASE);
-  if (!API_BASE) return "/api/admin/draws";
-  return baseHasApi ? `${API_BASE}/admin/draws` : `${API_BASE}/api/admin/draws`;
-}
+import { getAdminDraws } from "../services/adminDraws";
 
 function moneyFromCents(value) {
   const cents = Number(value || 0);
@@ -55,20 +47,7 @@ export default function AdminDrawsList({ compact = false }) {
       setLoading(true);
       setMessage("");
 
-      const response = await fetch(makeAdminDrawsUrl(), {
-        method: "GET",
-        credentials: "include",
-        headers: {
-          Accept: "application/json",
-        },
-      });
-
-      const data = await response.json().catch(() => ({}));
-
-      if (!response.ok || data.ok === false) {
-        throw new Error(data.error || "Não foi possível carregar os sorteios.");
-      }
-
+      const data = await getAdminDraws();
       setDraws(Array.isArray(data.draws) ? data.draws : []);
     } catch (error) {
       console.error("[AdminDrawsList] erro:", error);

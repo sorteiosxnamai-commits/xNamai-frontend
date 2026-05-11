@@ -596,7 +596,7 @@ export default function AdminDashboard() {
         <section style={styles.quickGrid}>
           <div
             style={styles.quickCard}
-            onClick={() => navigate("/admin/clientes")}
+            onClick={() => navigate("/admin/AdminClientesUser")}
           >
             <div>
               <div style={styles.quickName}>Cadastro e manutenção de clientes</div>
@@ -609,7 +609,7 @@ export default function AdminDashboard() {
 
           <div
             style={styles.quickCard}
-            onClick={() => navigate("/admin/compradores")}
+            onClick={() => navigate("/admin/sorteiosAtivos")}
           >
             <div>
               <div style={styles.quickName}>Sorteio ativo — compradores</div>
@@ -641,6 +641,32 @@ export default function AdminDashboard() {
               <div style={styles.quickName}>Lista de sorteios realizados</div>
               <div style={styles.quickDesc}>
                 Histórico, status e organização dos sorteios.
+              </div>
+            </div>
+            <strong>→</strong>
+          </div>
+
+          <div
+            style={styles.quickCard}
+            onClick={() => navigate("/admin/clientes")}
+          >
+            <div>
+              <div style={styles.quickName}>Lista de clientes com saldo ativo</div>
+              <div style={styles.quickDesc}>
+                Clientes com saldo, cupom e dados ativos.
+              </div>
+            </div>
+            <strong>→</strong>
+          </div>
+
+          <div
+            style={styles.quickCard}
+            onClick={() => navigate("/admin/vencedores")}
+          >
+            <div>
+              <div style={styles.quickName}>Lista de vencedores dos sorteios</div>
+              <div style={styles.quickDesc}>
+                Vencedores, prêmios e links dos produtos.
               </div>
             </div>
             <strong>→</strong>

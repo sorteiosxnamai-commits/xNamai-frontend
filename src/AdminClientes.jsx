@@ -1,6 +1,5 @@
 // src/AdminClientes.jsx
 import * as React from "react";
-import { useNavigate } from "react-router-dom";
 import {
   Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography,
 } from "@mui/material";
@@ -155,8 +154,6 @@ function buildRowsFallback({ usersPayload, paymentsPayload, drawsPayload }) {
 }
 
 export default function AdminClientes() {
-  const navigate = useNavigate();
-
   const [rows, setRows] = React.useState([]);
   const [loading, setLoading] = React.useState(true);
 

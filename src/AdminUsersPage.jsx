@@ -11,10 +11,8 @@ import SaveRoundedIcon from "@mui/icons-material/SaveRounded";
 import DeleteForeverRoundedIcon from "@mui/icons-material/DeleteForeverRounded";
 import SendRoundedIcon from "@mui/icons-material/SendRounded";
 
-import { useNavigate } from "react-router-dom";
 import { apiJoin, authHeaders } from "./lib/api";
 import "./styles/xnamai-admin.css";
-import XnamaiAdminLayout from "./components/admin/XnamaiAdminLayout";
 
 /* ----------------------------------- Helpers ----------------------------------- */
 function toBRL(valueNumber) {
@@ -201,8 +199,6 @@ function normalizeUsers(payload) {
 
 /* ------------------------------------ Página ------------------------------------ */
 export default function AdminUsersPage() {
-  const navigate = useNavigate();
-
   // lista + busca
   const [users, setUsers] = React.useState([]);
   const [loading, setLoading] = React.useState(true);
@@ -435,11 +431,11 @@ export default function AdminUsersPage() {
 
   return (
     <>
-    <XnamaiAdminLayout
-      title="Cadastro e manutenção de clientes"
-      subtitle="Gerencie clientes, cupons e atribuição de números ao sorteio."
-      onBack={() => navigate("/admin")}
-    >
+      <div className="xnamai-admin-section-title">
+        <h1>Cadastro e manutenção de clientes</h1>
+        <p>Gerencie clientes, cupons e atribuição de números ao sorteio.</p>
+      </div>
+
       <Stack spacing={2.5}>
           {/* CRUD */}
           <Paper className="xnamai-admin-card" variant="outlined" sx={{ p: { xs: 2, md: 3 } }}>
@@ -681,7 +677,6 @@ export default function AdminUsersPage() {
             </div>
           </Paper>
         </Stack>
-    </XnamaiAdminLayout>
 
       <Snackbar
         open={toast.open}

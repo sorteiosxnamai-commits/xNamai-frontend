@@ -177,3 +177,190 @@
     padding-top: 14px;
   }
 }
+
+.xnamai-admin-page {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 10% 12%, rgba(37, 99, 235, 0.12), transparent 28%),
+    radial-gradient(circle at 92% 18%, rgba(34, 211, 238, 0.16), transparent 32%),
+    linear-gradient(180deg, #f8fbff 0%, #eef4ff 100%);
+  color: #071833;
+}
+
+.xnamai-admin-site-header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  height: 82px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 56px;
+  background: rgba(255, 255, 255, 0.92);
+  border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.04);
+  backdrop-filter: blur(18px);
+}
+
+.xnamai-admin-header-link {
+  position: absolute;
+  left: 56px;
+  border: 0;
+  background: transparent;
+  color: #2563eb;
+  font-size: 15px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+}
+
+.xnamai-admin-header-logo {
+  border: 0;
+  background: transparent;
+  color: #2563eb;
+  font-size: 30px;
+  font-weight: 900;
+  letter-spacing: 0.36em;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.xnamai-admin-profile-wrap {
+  position: absolute;
+  right: 56px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.xnamai-admin-profile-icon {
+  width: 38px;
+  height: 38px;
+  border: 0;
+  border-radius: 999px;
+  background: #172842;
+  color: #ffffff;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.14);
+}
+
+.xnamai-admin-profile-icon span {
+  width: 17px;
+  height: 17px;
+  display: block;
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at 50% 28%, #ffffff 0 28%, transparent 30%),
+    radial-gradient(circle at 50% 92%, #ffffff 0 42%, transparent 44%);
+}
+
+.xnamai-admin-profile-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 14px);
+  min-width: 190px;
+  padding: 10px;
+  background: #ffffff;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 18px;
+  box-shadow: 0 22px 50px rgba(15, 23, 42, 0.18);
+}
+
+.xnamai-admin-profile-menu button {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  padding: 13px 14px;
+  border-radius: 12px;
+  color: #172842;
+  font-size: 15px;
+  font-weight: 800;
+  text-align: left;
+  cursor: pointer;
+}
+
+.xnamai-admin-profile-menu button:hover {
+  background: #eef4ff;
+  color: #2563eb;
+}
+
+.xnamai-admin-content {
+  width: min(1440px, calc(100% - 40px));
+  margin: 0 auto;
+  padding: 48px 0 80px;
+}
+
+.xnamai-admin-back-button,
+.xnamai-admin-back-placeholder {
+  display: none !important;
+}
+
+@media (max-width: 768px) {
+  .xnamai-admin-site-header {
+    height: 72px;
+    padding: 0 20px;
+  }
+
+  .xnamai-admin-header-link {
+    left: 20px;
+    font-size: 12px;
+    letter-spacing: 0.05em;
+  }
+
+  .xnamai-admin-header-logo {
+    font-size: 22px;
+    letter-spacing: 0.22em;
+  }
+
+  .xnamai-admin-profile-wrap {
+    right: 20px;
+  }
+
+  .xnamai-admin-content {
+    width: min(100% - 24px, 1440px);
+    padding: 28px 0 56px;
+  }
+}
+
+.xnamai-admin-section-title {
+  margin: 0 0 24px;
+}
+
+.xnamai-admin-section-title h1 {
+  margin: 0;
+  color: #071833;
+  font-size: clamp(28px, 4vw, 42px);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+.xnamai-admin-section-title p {
+  margin: 8px 0 0;
+  color: #526179;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.xnamai-admin-card {
+  background: rgba(255, 255, 255, 0.9) !important;
+  border: 1px solid rgba(15, 23, 42, 0.08) !important;
+  border-radius: 22px !important;
+  box-shadow: 0 22px 60px rgba(15, 23, 42, 0.08) !important;
+}
+
+.xnamai-admin-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.xnamai-admin-table {
+  min-width: 100%;
+}
+
+.xnamai-admin-empty {
+  color: #64748b !important;
+  font-weight: 700 !important;
+  text-align: center !important;
+  padding: 28px !important;
+}

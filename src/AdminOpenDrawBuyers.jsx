@@ -1,6 +1,5 @@
 // src/AdminOpenDrawBuyers.jsx
 import * as React from "react";
-import { useNavigate } from "react-router-dom";
 import {
   Box, Button, Chip, Divider,
   Paper, Stack, Tab, Tabs, TextField, Typography,
@@ -142,7 +141,6 @@ const safeFilename = (name) =>
     .replace(/^_+|_+$/g, "");
 
 export default function AdminOpenDrawBuyers() {
-  const navigate = useNavigate();
   useAuth();
 
   const [tab, setTab] = React.useState(0);

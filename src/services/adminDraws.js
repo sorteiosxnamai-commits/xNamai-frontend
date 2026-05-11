@@ -1,75 +1,51 @@
-// src/services/adminDraws.js
-
-const API_BASE = (
-  process.env.REACT_APP_API_BASE_URL ||
-  process.env.REACT_APP_API_BASE ||
-  ""
-).replace(/\/+$/, "");
-
-function makeUrl(path) {
-  const cleanPath = path.startsWith("/") ? path : `/${path}`;
-  return API_BASE ? `${API_BASE}${cleanPath}` : cleanPath;
-}
-
-export async function adminFetch(path, options = {}) {
-  const response = await fetch(makeUrl(path), {
-    credentials: "include",
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...(options.headers || {}),
-    },
-  });
-
-  let data = null;
-
-  try {
-    data = await response.json();
-  } catch {
-    data = null;
-  }
-
-  if (!response.ok) {
-    const message =
-      data?.message ||
-      data?.error ||
-      `Erro HTTP ${response.status}`;
-
-    throw new Error(message);
-  }
-
-  return data;
-}
+import { getJSON, postJSON } from "../lib/api";
 
 export function getAdminSummary() {
-  return adminFetch("/api/admin/dashboard/summary");
+  return getJSON("/admin/dashboard/summary");
 }
 
 export function updateAdminConfig(payload) {
-  return adminFetch("/api/admin/dashboard/config", {
-    method: "PATCH",
-    body: JSON.stringify(payload),
-  });
+  return fetchAdminPatch("/admin/dashboard/config", payload);
 }
 
-export function createAdminDraw(payload) {
-  return adminFetch("/api/admin/dashboard/new", {
-    method: "POST",
-    body: JSON.stringify(payload),
-  });
+export function createAdminDraw(payload = {}) {
+  return postJSON("/admin/dashboard/new", payload);
 }
 
 export function getDrawsHistory() {
-  return adminFetch("/api/admin/draws/history");
+  return getJSON("/admin/draws/history");
+}
+
+export function getAdminDraws() {
+  return getJSON("/admin/draws");
 }
 
 export function setDrawStatus(id, status) {
-  return adminFetch(`/api/admin/draws/${id}/status`, {
-    method: "PATCH",
-    body: JSON.stringify({ status }),
-  });
+  return fetchAdminPatch(`/admin/draws/${id}/status`, { status });
 }
 
 export function getDrawBuyers(id) {
-  return adminFetch(`/api/admin/draws/${id}/buyers`);
+  return getJSON(`/admin/draws/${id}/buyers`);
+}
+
+async function fetchAdminPatch(path, payload) {
+  const { apiJoin, authHeaders } = await import("../lib/api");
+
+  const response = await fetch(apiJoin(path), {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      ...authHeaders(),
+    },
+    credentials: "omit",
+    body: JSON.stringify(payload || {}),
+  });
+
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok || data?.ok === false) {
+    throw new Error(data?.message || data?.error || `Erro HTTP ${response.status}`);
+  }
+
+  return data;
 }

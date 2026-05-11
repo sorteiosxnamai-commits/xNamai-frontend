@@ -1,150 +1,96 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
+import { useAuth } from "./authContext";
 
 export default function XnamaiAdminLayout() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { logout } = useAuth();
 
-  const [profileOpen, setProfileOpen] = useState(false);
-  const profileRef = useRef(null);
+  const [profileOpen, setProfileOpen] = React.useState(false);
+  const menuRef = React.useRef(null);
 
-  const currentPath = useMemo(() => {
-    const normalized = (location.pathname || "").replace(/\/+$/, "");
-    return normalized || "/";
-  }, [location.pathname]);
+  const normalizedPath = String(location.pathname || "").replace(/\/+$/, "");
+  const isAdminHome = normalizedPath === "/admin";
 
-  const isAdminHome = currentPath === "/admin";
-
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (profileRef.current && !profileRef.current.contains(event.target)) {
+  React.useEffect(() => {
+    function handleOutsideClick(event) {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
         setProfileOpen(false);
       }
-    };
+    }
 
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    document.addEventListener("mousedown", handleOutsideClick);
+    return () => document.removeEventListener("mousedown", handleOutsideClick);
   }, []);
 
-  const clearAdminSession = () => {
-    try {
-      const exactKeys = [
-        "adminToken",
-        "token",
-        "authToken",
-        "accessToken",
-        "refreshToken",
-        "user",
-        "adminUser",
-        "isAdmin",
-        "xnamaiUser",
-        "xnamaiAdmin",
-        "newstoreUser",
-        "newstoreAdmin",
-      ];
-
-      exactKeys.forEach((key) => {
-        localStorage.removeItem(key);
-        sessionStorage.removeItem(key);
-      });
-
-      Object.keys(localStorage).forEach((key) => {
-        const lower = key.toLowerCase();
-        if (
-          lower.includes("token") ||
-          lower.includes("auth") ||
-          lower.includes("admin") ||
-          lower.includes("user") ||
-          lower.includes("xnamai") ||
-          lower.includes("newstore")
-        ) {
-          localStorage.removeItem(key);
-        }
-      });
-
-      Object.keys(sessionStorage).forEach((key) => {
-        const lower = key.toLowerCase();
-        if (
-          lower.includes("token") ||
-          lower.includes("auth") ||
-          lower.includes("admin") ||
-          lower.includes("user") ||
-          lower.includes("xnamai") ||
-          lower.includes("newstore")
-        ) {
-          sessionStorage.removeItem(key);
-        }
-      });
-
-      document.cookie.split(";").forEach((cookie) => {
-        const name = cookie.split("=")[0]?.trim();
-        if (!name) return;
-
-        document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;
-        document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/admin`;
-      });
-    } catch (error) {
-      console.warn("Erro ao limpar sessão admin:", error);
-    }
-  };
-
-  const handleBackToAdmin = () => {
-    navigate("/admin");
-  };
-
-  const handleSwitchAccount = () => {
+  function goAdminHome() {
     setProfileOpen(false);
-    clearAdminSession();
+    navigate("/admin");
+  }
 
-    setTimeout(() => {
-      window.location.replace("/");
-    }, 80);
-  };
+  function handleSwitchAccount() {
+    setProfileOpen(false);
+
+    try {
+      logout();
+    } catch (error) {
+      console.warn("[XnamaiAdminLayout] logout falhou:", error);
+    }
+
+    navigate("/login", { replace: true });
+  }
 
   return (
-    <main className="xnamai-admin-layout">
-      <div className="xnamai-admin-container">
-        <header className="xnamai-admin-topbar">
-          <div className="xnamai-admin-topbar-left">
-            {!isAdminHome ? (
-              <button
-                type="button"
-                className="xnamai-admin-back-button"
-                onClick={handleBackToAdmin}
-                aria-label="Voltar ao painel"
-                title="Voltar ao painel"
-              >
-                ←
-              </button>
-            ) : (
-              <div className="xnamai-admin-back-placeholder" />
-            )}
-          </div>
+    <div className="xnamai-admin-page">
+      <header className="xnamai-admin-site-header">
+        <button
+          type="button"
+          className="xnamai-admin-header-link"
+          onClick={() => navigate("/cadastro")}
+        >
+          CRIAR CONTA
+        </button>
 
-          <div className="xnamai-admin-topbar-right" ref={profileRef}>
-            <button
-              type="button"
-              className="xnamai-admin-profile-button"
-              onClick={() => setProfileOpen((prev) => !prev)}
-              aria-label="Abrir menu do perfil"
-              title="Perfil"
-            >
-              👤
-            </button>
+        <button
+          type="button"
+          className="xnamai-admin-header-logo"
+          onClick={() => navigate("/admin")}
+          aria-label="Ir para o painel admin"
+        >
+          XNAMAI
+        </button>
 
-            {profileOpen && (
-              <div className="xnamai-admin-profile-menu">
+        <div className="xnamai-admin-profile-wrap" ref={menuRef}>
+          <button
+            type="button"
+            className="xnamai-admin-profile-icon"
+            onClick={() => setProfileOpen((value) => !value)}
+            aria-label="Abrir menu de perfil"
+          >
+            <span>●</span>
+          </button>
+
+          {profileOpen && (
+            <div className="xnamai-admin-profile-menu">
+              {!isAdminHome && (
+                <button type="button" onClick={goAdminHome}>
+                  Painel Admin
+                </button>
+              )}
+
                 <button type="button" onClick={handleSwitchAccount}>
                   Trocar de conta
                 </button>
-              </div>
-            )}
-          </div>
-        </header>
+            </div>
+          )}
+        </div>
+      </header>
 
+      <main className="xnamai-admin-content">
         <Outlet />
-      </div>
-    </main>
+      </main>
+    </div>
   );
 }
 
