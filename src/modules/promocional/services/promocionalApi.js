@@ -51,20 +51,25 @@ export function getPromocionalNumbers(id) {
   return getJSON(`/promotional/${encodePathValue(id)}/numbers`);
 }
 
-export async function reservePromocionalNumbers(id, payload) {
-  const response = await fetch(apiJoin(`/promotional/${encodePathValue(id)}/reserve`), {
+export async function reservePromocionalNumbers(drawId, numbers) {
+  const body = Array.isArray(numbers) ? { numbers } : numbers || {};
+  const response = await fetch(apiJoin(`/promotional/${encodePathValue(drawId)}/reserve`), {
     method: "POST",
     headers: {
+      Accept: "application/json",
       "Content-Type": "application/json",
       ...authHeaders(),
     },
     credentials: "omit",
-    body: JSON.stringify(payload || {}),
+    body: JSON.stringify(body),
   });
   const data = await response.json().catch(() => ({}));
 
   if (!response.ok || data?.ok === false) {
-    throw new Error(data?.error || data?.message || "Erro ao reservar números promocionais.");
+    const error = new Error(data?.error || data?.message || "Erro ao reservar números promocionais.");
+    error.status = response.status;
+    error.data = data;
+    throw error;
   }
 
   return data;
@@ -82,6 +87,7 @@ export async function generatePromocionalPix(drawId, reservationId) {
     {
       method: "POST",
       headers: {
+        Accept: "application/json",
         "Content-Type": "application/json",
         ...authHeaders(),
       },
@@ -96,25 +102,33 @@ export async function generatePromocionalPix(drawId, reservationId) {
       data,
     });
 
-    throw new Error(data?.error || data?.message || "Erro ao gerar PIX promocional.");
+    const error = new Error(data?.error || data?.message || "Erro ao gerar PIX promocional.");
+    error.status = response.status;
+    error.data = data;
+    throw error;
   }
 
   return {
     ...data,
     paymentId: data.paymentId || data.payment_id || data.id,
     payment_id: data.payment_id || data.paymentId || data.id,
-    qr_code: data.qr_code || data.copy_paste_code,
-    copy_paste_code: data.copy_paste_code || data.qr_code,
+    qr_code: data.qr_code || data.copy_paste_code || data.copy_paste || data.copy,
+    copy_paste_code: data.copy_paste_code || data.qr_code || data.copy_paste || data.copy,
     qr_code_base64: data.qr_code_base64,
+    ticket_url: data.ticket_url,
     amount_cents: data.amount_cents ?? data.amountCents,
     amount: data.amount,
     status: data.status || data.payment_status || "pending",
   };
 }
 
+export async function getMyPromocionalReservations() {
+  const payload = await getJSON("/promotional/me/reservations");
+  return asList(payload, ["reservations", "items", "data"]);
+}
+
 export async function getMyPromocionalParticipations() {
-  const payload = await getJSON("/promotional/me/participations");
-  return asList(payload, ["participations", "items", "data"]);
+  return getMyPromocionalReservations();
 }
 
 export function adminGetPromocionalDraws() {

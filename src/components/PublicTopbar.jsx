@@ -81,7 +81,7 @@ export default function PublicTopbar() {
         >
           <Box sx={{ justifySelf: "start" }}>
             <Button
-              onClick={() => navigate("/cadastro")}
+              onClick={isAuthenticated ? goAccount : goLogin}
               variant="text"
               sx={{
                 textTransform: "uppercase",
@@ -107,7 +107,7 @@ export default function PublicTopbar() {
                 },
               }}
             >
-              {isAuthenticated ? "Minha Conta" : "Criar Conta"}
+              {isAuthenticated ? "Minha Conta" : "Entrar / Criar Conta"}
             </Button>
           </Box>
 

@@ -24,7 +24,7 @@ import { checkPixStatus, generateMainReservationPix } from "./services/pix";
 import AutoPaySection from "./AutoPaySection";
 import {
   generatePromocionalPix,
-  getMyPromocionalParticipations,
+  getMyPromocionalReservations,
 } from "./modules/promocional/services/promocionalApi";
 
 const theme = createTheme({
@@ -146,9 +146,9 @@ const PlainStatusChip = ({ status }) => {
     active: "RESERVADO",
     reserved: "RESERVADO",
     pending: "RESERVADO",
-    sold: "VENDIDO",
-    paid: "VENDIDO",
-    approved: "VENDIDO",
+    sold: "PAGO",
+    paid: "PAGO",
+    approved: "PAGO",
     blocked: "BLOQUEADO",
     closed: "ENCERRADO",
     inactive: "INATIVO",
@@ -291,74 +291,65 @@ function normalizePromocionalParticipationRows(participations) {
       item?.payment ??
       "pending";
     const reservationStatus =
+      item?.status ??
       item?.reservation_status ??
       item?.reservationStatus ??
       reservation?.status ??
-      item?.status ??
       "reserved";
-    const numbers = getPromocionalNumbers(item);
-    const priceCents = Number(
-      item?.price_cents ??
-        item?.priceCents ??
-        draw?.price_cents ??
-        draw?.priceCents ??
-        0
-    );
-
-    const amountCentsRaw = Number(
-      item?.amount_cents ??
+    const numberList = getPromocionalNumbers(item);
+    const numbersText = Array.isArray(item?.numbers)
+      ? item.numbers.map((number) => String(number).trim()).filter(Boolean).join(", ")
+      : String(item?.numbers || item?.numbers_label || numberList.join(", ") || "");
+    const totalCents = Number(
+      item?.total_cents ??
+        item?.totalCents ??
+        item?.amount_cents ??
         item?.amountCents ??
         payment?.amount_cents ??
         payment?.amountCents ??
         0
     );
-
-    const amountCents =
-      Number.isFinite(amountCentsRaw) && amountCentsRaw > 0
-        ? amountCentsRaw
-        : numbers.length * priceCents;
     const whenValue =
-      item?.day ||
       item?.created_at ||
       item?.createdAt ||
+      item?.day ||
       item?.reserved_at ||
       item?.updated_at ||
       item?.date;
     const whenMs = Date.parse(whenValue || "") || 0;
     const whenDate = whenMs ? new Date(whenMs) : null;
-    const numbersLabel =
-      item?.numbers_label ||
-      numbers.map((number) => pad2(String(number).trim())).join(", ");
+    const title =
+      item?.draw_title ||
+      item?.drawTitle ||
+      draw?.title ||
+      draw?.name ||
+      "Promocional";
 
     return {
       id: item?.id || item?._id || `promocional-${index}`,
       type: "promotional",
       typeLabel: "Promocional",
+      drawId,
+      reservationId,
+      title,
+      numbers: numbersText,
+      date: whenValue || null,
+      paymentStatus,
+      status: reservationStatus,
+      totalCents: Number.isFinite(totalCents) ? totalCents : 0,
       reservation_id: reservationId,
       draw_id: drawId,
-      sorteio:
-        item?.draw_title ||
-        item?.drawTitle ||
-        draw?.title ||
-        draw?.name ||
-        (drawId != null ? String(drawId) : "--"),
-      numeros: numbers,
-      numbers_label: numbersLabel,
+      sorteio: title,
+      numeros: numberList,
+      numbers_label: numbersText,
       dia: item?.day || (whenDate ? whenDate.toLocaleDateString("pt-BR") : "--/--/----"),
       payment_status: paymentStatus,
       pagamento: paymentStatus,
       resultado: reservationStatus,
       whenMs,
-      amount_cents: amountCents,
-      price_cents: priceCents,
+      amount_cents: Number.isFinite(totalCents) ? totalCents : 0,
       payment_id: item?.payment_id || item?.paymentId || payment?.id || payment?.payment_id || null,
-      canPay:
-        item?.can_pay === true ||
-        item?.canPay === true ||
-        reservation?.can_pay === true ||
-        reservation?.canPay === true ||
-        String(item?.can_pay || item?.canPay || reservation?.can_pay || reservation?.canPay || "").toLowerCase() === "true" ||
-        String(paymentStatus || "").toLowerCase() === "pending",
+      canPay: !/^(paid|approved|pago)$/i.test(String(paymentStatus || "")),
       raw: item,
     };
   });
@@ -546,12 +537,17 @@ export default function AccountPage() {
     setPixOpen(true);
     setPixLoading(true);
     setPixData(null);
-    setLoadingPixId(row?.reservation_id || row?.id || `${row?.type || "main"}-${row?.draw_id || row?.sorteio}`);
+    setLoadingPixId(
+      row?.reservationId ||
+        row?.reservation_id ||
+        row?.id ||
+        `${row?.type || "main"}-${row?.drawId || row?.draw_id || row?.sorteio}`
+    );
 
     try {
       if (row?.type === "promotional") {
-        const drawId = row?.draw_id ?? row?.drawId;
-        const reservationId = row?.reservation_id || row?.reservationId;
+        const drawId = row?.drawId ?? row?.draw_id;
+        const reservationId = row?.reservationId || row?.reservation_id;
 
         if (!drawId || !reservationId) {
           throw new Error("Dados da reserva promocional incompletos para gerar PIX.");
@@ -729,6 +725,7 @@ export default function AccountPage() {
     return {
       ...source,
       paymentId: source.paymentId || source.payment_id || source.id || payload?.paymentId || payload?.id,
+      payment_id: source.payment_id || source.paymentId || source.id || payload?.payment_id || payload?.paymentId || payload?.id,
       qr_code: source.qr_code || source.copy_paste_code || source.copy_paste || source.copy || payload?.qr_code,
       copy_paste_code:
         source.copy_paste_code ||
@@ -739,6 +736,9 @@ export default function AccountPage() {
         payload?.qr_code,
       qr_code_base64: source.qr_code_base64 || payload?.qr_code_base64,
       ticket_url: source.ticket_url || payload?.ticket_url,
+      amount_cents: source.amount_cents ?? source.amountCents ?? payload?.amount_cents ?? payload?.amountCents,
+      amount: source.amount ?? payload?.amount,
+      status: source.status || source.payment_status || payload?.status || payload?.payment_status || "pending",
     };
   }
 
@@ -964,8 +964,8 @@ export default function AccountPage() {
         let promotionalRows = [];
         let promotionalLoadError = "";
         try {
-          const promotionalParticipations = await getMyPromocionalParticipations();
-          promotionalRows = normalizePromocionalParticipationRows(promotionalParticipations);
+          const promotionalReservations = await getMyPromocionalReservations();
+          promotionalRows = normalizePromocionalParticipationRows(promotionalReservations);
         } catch (error) {
           console.error("[PROMOCIONAL_FRONT_ERROR]", error);
           promotionalLoadError = "Não foi possível carregar participações promocionais.";
@@ -1327,14 +1327,19 @@ export default function AccountPage() {
                             </TableRow>
                           )}
                           {rows.map((row, idx) => {
-                      const rowLoadingPixId = row?.reservation_id || row?.id || `${row?.type || "main"}-${row?.draw_id || row?.sorteio}`;
-                      const paymentStatus = String(row.payment_status || row.pagamento || "").toLowerCase();
-                      const canGeneratePix =
-                        row.canPay === true ||
-                        /pendente|pending|await|aguard|open|ativo|active|reserved|reservado/i.test(paymentStatus);
+                      const rowLoadingPixId =
+                        row?.reservationId ||
+                        row?.reservation_id ||
+                        row?.id ||
+                        `${row?.type || "main"}-${row?.drawId || row?.draw_id || row?.sorteio}`;
+                      const paymentStatus = String(row.paymentStatus ?? row.payment_status ?? row.pagamento ?? "").toLowerCase();
+                      const canGeneratePix = row.type === "promotional"
+                        ? !/^(paid|approved|pago)$/i.test(paymentStatus)
+                        : row.canPay === true ||
+                          /pendente|pending|await|aguard|open|ativo|active|reserved|reservado/i.test(paymentStatus);
                       const clickable = row.type !== "promotional" && canGeneratePix;
 
-                      const isPaid   = /^(approved|paid|pago)$/i.test(String(row.pagamento || ""));
+                      const isPaid   = /^(approved|paid|pago)$/i.test(String(row.paymentStatus ?? row.pagamento ?? ""));
                       const isClosed = /(closed|fechado|sorteado)/i.test(String(row.resultado || ""));
                       const isOpen   = /(open|aberto)/i.test(String(row.resultado || ""));
 
@@ -1352,9 +1357,13 @@ export default function AccountPage() {
                           onClick={clickable ? handleRowClick : undefined}
                           sx={{ cursor: clickable ? "pointer" : "default" }}
                         >
-                          <TableCell sx={{ width: 100, fontWeight: 700 }}>{String(row.sorteio || "--")}</TableCell>
+                          <TableCell sx={{ width: 100, fontWeight: 700 }}>
+                            {row.type === "promotional" ? String(row.title || "Promocional") : String(row.sorteio || "--")}
+                          </TableCell>
                           <TableCell sx={{ minWidth: 160, fontWeight: 700 }}>
-                            {row.numbers_label || (Array.isArray(row.numeros) ? row.numeros.map(pad2).join(", ") : (row.numero != null ? pad2(row.numero) : "--"))}
+                            {row.type === "promotional"
+                              ? (row.numbers || "--")
+                              : row.numbers_label || (Array.isArray(row.numeros) ? row.numeros.map(pad2).join(", ") : (row.numero != null ? pad2(row.numero) : "--"))}
                           </TableCell>
                           <TableCell sx={{ width: 140 }}>{row.dia}</TableCell>
                           <TableCell><PayChip status={row.pagamento} /></TableCell>

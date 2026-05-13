@@ -112,7 +112,10 @@ export default function LoginPage() {
       const isAdmin = me.role === "admin" || me.is_admin === true ||
         (me.email || email).trim().toLowerCase() === ADMIN_EMAIL;
 
-      const dest = isAdmin ? "/admin" : from;
+      const afterLogin = localStorage.getItem("xnamai_after_login");
+      if (afterLogin) localStorage.removeItem("xnamai_after_login");
+      const safeAfterLogin = afterLogin && afterLogin.startsWith("/") ? afterLogin : "";
+      const dest = safeAfterLogin || (isAdmin ? "/admin" : from);
       dlog("navigate ->", dest, "(isAdmin:", isAdmin, ")");
       navigate(dest, { replace: true });
     } catch (err) {
