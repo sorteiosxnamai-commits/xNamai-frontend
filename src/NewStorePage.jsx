@@ -80,6 +80,19 @@ const theme = createTheme({
 // Helpers
 const pad2 = (n) => n.toString().padStart(2, "0");
 
+function cleanText(value) {
+  if (value === null || value === undefined) return "";
+  return String(value).trim();
+}
+
+function pickFirstText(...values) {
+  for (const value of values) {
+    const cleaned = cleanText(value);
+    if (cleaned) return cleaned;
+  }
+  return "";
+}
+
 // Mocks
 const MOCK_INDISPONIVEIS = [];
 
@@ -197,9 +210,70 @@ export default function NewStorePage({
   const FALLBACK_PRICE = Number(process.env.REACT_APP_PIX_PRICE) || 55;
   const [unitPrice, setUnitPrice] = React.useState(FALLBACK_PRICE);
 
-  // Config dinâmicas
-  const [bannerTitle, setBannerTitle] = React.useState("");
+  // Config pública (/api/config) — textos do sorteio vêm daqui (sem fallback antigo hardcoded)
+  const [publicConfig, setPublicConfig] = React.useState(null);
   const [maxSelect, setMaxSelect] = React.useState(5);
+
+  const displayPrizeTitle = React.useMemo(() => {
+    const c = publicConfig || {};
+    const cur = c?.current || {};
+    const dr = c?.current_draw || {};
+    return (
+      pickFirstText(
+        c?.banner_title,
+        c?.bannerTitle,
+        dr?.banner_title,
+        cur?.banner_title,
+        c?.draw_title,
+        c?.drawTitle,
+        dr?.title,
+        cur?.title,
+        c?.title,
+        c?.prize_title,
+        c?.prizeTitle,
+        dr?.prize_title,
+        c?.prize,
+        c?.promo_text,
+        c?.promotional_text,
+        c?.description
+      ) || "SORTEIO XNAMAI"
+    );
+  }, [publicConfig]);
+
+  const displayPrizeDescription = React.useMemo(() => {
+    const c = publicConfig || {};
+    const cur = c?.current || {};
+    const dr = c?.current_draw || {};
+    return (
+      pickFirstText(
+        c?.banner_description,
+        c?.bannerDescription,
+        dr?.banner_description,
+        cur?.banner_description,
+        c?.description,
+        c?.promo_description,
+        c?.promotional_description,
+        dr?.description
+      ) || "Participe do sorteio xNaMai e acompanhe sua participação pela sua conta."
+    );
+  }, [publicConfig]);
+
+  const displayPrizeName = React.useMemo(() => {
+    const c = publicConfig || {};
+    const cur = c?.current || {};
+    const dr = c?.current_draw || {};
+    return (
+      pickFirstText(
+        c?.prize,
+        c?.prize_name,
+        c?.prizeName,
+        dr?.prize_name,
+        c?.award,
+        c?.award_name,
+        dr?.prize_title
+      ) || displayPrizeTitle
+    );
+  }, [publicConfig, displayPrizeTitle]);
 
   // Draw atual (se o backend expuser)
   const [currentDrawId, setCurrentDrawId] = React.useState(null);
@@ -222,6 +296,7 @@ export default function NewStorePage({
         });
         if (res.ok) {
           const j = await res.json().catch(() => ({}));
+          if (alive) setPublicConfig(j);
 
           // preço
           const cents =
@@ -242,11 +317,6 @@ export default function NewStorePage({
             j?.current?.id ??
             j?.current_draw?.id;
           if (alive && did != null) setCurrentDrawId(did);
-
-          // banner dinâmico
-          if (alive && typeof j?.banner_title === "string") {
-            setBannerTitle(j.banner_title);
-          }
 
           // teto de seleção dinâmico
           const maxSel =
@@ -285,6 +355,7 @@ export default function NewStorePage({
         });
         if (!res.ok) return;
         const j = await res.json().catch(() => ({}));
+        setPublicConfig(j);
         const did =
           j?.current_draw_id ?? j?.draw_id ?? j?.current?.id ?? j?.current_draw?.id;
         if (did != null) setCurrentDrawId(did);
@@ -648,8 +719,8 @@ export default function NewStorePage({
             <Box id="sobre" />
             {/* Título do bloco (com ícone à esquerda, como na referência) */}
             <Stack
-              direction="row"
-              spacing={1.2}
+              direction="column"
+              spacing={1}
               alignItems="center"
               justifyContent="center"
               sx={{
@@ -663,6 +734,7 @@ export default function NewStorePage({
               }}
             >
               <Typography
+                component="h2"
                 sx={{
                   fontWeight: 900,
                   letterSpacing: 1,
@@ -672,7 +744,21 @@ export default function NewStorePage({
                   lineHeight: 1.1,
                 }}
               >
-                {bannerTitle || "SORTEIO TISSOT PRX DAMASCUS"}
+                {displayPrizeTitle}
+              </Typography>
+              <Typography
+                component="p"
+                sx={{
+                  mx: "auto",
+                  maxWidth: 720,
+                  textAlign: "center",
+                  color: "rgba(11,27,51,0.72)",
+                  fontSize: { xs: 14, md: 15 },
+                  lineHeight: 1.55,
+                  fontWeight: 600,
+                }}
+              >
+                {displayPrizeDescription}
               </Typography>
             </Stack>
 
@@ -1102,7 +1188,7 @@ export default function NewStorePage({
           </Paper>
 
           <GiftCardSimulator
-        productName="Relógio Tissot PRX Powermatic 80"
+        productName={displayPrizeName}
         creditPriceDefault={6799.99}
         pixPriceDefault={5779.99}
         giftBalanceDefault={800}
@@ -1115,7 +1201,7 @@ export default function NewStorePage({
     <Typography variant="h6">⌚ Exemplo Prático</Typography>
 
     <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-      Relógio Tissot PRX Powermatic 80
+      <strong>{displayPrizeName}</strong>
     </Typography>
 
     <Divider />
