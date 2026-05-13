@@ -89,6 +89,7 @@ export async function reservePromotionalNumbers(drawId, numbers) {
     const error = new Error(data?.message || data?.error || "Erro ao processar número promocional.");
     error.status = response.status;
     error.data = data;
+    error.responseBody = data;
     throw error;
   }
 
@@ -127,6 +128,7 @@ export async function generatePromocionalPix(drawId, reservationId) {
     const error = new Error(data?.error || data?.message || "Erro ao gerar PIX promocional.");
     error.status = response.status;
     error.data = data;
+    error.responseBody = data;
     throw error;
   }
 

@@ -355,6 +355,137 @@ function normalizePromocionalParticipationRows(participations) {
   });
 }
 
+function getReservationPayloadList(payload) {
+  if (Array.isArray(payload)) return payload;
+  return payload?.reservations || payload?.items || payload?.data?.reservations || payload?.data || [];
+}
+
+function getReservationNumbers(item) {
+  if (Array.isArray(item?.numbers)) return item.numbers;
+  if (Array.isArray(item?.numeros)) return item.numeros;
+  if (Array.isArray(item?.selected_numbers)) return item.selected_numbers;
+  if (Array.isArray(item?.reservation?.numbers)) return item.reservation.numbers;
+  if (item?.numbers_label) return String(item.numbers_label).split(",");
+  if (item?.number != null) return [item.number];
+  if (item?.numero != null) return [item.numero];
+  if (item?.n != null) return [item.n];
+  return [];
+}
+
+function normalizeUnifiedReservationRows(payload, drawsMap = new Map()) {
+  return getReservationPayloadList(payload).map((item, index) => {
+    const draw = item?.draw || item?.promotional_draw || item?.promotionalDraw || {};
+    const reservation = item?.reservation || {};
+    const payment = item?.payment || {};
+    const typeRaw = String(
+      item?.type ||
+        item?.reservation_type ||
+        item?.draw_type ||
+        item?.kind ||
+        ""
+    ).toLowerCase();
+    const isPromotional =
+      typeRaw === "promotional" ||
+      typeRaw === "promocional" ||
+      item?.is_promotional === true ||
+      item?.promotional === true ||
+      item?.promotional_draw_id != null ||
+      item?.promotionalDrawId != null;
+
+    const drawId =
+      item?.draw_id ??
+      item?.drawId ??
+      item?.promotional_draw_id ??
+      item?.promotionalDrawId ??
+      reservation?.draw_id ??
+      reservation?.drawId ??
+      draw?.draw_id ??
+      draw?.drawId ??
+      draw?.id ??
+      draw?._id;
+    const reservationId =
+      item?.reservation_id ??
+      item?.reservationId ??
+      reservation?.reservation_id ??
+      reservation?.reservationId ??
+      reservation?.id ??
+      reservation?._id ??
+      item?.id ??
+      item?._id;
+    const numbers = getReservationNumbers(item);
+    const numbersLabel =
+      item?.numbers_label ||
+      numbers.map((number) => String(number).trim()).filter(Boolean).join(", ");
+    const status =
+      item?.status ??
+      item?.reservation_status ??
+      item?.reservationStatus ??
+      reservation?.status ??
+      "reserved";
+    const paymentStatus =
+      item?.payment_status ??
+      item?.paymentStatus ??
+      payment?.payment_status ??
+      payment?.status ??
+      item?.pagamento ??
+      (/^(paid|approved|pago|sold)$/i.test(String(status || "")) ? "paid" : "pending");
+    const whenValue =
+      item?.created_at ||
+      item?.createdAt ||
+      item?.reserved_at ||
+      item?.updated_at ||
+      item?.date ||
+      item?.day;
+    const whenMs = Date.parse(whenValue || "") || 0;
+    const whenDate = whenMs ? new Date(whenMs) : null;
+    const title =
+      item?.draw_title ||
+      item?.drawTitle ||
+      draw?.title ||
+      draw?.name ||
+      (isPromotional ? "Promocional" : (drawId != null ? String(drawId) : "--"));
+    const amountCents = Number(
+      item?.total_cents ??
+        item?.totalCents ??
+        item?.amount_cents ??
+        item?.amountCents ??
+        payment?.amount_cents ??
+        payment?.amountCents ??
+        0
+    );
+
+    return {
+      id: item?.id || item?._id || `${isPromotional ? "promotional" : "normal"}-${index}`,
+      type: isPromotional ? "promotional" : "normal",
+      typeLabel: isPromotional ? "Promocional" : "Principal",
+      drawId,
+      reservationId,
+      title,
+      numbers: numbersLabel,
+      date: whenValue || null,
+      paymentStatus,
+      status: /^(paid|approved|pago|sold)$/i.test(String(paymentStatus || "")) ? "paid" : status,
+      totalCents: Number.isFinite(amountCents) ? amountCents : 0,
+      reservation_id: reservationId,
+      draw_id: drawId,
+      sorteio: isPromotional ? title : (title || (drawId != null ? String(drawId) : "--")),
+      numeros: numbers,
+      numbers_label: numbersLabel,
+      dia: item?.day || (whenDate ? whenDate.toLocaleDateString("pt-BR") : "--/--/----"),
+      payment_status: paymentStatus,
+      pagamento: paymentStatus,
+      resultado: isPromotional
+        ? (/^(paid|approved|pago|sold)$/i.test(String(paymentStatus || "")) ? "paid" : status)
+        : (drawsMap.get(Number(drawId)) || status || "aberto"),
+      whenMs,
+      amount_cents: Number.isFinite(amountCents) ? amountCents : 0,
+      payment_id: item?.payment_id || item?.paymentId || payment?.id || payment?.payment_id || null,
+      canPay: !/^(paid|approved|pago)$/i.test(String(paymentStatus || "")),
+      raw: item,
+    };
+  });
+}
+
 // parse JSON tolerante
 async function fetchJsonLoose(url, options) {
   const r = await fetch(apiJoin(url), options);
@@ -854,11 +985,11 @@ export default function AccountPage() {
 
         // pagamentos/linhas p/ tabela + validade
         const { data: pay, from } = await tryManyJson([
-          "/payments/me",
-          "/me/reservations?active=1",
-          "/reservations/me?active=1",
           "/me/reservations",
+          "/me/reservations?active=1",
           "/reservations/me",
+          "/reservations/me?active=1",
+          "/payments/me",
         ]);
 
         // draws (status)
@@ -871,8 +1002,12 @@ export default function AccountPage() {
 
         let deduped = [];
         let mainRows = [];
+        let unifiedRows = [];
 
-        if (pay) {
+        if (pay && from !== "/payments/me") {
+          unifiedRows = normalizeUnifiedReservationRows(pay, drawsMap);
+          mainRows = unifiedRows.filter((row) => row.type !== "promotional");
+        } else if (pay) {
           const entries = normalizeToEntries(
             from === "/payments/me" ? pay : null,
             from !== "/payments/me" ? pay : null
@@ -963,12 +1098,16 @@ export default function AccountPage() {
 
         let promotionalRows = [];
         let promotionalLoadError = "";
-        try {
-          const promotionalReservations = await getMyPromocionalReservations();
-          promotionalRows = normalizePromocionalParticipationRows(promotionalReservations);
-        } catch (error) {
-          console.error("[PROMOCIONAL_FRONT_ERROR]", error);
-          promotionalLoadError = "Não foi possível carregar participações promocionais.";
+        if (unifiedRows.length) {
+          promotionalRows = unifiedRows.filter((row) => row.type === "promotional");
+        } else {
+          try {
+            const promotionalReservations = await getMyPromocionalReservations();
+            promotionalRows = normalizePromocionalParticipationRows(promotionalReservations);
+          } catch (error) {
+            console.error("[PROMOCIONAL_FRONT_ERROR]", error);
+            promotionalLoadError = "Não foi possível carregar participações promocionais.";
+          }
         }
 
         if (alive) {
