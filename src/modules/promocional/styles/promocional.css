@@ -224,6 +224,16 @@
   color: #be123c;
 }
 
+.promocional-login-hint {
+  margin: 0 0 16px;
+}
+
+.promocional-login-hint__link {
+  color: #be123c;
+  font-weight: 900;
+  text-decoration: underline;
+}
+
 .promocional-success {
   background: #ecfdf5;
   color: #047857;

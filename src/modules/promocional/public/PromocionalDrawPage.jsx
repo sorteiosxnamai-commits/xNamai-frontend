@@ -1,5 +1,5 @@
 import React from "react";
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { useAuth } from "../../../authContext";
 import PublicTopbar from "../../../components/PublicTopbar";
 import PixModal from "../../../PixModal";
@@ -71,6 +71,27 @@ function normalizePixPayload(payload) {
     qr_code_base64: source.qr_code_base64 || payload?.qr_code_base64,
     ticket_url: source.ticket_url || payload?.ticket_url,
   };
+}
+
+function getPixAmount(payload, fallbackReservation = null) {
+  const source = payload?.payment || payload?.pix || payload?.data || payload || {};
+
+  const cents = Number(
+    source?.amount_cents ??
+      source?.amountCents ??
+      payload?.amount_cents ??
+      payload?.amountCents ??
+      fallbackReservation?.amount_cents ??
+      fallbackReservation?.amountCents
+  );
+
+  if (Number.isFinite(cents) && cents > 0) {
+    return cents / 100;
+  }
+
+  const amount = Number(source?.amount ?? payload?.amount);
+
+  return Number.isFinite(amount) && amount > 0 ? amount : null;
 }
 
 export default function PromocionalDrawPage() {
@@ -196,7 +217,7 @@ export default function PromocionalDrawPage() {
       await loadDraw();
     } catch (err) {
       console.error("[PROMOCIONAL_FRONT_ERROR]", err);
-      setError("Não foi possível reservar os números promocionais.");
+      setError(err?.message || "Não foi possível reservar os números promocionais.");
     } finally {
       setSaving(false);
     }
@@ -219,12 +240,7 @@ export default function PromocionalDrawPage() {
       );
       const normalized = normalizePixPayload(payload);
       setPixData(normalized);
-      const cents =
-        normalized?.amount_cents ??
-        normalized?.amountCents ??
-        payload?.amount_cents ??
-        pendingReservation?.amount_cents;
-      setPixAmount(typeof cents === "number" ? cents / 100 : normalized?.amount || null);
+      setPixAmount(getPixAmount(payload, pendingReservation));
       setPixMsg("");
     } catch (err) {
       console.error("[PROMOCIONAL_FRONT_ERROR]", err);
@@ -249,6 +265,15 @@ export default function PromocionalDrawPage() {
     <>
       <PublicTopbar />
       <main className="promocional-page">
+        {!authLoading && !user && (
+          <p className="promocional-error promocional-login-hint" role="status">
+            Para reservar ou comprar números promocionais,{" "}
+            <Link to="/login" className="promocional-login-hint__link">
+              faça login
+            </Link>{" "}
+            ou crie uma conta.
+          </p>
+        )}
         {loading && <p className="promocional-info">Carregando sorteio promocional...</p>}
         {!loading && error && !draw && <p className="promocional-error">{error}</p>}
 
@@ -276,7 +301,7 @@ export default function PromocionalDrawPage() {
 
               {error && <p className="promocional-error">{error}</p>}
               {message && <p className="promocional-success">{message}</p>}
-              {pendingReservation?.can_pay && (
+              {pendingReservation?.reservation_id && (
                 <div className="promocional-payment-actions">
                   <button
                     type="button"
@@ -307,7 +332,7 @@ export default function PromocionalDrawPage() {
                 type="button"
                 className="promocional-primary-button promocional-primary-button--wide"
                 onClick={handleReserve}
-                disabled={saving || !selectedNumbers.length}
+                disabled={saving || !selectedNumbers.length || !user}
               >
                 {saving ? "Reservando..." : "Reservar / continuar"}
               </button>

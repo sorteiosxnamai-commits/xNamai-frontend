@@ -10,7 +10,7 @@ const EMPTY_FORM = {
   title: "",
   description: "",
   prize: "",
-  price_cents: "0",
+  price_cents: "5500",
   number_start: "0",
   number_end: "99",
   max_numbers_per_user: "1",
@@ -58,7 +58,7 @@ function validateForm(form) {
   if (!Number.isFinite(numberStart) || numberStart < 0) return "Numero inicial deve ser maior ou igual a 0.";
   if (!Number.isFinite(numberEnd) || numberEnd > 1000) return "Numero final deve ser menor ou igual a 1000.";
   if (numberEnd <= numberStart) return "Numero final deve ser maior que o numero inicial.";
-  if (!Number.isFinite(priceCents) || priceCents < 0) return "Valor por numero deve ser maior ou igual a 0.";
+  if (!Number.isFinite(priceCents) || priceCents <= 0) return "Valor por numero deve ser maior que 0 para gerar PIX.";
   if (!Number.isFinite(maxNumbers) || maxNumbers <= 0) return "Maximo por usuario deve ser maior que 0.";
   return "";
 }

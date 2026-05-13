@@ -99,7 +99,17 @@ export async function generatePromocionalPix(drawId, reservationId) {
     throw new Error(data?.error || data?.message || "Erro ao gerar PIX promocional.");
   }
 
-  return data;
+  return {
+    ...data,
+    paymentId: data.paymentId || data.payment_id || data.id,
+    payment_id: data.payment_id || data.paymentId || data.id,
+    qr_code: data.qr_code || data.copy_paste_code,
+    copy_paste_code: data.copy_paste_code || data.qr_code,
+    qr_code_base64: data.qr_code_base64,
+    amount_cents: data.amount_cents ?? data.amountCents,
+    amount: data.amount,
+    status: data.status || data.payment_status || "pending",
+  };
 }
 
 export async function getMyPromocionalParticipations() {

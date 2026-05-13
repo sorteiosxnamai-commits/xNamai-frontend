@@ -297,6 +297,26 @@ function normalizePromocionalParticipationRows(participations) {
       item?.status ??
       "reserved";
     const numbers = getPromocionalNumbers(item);
+    const priceCents = Number(
+      item?.price_cents ??
+        item?.priceCents ??
+        draw?.price_cents ??
+        draw?.priceCents ??
+        0
+    );
+
+    const amountCentsRaw = Number(
+      item?.amount_cents ??
+        item?.amountCents ??
+        payment?.amount_cents ??
+        payment?.amountCents ??
+        0
+    );
+
+    const amountCents =
+      Number.isFinite(amountCentsRaw) && amountCentsRaw > 0
+        ? amountCentsRaw
+        : numbers.length * priceCents;
     const whenValue =
       item?.day ||
       item?.created_at ||
@@ -329,6 +349,9 @@ function normalizePromocionalParticipationRows(participations) {
       pagamento: paymentStatus,
       resultado: reservationStatus,
       whenMs,
+      amount_cents: amountCents,
+      price_cents: priceCents,
+      payment_id: item?.payment_id || item?.paymentId || payment?.id || payment?.payment_id || null,
       canPay:
         item?.can_pay === true ||
         item?.canPay === true ||
@@ -535,16 +558,29 @@ export default function AccountPage() {
         }
 
         const created = await generatePromocionalPix(drawId, reservationId);
-        console.log("[PIX_SUCCESS]", created);
+        console.log("[PIX_SUCCESS_PROMOTIONAL]", created);
+
         const pix = normalizePixData(created);
         setPixData(pix);
-        const cents =
+
+        const cents = Number(
           pix?.amount_cents ??
-          pix?.amountCents ??
-          created?.amount_cents ??
-          created?.amountCents ??
-          row?.amount_cents;
-        setPixAmount(typeof cents === "number" ? cents / 100 : pix?.amount || null);
+            pix?.amountCents ??
+            created?.amount_cents ??
+            created?.amountCents ??
+            row?.amount_cents
+        );
+
+        const amount = Number(pix?.amount ?? created?.amount);
+
+        setPixAmount(
+          Number.isFinite(cents) && cents > 0
+            ? cents / 100
+            : Number.isFinite(amount) && amount > 0
+              ? amount
+              : null
+        );
+
         setPixMsg(pix?.status ? `Status: ${pix.status}` : "PIX promocional gerado.");
         return;
       }
@@ -1295,7 +1331,7 @@ export default function AccountPage() {
                       const paymentStatus = String(row.payment_status || row.pagamento || "").toLowerCase();
                       const canGeneratePix =
                         row.canPay === true ||
-                        /pendente|pending|await|aguard|open|ativo|active/i.test(paymentStatus);
+                        /pendente|pending|await|aguard|open|ativo|active|reserved|reservado/i.test(paymentStatus);
                       const clickable = row.type !== "promotional" && canGeneratePix;
 
                       const isPaid   = /^(approved|paid|pago)$/i.test(String(row.pagamento || ""));
