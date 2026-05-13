@@ -1,4 +1,4 @@
-import { apiJoin, authHeaders, delJSON, getJSON, postJSON, putJSON } from "../../../lib/api";
+import { apiJoin, authHeaders, delJSON, getJSON, getStoredToken, postJSON, putJSON } from "../../../lib/api";
 
 function encodePathValue(value) {
   return encodeURIComponent(String(value));
@@ -51,22 +51,42 @@ export function getPromocionalNumbers(id) {
   return getJSON(`/promotional/${encodePathValue(id)}/numbers`);
 }
 
-export async function reservePromocionalNumbers(drawId, numbers) {
-  const body = Array.isArray(numbers) ? { numbers } : numbers || {};
-  const response = await fetch(apiJoin(`/promotional/${encodePathValue(drawId)}/reserve`), {
+export async function reservePromotionalNumbers(drawId, numbers) {
+  if (!drawId) {
+    throw new Error("Sorteio promocional não encontrado.");
+  }
+
+  const token = getStoredToken();
+  if (!token) {
+    const error = new Error("Faça login para reservar números promocionais.");
+    error.status = 401;
+    throw error;
+  }
+
+  const selectedNumbers = Array.isArray(numbers)
+    ? numbers
+    : Array.isArray(numbers?.numbers)
+      ? numbers.numbers
+      : [];
+
+  if (!selectedNumbers.length) {
+    throw new Error("Selecione pelo menos um número promocional.");
+  }
+
+  const response = await fetch(apiJoin(`/promotional/${encodePathValue(drawId)}/reservations`), {
     method: "POST",
     headers: {
       Accept: "application/json",
       "Content-Type": "application/json",
-      ...authHeaders(),
+      Authorization: `Bearer ${token}`,
     },
     credentials: "omit",
-    body: JSON.stringify(body),
+    body: JSON.stringify({ numbers: selectedNumbers }),
   });
-  const data = await response.json().catch(() => ({}));
+  const data = await response.json().catch(() => null);
 
-  if (!response.ok || data?.ok === false) {
-    const error = new Error(data?.error || data?.message || "Erro ao reservar números promocionais.");
+  if (!response.ok || !data?.ok) {
+    const error = new Error(data?.message || data?.error || "Erro ao processar número promocional.");
     error.status = response.status;
     error.data = data;
     throw error;
@@ -74,6 +94,8 @@ export async function reservePromocionalNumbers(drawId, numbers) {
 
   return data;
 }
+
+export const reservePromocionalNumbers = reservePromotionalNumbers;
 
 export async function generatePromocionalPix(drawId, reservationId) {
   if (!drawId || !reservationId) {

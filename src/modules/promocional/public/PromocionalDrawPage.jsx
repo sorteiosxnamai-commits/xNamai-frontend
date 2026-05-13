@@ -6,7 +6,7 @@ import PromocionalNumbersGrid from "../components/PromocionalNumbersGrid";
 import {
   getPromocionalDraw,
   getPromocionalNumbers,
-  reservePromocionalNumbers,
+  reservePromotionalNumbers,
 } from "../services/promocionalApi";
 import { isPromocionalNumberAvailable } from "../utils/promocionalNumbers";
 
@@ -67,7 +67,7 @@ export default function PromocionalDrawPage() {
 
   function saveReturnRouteAndGoLogin() {
     localStorage.setItem("xnamai_after_login", window.location.pathname + window.location.search);
-    navigate("/conta");
+    navigate("/login");
   }
 
   const loadDraw = React.useCallback(async () => {
@@ -129,6 +129,7 @@ export default function PromocionalDrawPage() {
 
   async function handleReserve() {
     if (authLoading) return;
+    const drawId = id;
 
     if (!user && !token && !getStoredPromocionalToken()) {
       setMessage("");
@@ -160,18 +161,21 @@ export default function PromocionalDrawPage() {
       setSaving(true);
       setError("");
       setMessage("");
-      await reservePromocionalNumbers(id, numbersToReserve);
+      await reservePromotionalNumbers(drawId, numbersToReserve);
       setSelectedNumbers([]);
-      setMessage("Números promocionais reservados com sucesso.");
+      setMessage("Reserva criada. Você pode gerar o PIX agora ou pagar depois em Minha Conta.");
       await loadDraw();
-      navigate("/conta");
-    } catch (err) {
-      console.error("[PROMOCIONAL_FRONT_ERROR]", err);
-      if (err?.status === 401 || /(^|:)401$/.test(String(err?.message || ""))) {
+    } catch (error) {
+      console.error("[PROMOCIONAL_FRONT_ERROR]", {
+        message: error?.message,
+        drawId,
+        selectedNumbers: numbersToReserve,
+      });
+      if (error?.status === 401 || /(^|:)401$/.test(String(error?.message || ""))) {
         saveReturnRouteAndGoLogin();
         return;
       }
-      setError(err?.message || "Não foi possível reservar os números promocionais.");
+      setError(error?.message || "Não foi possível reservar os números promocionais.");
     } finally {
       setSaving(false);
     }
