@@ -458,3 +458,86 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* --- Admin promocional: tabela de números (status + ações) --- */
+.promocional-numbers-admin__toolbar {
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.promocional-numbers-admin__table-wrap {
+  margin-top: 8px;
+}
+
+.promocional-numbers-admin__table {
+  min-width: 960px;
+}
+
+.promocional-numbers-admin__row--reserved td:first-child {
+  border-left: 3px solid #ea580c;
+}
+
+.promocional-numbers-admin__row--sold td:first-child {
+  border-left: 3px solid #64748b;
+}
+
+.promocional-numbers-admin__row--blocked td:first-child {
+  border-left: 3px solid #be123c;
+}
+
+.promocional-numbers-admin__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.promocional-numbers-admin__action-btn {
+  border: 1px solid rgba(37, 99, 235, 0.28);
+  background: #ffffff;
+  color: #2563eb;
+  border-radius: 999px;
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 900;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.promocional-numbers-admin__action-btn:hover:not(:disabled) {
+  background: #eef4ff;
+}
+
+.promocional-numbers-admin__action-btn--danger {
+  border-color: rgba(190, 18, 60, 0.35);
+  color: #be123c;
+}
+
+.promocional-numbers-admin__action-btn--danger:hover:not(:disabled) {
+  background: #fff1f2;
+}
+
+.promocional-numbers-admin__action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Pills de status (prefixo promocional) — números */
+.promocional-status--available {
+  background: #e0ecff !important;
+  color: #1d4ed8 !important;
+}
+
+.promocional-status--reserved {
+  background: #fff7ed !important;
+  color: #c2410c !important;
+}
+
+.promocional-status--sold {
+  background: #f1f5f9 !important;
+  color: #475569 !important;
+}
+
+.promocional-status--blocked {
+  background: #fff1f2 !important;
+  color: #be123c !important;
+}

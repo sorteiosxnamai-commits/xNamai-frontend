@@ -131,13 +131,41 @@ export function adminDeletePromocionalDraw(id) {
   return delJSON(`/promotional/admin/draws/${encodePathValue(id)}`);
 }
 
-export function adminGetPromocionalNumbers(id) {
-  return getJSON(`/promotional/admin/draws/${encodePathValue(id)}/numbers`);
+/**
+ * GET /api/promotional/admin/draws/:id/numbers
+ * Retorna sempre array de números (campo `numbers` do JSON ou array direto).
+ */
+export async function adminGetPromocionalNumbers(drawId) {
+  const path = `/promotional/admin/draws/${encodePathValue(drawId)}/numbers`;
+  const response = await fetch(apiJoin(path), {
+    method: "GET",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      ...authHeaders(),
+    },
+    credentials: "omit",
+  });
+
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok || data.ok === false) {
+    throw new Error(
+      data?.error || data?.message || "Erro ao carregar números promocionais."
+    );
+  }
+
+  if (Array.isArray(data)) return data;
+  return data.numbers || data.items || [];
 }
 
-export function adminUpdatePromocionalNumberStatus(id, number, status) {
+/**
+ * PATCH /api/promotional/admin/draws/:id/numbers/:number
+ * body: { status: "available" | "reserved" | "sold" | "blocked" }
+ */
+export async function adminUpdatePromocionalNumberStatus(drawId, number, status) {
   return patchJSON(
-    `/promotional/admin/draws/${encodePathValue(id)}/numbers/${encodePathValue(number)}`,
+    `/promotional/admin/draws/${encodePathValue(drawId)}/numbers/${encodePathValue(number)}`,
     { status }
   );
 }
