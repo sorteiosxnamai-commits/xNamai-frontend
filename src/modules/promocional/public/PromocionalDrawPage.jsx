@@ -8,7 +8,7 @@ import {
   generatePromocionalPix,
   getPromocionalDraw,
   getPromocionalNumbers,
-  reservePromotionalNumbers,
+  reservePromocionalNumbers,
 } from "../services/promocionalApi";
 import { isPromocionalNumberAvailable } from "../utils/promocionalNumbers";
 
@@ -55,19 +55,25 @@ function getStoredPromocionalToken() {
 
 function getReservationFromPayload(payload, fallbackDrawId) {
   const source = payload?.reservation || payload?.data?.reservation || payload?.data || payload || {};
+  const id =
+    source?.id ||
+    source?.reservation_id ||
+    source?.reservationId ||
+    payload?.reservation_id ||
+    payload?.reservationId;
+  const drawId =
+    source?.draw_id ||
+    source?.drawId ||
+    payload?.draw_id ||
+    payload?.drawId ||
+    fallbackDrawId;
+
   return {
-    reservation_id:
-      source?.reservation_id ||
-      source?.reservationId ||
-      source?.id ||
-      payload?.reservation_id ||
-      payload?.reservationId,
-    draw_id:
-      source?.draw_id ||
-      source?.drawId ||
-      payload?.draw_id ||
-      payload?.drawId ||
-      fallbackDrawId,
+    id,
+    reservation_id: id,
+    reservationId: id,
+    draw_id: drawId,
+    drawId,
     amount_cents:
       source?.amount_cents ??
       source?.amountCents ??
@@ -131,6 +137,7 @@ export default function PromocionalDrawPage() {
   const [pixData, setPixData] = React.useState(null);
   const [pixAmount, setPixAmount] = React.useState(null);
   const [pixMsg, setPixMsg] = React.useState("");
+  const [, setPendingReservation] = React.useState(null);
 
   const maxNumbers = Number.parseInt(draw?.max_numbers_per_user ?? draw?.maxNumbersPerUser ?? 0, 10);
 
@@ -139,11 +146,50 @@ export default function PromocionalDrawPage() {
     navigate("/login");
   }
 
-  function closePixModal() {
+  function handleClosePixModal() {
     setPixOpen(false);
     setPixLoading(false);
-    setMessage("Número reservado. Você pode finalizar o pagamento em Minha Conta.");
+    setPixData(null);
+    setMessage("Reserva mantida por 30 minutos. Você pode concluir o pagamento pela área do cliente.");
     loadDraw();
+  }
+
+  async function openPixForPromocionalReservation(reservation) {
+    const drawId = reservation?.draw_id || reservation?.drawId || draw?.id || draw?.draw_id || draw?._id || id;
+    const reservationId = reservation?.id || reservation?.reservation_id || reservation?.reservationId;
+
+    if (!drawId || !reservationId) {
+      setError("Reserva promocional criada, mas não foi possível abrir o PIX agora. Tente pela área do cliente.");
+      return;
+    }
+
+    try {
+      setPixOpen(true);
+      setPixLoading(true);
+      setPixData(null);
+      setPixMsg("Gerando PIX promocional...");
+
+      const pixPayload = await generatePromocionalPix(drawId, reservationId);
+      const normalizedPix = normalizePixPayload(pixPayload);
+
+      setPixData({
+        ...normalizedPix,
+        drawId,
+        reservationId,
+        type: "promotional",
+      });
+      setPixAmount(getPixAmount(pixPayload, reservation));
+      setPixMsg("");
+    } catch (error) {
+      console.error("[PROMOCIONAL_PIX_OPEN_ERROR]", error);
+      setPixOpen(false);
+      setPixData(null);
+      setPixMsg("");
+      setMessage("Número reservado por 30 minutos. Não foi possível abrir o PIX agora, mas você pode gerar o PIX pela área do cliente.");
+      await loadDraw();
+    } finally {
+      setPixLoading(false);
+    }
   }
 
   const loadDraw = React.useCallback(async () => {
@@ -203,9 +249,9 @@ export default function PromocionalDrawPage() {
     });
   }
 
-  async function handleReserve() {
+  async function handleReservePromocionalNumbers() {
     if (authLoading) return;
-    const drawId = id;
+    const drawId = draw?.id || draw?.draw_id || draw?._id || id;
 
     if (!user && !token && !getStoredPromocionalToken()) {
       setMessage("");
@@ -237,43 +283,21 @@ export default function PromocionalDrawPage() {
       setSaving(true);
       setError("");
       setMessage("");
-      const reservationPayload = await reservePromotionalNumbers(drawId, numbersToReserve);
+      const reservationPayload = await reservePromocionalNumbers(drawId, {
+        numbers: numbersToReserve,
+        selectedNumbers: numbersToReserve,
+      });
       const reservation = getReservationFromPayload(reservationPayload, drawId);
+
+      if (!reservation?.id) {
+        throw new Error("Reserva criada sem ID de pagamento.");
+      }
+
+      setPendingReservation(reservation);
       setSelectedNumbers([]);
+      setMessage("Número reservado por 30 minutos. Conclua o pagamento via PIX ou gere novamente na área do cliente.");
       await loadDraw();
-
-      if (!reservation?.reservation_id) {
-        setMessage("Reserva criada. Você pode gerar o PIX agora ou pagar depois em Minha Conta.");
-        return;
-      }
-
-      try {
-        setPixOpen(true);
-        setPixLoading(true);
-        setPixData(null);
-        setPixMsg("Gerando PIX promocional...");
-        const pixPayload = await generatePromocionalPix(
-          reservation.draw_id || drawId,
-          reservation.reservation_id
-        );
-        const normalizedPix = normalizePixPayload(pixPayload);
-        setPixData(normalizedPix);
-        setPixAmount(getPixAmount(pixPayload, reservation));
-        setPixMsg("");
-      } catch (pixError) {
-        console.error("[PROMOCIONAL_PIX_ERROR]", {
-          message: pixError?.message,
-          drawId,
-          reservationId: reservation.reservation_id,
-          status: pixError?.status,
-          responseBody: pixError?.responseBody || pixError?.data,
-        });
-        setPixOpen(false);
-        setPixData(null);
-        setPixMsg("");
-        setMessage("Número reservado, mas não foi possível gerar o PIX agora. Gere o PIX em Minha Conta.");
-        await loadDraw();
-      }
+      await openPixForPromocionalReservation(reservation);
     } catch (error) {
       console.error("[PROMOCIONAL_FRONT_ERROR]", {
         message: error?.message,
@@ -289,7 +313,6 @@ export default function PromocionalDrawPage() {
       setError(error?.message || "Não foi possível reservar os números promocionais.");
     } finally {
       setSaving(false);
-      setPixLoading(false);
     }
   }
 
@@ -344,7 +367,7 @@ export default function PromocionalDrawPage() {
               <button
                 type="button"
                 className="promocional-primary-button promocional-primary-button--wide"
-                onClick={handleReserve}
+                onClick={handleReservePromocionalNumbers}
                 disabled={saving || authLoading || !selectedNumbers.length}
               >
                 {saving ? "Reservando..." : "Reservar / continuar"}
@@ -356,7 +379,7 @@ export default function PromocionalDrawPage() {
 
       <PixModal
         open={pixOpen}
-        onClose={closePixModal}
+        onClose={handleClosePixModal}
         loading={pixLoading}
         data={pixData}
         amount={pixAmount}

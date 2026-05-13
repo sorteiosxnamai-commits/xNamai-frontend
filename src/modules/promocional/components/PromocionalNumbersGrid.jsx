@@ -12,6 +12,21 @@ function getNumberValue(item) {
   return item;
 }
 
+function getNumberStatus(item) {
+  const rawStatus = typeof item === "object" && item !== null ? item.status : "available";
+  const normalized = normalizePromocionalNumberStatus(rawStatus);
+
+  if (normalized === "sold" || normalized === "blocked") {
+    return "unavailable";
+  }
+
+  if (normalized === "reserved") {
+    return "reserved";
+  }
+
+  return "available";
+}
+
 export default function PromocionalNumbersGrid({
   numbers = [],
   selectedNumbers = [],
@@ -30,9 +45,7 @@ export default function PromocionalNumbersGrid({
       {numbers.map((item) => {
         const rawNumber = getNumberValue(item);
         const displayNumber = formatPromocionalNumber(rawNumber);
-        const status = normalizePromocionalNumberStatus(
-          typeof item === "object" && item !== null ? item.status : "available"
-        );
+        const status = getNumberStatus(item);
         const isAvailable = status === "available";
         const isSelected = selectedSet.has(String(rawNumber));
         const buttonDisabled = readOnly || !isAvailable || !onToggleNumber;
@@ -44,7 +57,8 @@ export default function PromocionalNumbersGrid({
               className={[
                 "promocional-number",
                 `promocional-number--${status}`,
-                isSelected ? "promocional-number--selected" : "",
+                status,
+                isSelected ? "promocional-number--selected selected" : "",
               ]
                 .filter(Boolean)
                 .join(" ")}

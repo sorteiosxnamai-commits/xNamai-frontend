@@ -31,6 +31,20 @@ function brlStringToCents(str) {
   return 0;
 }
 
+function normalizeNumberStatus(rawStatus) {
+  const status = String(rawStatus || "").toLowerCase();
+
+  if (["sold", "paid", "pago", "unavailable", "indisponivel", "indisponível", "taken", "ocupado"].includes(status)) {
+    return "unavailable";
+  }
+
+  if (["reserved", "pending", "reservado", "pendente", "hold", "active"].includes(status)) {
+    return "reserved";
+  }
+
+  return "available";
+}
+
 /** Busca páginas até acabar, retornando lista normalizada. */
 async function fetchAllUsersPaged(bases, pageSize = 500) {
   const headers = { "Content-Type": "application/json", ...authHeaders() };
@@ -140,11 +154,16 @@ function normalizeBoardPayload(payload) {
   if (Array.isArray(raw) && raw.length) {
     return raw.map((c, idx) => {
       const n = Number(c?.n ?? c?.number ?? c?.num ?? c?.index ?? idx);
-      const s = String(c?.state ?? c?.status ?? "").toLowerCase();
-      let state = "open";
-      if (/taken|sold|indispon|ocupad|closed|fechado/.test(s)) state = "taken";
-      else if (/reserv|hold|pending/.test(s)) state = "reserved";
-      return { n, label: String(n).padStart(2, "0"), state, isWinner: !!c?.isWinner, isMine: !!c?.isMine };
+      const status = normalizeNumberStatus(c?.status ?? c?.state);
+      return {
+        n,
+        number: n,
+        label: String(n).padStart(2, "0"),
+        status,
+        state: status === "unavailable" ? "taken" : status === "reserved" ? "reserved" : "open",
+        isWinner: !!c?.isWinner,
+        isMine: !!c?.isMine,
+      };
     }).filter(c => Number.isInteger(c.n) && c.n >= 0 && c.n <= 99);
   }
 
@@ -154,10 +173,16 @@ function normalizeBoardPayload(payload) {
 
   const out = [];
   for (let n = 0; n < 100; n++) {
-    let state = "open";
-    if (taken.has(n)) state = "taken";
-    else if (reserved.has(n)) state = "reserved";
-    out.push({ n, label: String(n).padStart(2, "0"), state });
+    let status = "available";
+    if (taken.has(n)) status = "unavailable";
+    else if (reserved.has(n)) status = "reserved";
+    out.push({
+      n,
+      number: n,
+      label: String(n).padStart(2, "0"),
+      status,
+      state: status === "unavailable" ? "taken" : status === "reserved" ? "reserved" : "open",
+    });
   }
   return out;
 }
@@ -177,7 +202,13 @@ async function fetchBoard(drawId) {
     if (board.length) return board;
   }
   // fallback: grade "vazia" (tudo livre)
-  return Array.from({ length: 100 }, (_, n) => ({ n, label: String(n).padStart(2, "0"), state: "open" }));
+  return Array.from({ length: 100 }, (_, n) => ({
+    n,
+    number: n,
+    label: String(n).padStart(2, "0"),
+    status: "available",
+    state: "open",
+  }));
 }
 
 /* -------------------------------- Normalizadores -------------------------------- */
@@ -406,28 +437,15 @@ export default function AdminUsersPage() {
     }
   }
 
-  /* ---- estilo das células (simples e responsivo) ---- */
-  const getCellSx = (state) => {
-    if (state === "taken") {
-      return {
-        color: "#7A0B18",
-        border: "1px solid rgba(220, 38, 38, 0.24)",
-        background: "linear-gradient(180deg, rgba(248,113,113,0.30) 0%, rgba(248,113,113,0.16) 100%)",
-      };
-    }
-    if (state === "reserved") {
-      return {
-        color: "#6B4B00",
-        border: "1px solid rgba(245, 158, 11, 0.25)",
-        background: "linear-gradient(180deg, rgba(251,191,36,0.28) 0%, rgba(251,191,36,0.14) 100%)",
-      };
-    }
-    return {
-      color: "#0B1B33",
-      border: "1px solid rgba(30,102,255,0.18)",
-      background: "linear-gradient(180deg, rgba(30,102,255,0.22) 0%, rgba(11,95,255,0.12) 100%)",
-    };
-  };
+  function getAdminGridNumberStatus(number) {
+    const key = String(number).padStart(2, "0");
+    const item = board.find((n) => {
+      const value = n?.number ?? n?.n ?? n?.num;
+      return String(value).padStart(2, "0") === key;
+    });
+
+    return normalizeNumberStatus(item?.status ?? item?.state);
+  }
 
   return (
     <>
@@ -589,9 +607,14 @@ export default function AdminUsersPage() {
                       gap: { xs: .6, sm: .7, md: .8 },
                     }}
                   >
-                    {board.map((c) => (
+                    {board.map((c) => {
+                      const status = getAdminGridNumberStatus(c.number ?? c.n);
+                      return (
                       <Box
+                        component="button"
+                        type="button"
                         key={c.n}
+                        className={`admin-number-pill ${status}`}
                         sx={{
                           userSelect: "none",
                           textAlign: "center",
@@ -600,16 +623,17 @@ export default function AdminUsersPage() {
                           fontWeight: 900,
                           letterSpacing: .4,
                           fontSize: { xs: 12, sm: 13 },
-                          ...getCellSx(c.state),
+                          cursor: "default",
                         }}
                         title={
-                          c.state === "taken" ? "Indisponível" :
-                          c.state === "reserved" ? "Reservado" : "Disponível"
+                          status === "unavailable" ? "Indisponível" :
+                          status === "reserved" ? "Reservado" : "Disponível"
                         }
                       >
                         {c.label}
                       </Box>
-                    ))}
+                      );
+                    })}
                   </Box>
                 )}
               </Paper>

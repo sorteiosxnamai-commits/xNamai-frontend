@@ -262,7 +262,8 @@
 }
 
 .promocional-number:hover:not(:disabled),
-.promocional-number--selected {
+.promocional-number--selected,
+.promocional-number.selected {
   transform: translateY(-1px);
   border-color: #2563eb;
   background: #2563eb;
@@ -270,12 +271,15 @@
   box-shadow: 0 10px 22px rgba(37, 99, 235, 0.18);
 }
 
-.promocional-number--reserved {
+.promocional-number--reserved,
+.promocional-number.reserved {
   background: #fff7ed;
   color: #c2410c;
 }
 
-.promocional-number--sold {
+.promocional-number--sold,
+.promocional-number--unavailable,
+.promocional-number.unavailable {
   background: #f1f5f9;
   color: #64748b;
 }
