@@ -280,6 +280,16 @@ export default function AdminDashboard() {
 
   React.useEffect(() => {
     loadSummary();
+
+    function handleNumbersUpdated() {
+      loadSummary();
+    }
+
+    window.addEventListener("xnamai:numbers-updated", handleNumbersUpdated);
+
+    return () => {
+      window.removeEventListener("xnamai:numbers-updated", handleNumbersUpdated);
+    };
   }, []);
 
   const draw = summary?.draw || summary?.current_draw || summary?.currentDraw;

@@ -149,7 +149,7 @@ async function findOpenDrawId() {
 function normalizeBoardPayload(payload) {
   let raw = [];
   if (Array.isArray(payload)) raw = payload;
-  else raw = payload?.board || payload?.cells || payload?.items || [];
+  else raw = payload?.board || payload?.numbers || payload?.cells || payload?.items || [];
 
   if (Array.isArray(raw) && raw.length) {
     return raw.map((c, idx) => {
@@ -193,6 +193,7 @@ async function fetchBoard(drawId) {
     `/me/draws/${drawId}/board`,
     `/admin/draws/${drawId}/board`,
     `/draws/${drawId}/board`,
+    `/numbers?draw_id=${drawId}`,
     `/draws/${drawId}`, // às vezes devolve { board: [...] }
   ];
   for (const p of paths) {
@@ -430,6 +431,11 @@ export default function AdminUsersPage() {
       setBoard(b);
       const refreshedUsers = await fetchAllUsersPaged(["/admin/users"], 500);
       if (refreshedUsers.length) setUsers(refreshedUsers);
+      window.dispatchEvent(
+        new CustomEvent("xnamai:numbers-updated", {
+          detail: { drawId: d, numbers: nums },
+        })
+      );
       setToast({ open: true, sev: "success", msg: "Números atribuídos e reservados com sucesso." });
     } catch {
       setToast({ open: true, sev: "error", msg: "Falha ao atribuir números." });

@@ -113,15 +113,24 @@ export async function reservePromotionalNumbers(drawId, payload) {
 export const reservePromocionalNumbers = reservePromotionalNumbers;
 export const reserveNumbers = reservePromotionalNumbers;
 
-export async function generatePromotionalPix(reservationId) {
+export async function generatePromotionalPix(drawIdOrReservationId, maybeReservationId = null) {
+  const hasDrawId =
+    maybeReservationId !== null &&
+    maybeReservationId !== undefined &&
+    maybeReservationId !== "";
+
+  const drawId = hasDrawId ? drawIdOrReservationId : null;
+  const reservationId = hasDrawId ? maybeReservationId : drawIdOrReservationId;
+
   if (!reservationId) {
     throw new Error("Dados da reserva promocional incompletos para gerar PIX.");
   }
 
-  const data = await apiPost(
-    `/promotional/reservations/${encodePathValue(reservationId)}/pix`,
-    {}
-  );
+  const path = drawId
+    ? `/promotional/${encodePathValue(drawId)}/reservations/${encodePathValue(reservationId)}/pix`
+    : `/promotional/reservations/${encodePathValue(reservationId)}/pix`;
+
+  const data = await apiPost(path, {});
   const source = data?.payment || data?.pix || data?.data?.payment || data?.data?.pix || data?.data || data || {};
 
   return {
@@ -139,7 +148,7 @@ export async function generatePromotionalPix(reservationId) {
 }
 
 export async function generatePromocionalPix(drawIdOrReservationId, reservationId) {
-  return generatePromotionalPix(reservationId || drawIdOrReservationId);
+  return generatePromotionalPix(drawIdOrReservationId, reservationId);
 }
 
 export async function getMyPromocionalReservations() {

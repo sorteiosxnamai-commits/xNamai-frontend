@@ -193,7 +193,12 @@ export default function PromocionalDrawPage() {
       setPixAmount(null);
       setPixMsg(pixPayload ? "" : "Gerando PIX promocional...");
 
-      const payload = pixPayload || (await generatePromocionalPix(reservationId));
+      const payload =
+        pixPayload ||
+        (await generatePromocionalPix(
+          reservation.draw_id || reservation.drawId || id,
+          reservationId
+        ));
       const normalized = normalizePixPayload(payload);
 
       setPixData(normalized);
