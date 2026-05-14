@@ -333,6 +333,7 @@ function normalizePromocionalParticipationRows(participations) {
       id: item?.id || item?._id || `promocional-${index}`,
       type: "promotional",
       source: "promotional",
+      is_promotional: true,
       typeLabel: "Promocional",
       drawId,
       reservationId,
@@ -481,6 +482,7 @@ function normalizeUnifiedReservationRows(payload, drawsMap = new Map()) {
       id: item?.id || item?._id || `${isPromotional ? "promotional" : "normal"}-${index}`,
       type: isPromotional ? "promotional" : "normal",
       source: isPromotional ? "promotional" : "normal",
+      is_promotional: isPromotional,
       typeLabel: isPromotional ? "Promocional" : "Principal",
       drawId,
       reservationId,
@@ -707,7 +709,12 @@ export default function AccountPage() {
     );
 
     try {
-      if (row?.source === "promotional" || row?.type === "promotional") {
+      const isPromotional =
+        row?.type === "promotional" ||
+        row?.source === "promotional" ||
+        row?.is_promotional === true;
+
+      if (isPromotional) {
         const reservationId = row?.reservationId || row?.reservation_id;
 
         if (!reservationId) {
@@ -1528,7 +1535,10 @@ export default function AccountPage() {
                         row?.id ||
                         `${row?.type || "main"}-${row?.drawId || row?.draw_id || row?.sorteio}`;
                       const paymentStatus = String(row.paymentStatus ?? row.payment_status ?? row.pagamento ?? "").toLowerCase();
-                      const isPromotionalRow = row.source === "promotional" || row.type === "promotional";
+                      const isPromotionalRow =
+                        row.type === "promotional" ||
+                        row.source === "promotional" ||
+                        row.is_promotional === true;
                       const reservationStatus = String(row.status ?? row.resultado ?? "reserved").toLowerCase();
                       const canGeneratePix =
                         row.can_pay === true ||

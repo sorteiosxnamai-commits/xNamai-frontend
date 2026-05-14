@@ -422,17 +422,19 @@ export default function AdminUsersPage() {
         body: JSON.stringify({ user_id: form.id, draw_id: d, numbers: nums }),
       });
       if (!r.ok) throw new Error("assign_failed");
-      setToast({ open: true, sev: "success", msg: "Números atribuídos com sucesso." });
       setNumbersCsv("");
 
       // atualiza a referência do board
       setBoardLoading(true);
       const b = await fetchBoard(d);
       setBoard(b);
-      setBoardLoading(false);
+      const refreshedUsers = await fetchAllUsersPaged(["/admin/users"], 500);
+      if (refreshedUsers.length) setUsers(refreshedUsers);
+      setToast({ open: true, sev: "success", msg: "Números atribuídos e reservados com sucesso." });
     } catch {
       setToast({ open: true, sev: "error", msg: "Falha ao atribuir números." });
     } finally {
+      setBoardLoading(false);
       setAssigning(false);
     }
   }

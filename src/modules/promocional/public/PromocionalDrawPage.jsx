@@ -163,8 +163,9 @@ export default function PromocionalDrawPage() {
   }, []);
 
   function saveReturnRouteAndGoLogin() {
-    localStorage.setItem("xnamai_after_login", window.location.pathname + window.location.search);
-    navigate("/login");
+    const currentUrl = window.location.pathname + window.location.search;
+    localStorage.setItem("xnamai_after_login", currentUrl);
+    navigate(`/login?redirect=${encodeURIComponent(currentUrl)}`);
   }
 
   function handleClosePixModal() {
@@ -327,7 +328,7 @@ export default function PromocionalDrawPage() {
       setMessage("");
       setPendingReservation(null);
 
-      const payload = await reservePromocionalNumbers(id, numbersToReserve);
+      const payload = await reservePromocionalNumbers(id, { numbers: numbersToReserve });
 
       if (!payload || payload?.ok === false) {
         throw new Error(payload?.message || "Erro ao processar número promocional.");

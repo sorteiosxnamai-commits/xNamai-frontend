@@ -71,13 +71,13 @@ export function getPromocionalDraws() {
 }
 
 export function getPromotionalDraw(drawId) {
-  return getJSON(`/api/promotional/${encodePathValue(drawId)}`);
+  return getJSON(`/promotional/${encodePathValue(drawId)}`);
 }
 
 export const getPromocionalDraw = getPromotionalDraw;
 
 export function getPromotionalNumbers(drawId) {
-  return getJSON(`/api/promotional/${encodePathValue(drawId)}/numbers`);
+  return getJSON(`/promotional/${encodePathValue(drawId)}/numbers`);
 }
 
 export const getPromocionalNumbers = getPromotionalNumbers;
@@ -104,7 +104,7 @@ export async function reservePromotionalNumbers(drawId, payload) {
     throw new Error("Selecione pelo menos um número promocional.");
   }
 
-  return apiPost(`/api/promotional/${encodePathValue(drawId)}/reservations`, {
+  return apiPost(`/promotional/${encodePathValue(drawId)}/reservations`, {
     ...(payload && !Array.isArray(payload) ? payload : {}),
     numbers: selectedNumbers,
   });
@@ -119,7 +119,7 @@ export async function generatePromotionalPix(reservationId) {
   }
 
   const data = await apiPost(
-    `/api/promotional/reservations/${encodePathValue(reservationId)}/pix`,
+    `/promotional/reservations/${encodePathValue(reservationId)}/pix`,
     {}
   );
   const source = data?.payment || data?.pix || data?.data?.payment || data?.data?.pix || data?.data || data || {};
