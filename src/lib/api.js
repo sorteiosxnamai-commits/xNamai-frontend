@@ -27,7 +27,7 @@ export const apiJoin = (path) => {
 
 /* ---------- token helpers ---------- */
 const TOKEN_KEY = "ns_auth_token";
-const COMPAT_KEYS = ["token", "access_token"];
+const COMPAT_KEYS = ["authToken", "token", "jwt", "access_token", "accessToken"];
 
 export const getStoredToken = () =>
   (
@@ -35,8 +35,14 @@ export const getStoredToken = () =>
     sessionStorage.getItem(TOKEN_KEY) ||
     localStorage.getItem(COMPAT_KEYS[0]) ||
     localStorage.getItem(COMPAT_KEYS[1]) ||
+    localStorage.getItem(COMPAT_KEYS[2]) ||
+    localStorage.getItem(COMPAT_KEYS[3]) ||
+    localStorage.getItem(COMPAT_KEYS[4]) ||
     sessionStorage.getItem(COMPAT_KEYS[0]) ||
     sessionStorage.getItem(COMPAT_KEYS[1]) ||
+    sessionStorage.getItem(COMPAT_KEYS[2]) ||
+    sessionStorage.getItem(COMPAT_KEYS[3]) ||
+    sessionStorage.getItem(COMPAT_KEYS[4]) ||
     ""
   )
     .toString()

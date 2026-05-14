@@ -708,14 +708,13 @@ export default function AccountPage() {
 
     try {
       if (row?.source === "promotional" || row?.type === "promotional") {
-        const drawId = row?.drawId ?? row?.draw_id;
         const reservationId = row?.reservationId || row?.reservation_id;
 
-        if (!drawId || !reservationId) {
+        if (!reservationId) {
           throw new Error("Dados da reserva promocional incompletos para gerar PIX.");
         }
 
-        const created = await generatePromocionalPix(drawId, reservationId);
+        const created = await generatePromocionalPix(reservationId);
         console.log("[PIX_SUCCESS_PROMOTIONAL]", created);
 
         const pix = normalizePixData(created);
@@ -883,21 +882,37 @@ export default function AccountPage() {
   }
 
   function normalizePixData(payload) {
-    const source = payload?.payment || payload?.pix || payload?.data || payload || {};
+    const source =
+      payload?.payment ||
+      payload?.pix ||
+      payload?.data?.payment ||
+      payload?.data?.pix ||
+      payload?.data ||
+      payload ||
+      {};
     return {
       ...source,
       paymentId: source.paymentId || source.payment_id || source.id || payload?.paymentId || payload?.id,
       payment_id: source.payment_id || source.paymentId || source.id || payload?.payment_id || payload?.paymentId || payload?.id,
-      qr_code: source.qr_code || source.copy_paste_code || source.copy_paste || source.copy || payload?.qr_code,
+      qr_code:
+        source.qr_code ||
+        source.pix_qr_code ||
+        source.copy_paste_code ||
+        source.copy_paste ||
+        source.copy ||
+        payload?.qr_code ||
+        payload?.pix_qr_code,
       copy_paste_code:
         source.copy_paste_code ||
         source.qr_code ||
+        source.pix_qr_code ||
         source.copy_paste ||
         source.copy ||
         payload?.copy_paste_code ||
-        payload?.qr_code,
-      qr_code_base64: source.qr_code_base64 || payload?.qr_code_base64,
-      ticket_url: source.ticket_url || payload?.ticket_url,
+        payload?.qr_code ||
+        payload?.pix_qr_code,
+      qr_code_base64: source.qr_code_base64 || source.pix_qr_code_base64 || payload?.qr_code_base64 || payload?.pix_qr_code_base64,
+      ticket_url: source.ticket_url || source.pix_ticket_url || payload?.ticket_url || payload?.pix_ticket_url,
       amount_cents: source.amount_cents ?? source.amountCents ?? payload?.amount_cents ?? payload?.amountCents,
       amount: source.amount ?? payload?.amount,
       status: source.status || source.payment_status || payload?.status || payload?.payment_status || "pending",
@@ -1113,6 +1128,7 @@ export default function AccountPage() {
             const pagamento = g.hasPending ? "pending" : (g.hasApproved ? "approved" : "pending");
             return {
               type: "main",
+              source: "normal",
               typeLabel: "Principal",
               reservation_id: g.reservation_id,
               draw_id: g.draw_id,
@@ -1514,17 +1530,15 @@ export default function AccountPage() {
                       const paymentStatus = String(row.paymentStatus ?? row.payment_status ?? row.pagamento ?? "").toLowerCase();
                       const isPromotionalRow = row.source === "promotional" || row.type === "promotional";
                       const reservationStatus = String(row.status ?? row.resultado ?? "reserved").toLowerCase();
-                      const canGeneratePix = isPromotionalRow
-                        ? (
-                            row.can_pay === true ||
-                            row.canPay === true ||
-                            (
-                              ["pending", "waiting", "created"].includes(paymentStatus || "pending") &&
-                              ["reserved", "pending", "active"].includes(reservationStatus || "reserved")
-                            )
+                      const canGeneratePix =
+                        row.can_pay === true ||
+                        row.canPay === true ||
+                        (
+                          !["pago", "paid", "approved", "sold"].includes(paymentStatus) &&
+                          ["reservado", "reserved", "pending", "pendente", "active", "ativo", "waiting", "created"].includes(
+                            reservationStatus || paymentStatus
                           )
-                        : row.canPay === true ||
-                          /pendente|pending|await|aguard|open|ativo|active|reserved|reservado/i.test(paymentStatus);
+                        );
                       const clickable = !isPromotionalRow && canGeneratePix;
 
                       const isPaid   = /^(approved|paid|pago)$/i.test(String(row.paymentStatus ?? row.pagamento ?? ""));
@@ -1567,7 +1581,7 @@ export default function AccountPage() {
                               <Button
                                 size="small"
                                 variant="contained"
-                                className="xn-btnPrimary"
+                                className="xn-btnPrimary btn-generate-pix"
                                 disabled={loadingPixId === rowLoadingPixId}
                                 onClick={(e) => { e.stopPropagation(); handleGeneratePix(row); }}
                               >

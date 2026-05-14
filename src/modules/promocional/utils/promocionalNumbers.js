@@ -11,7 +11,7 @@ export function formatPromocionalNumber(n) {
 }
 
 /**
- * Normaliza status vindos da API para um dos quatro estados da UI.
+ * Normaliza status vindos da API para os estados da UI.
  * Evita que reservas/pagamento pendente apareçam como "disponível".
  */
 export function normalizePromocionalNumberStatus(status) {
@@ -41,6 +41,10 @@ export function normalizePromocionalNumberStatus(status) {
 }
 
 export function isPromocionalNumberAvailable(item) {
+  if (typeof item === "object" && item !== null && (item.reserved || item.unavailable)) {
+    return false;
+  }
+
   const status = typeof item === "object" && item !== null ? item.status : item;
   return normalizePromocionalNumberStatus(status) === "available";
 }

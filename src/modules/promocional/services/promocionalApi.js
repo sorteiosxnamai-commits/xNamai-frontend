@@ -70,15 +70,19 @@ export function getPromocionalDraws() {
   return getJSON("/promotional");
 }
 
-export function getPromocionalDraw(id) {
-  return getJSON(`/promotional/${encodePathValue(id)}`);
+export function getPromotionalDraw(drawId) {
+  return getJSON(`/api/promotional/${encodePathValue(drawId)}`);
 }
 
-export function getPromocionalNumbers(id) {
-  return getJSON(`/promotional/${encodePathValue(id)}/numbers`);
+export const getPromocionalDraw = getPromotionalDraw;
+
+export function getPromotionalNumbers(drawId) {
+  return getJSON(`/api/promotional/${encodePathValue(drawId)}/numbers`);
 }
 
-export async function reservePromocionalNumbers(drawId, payload) {
+export const getPromocionalNumbers = getPromotionalNumbers;
+
+export async function reservePromotionalNumbers(drawId, payload) {
   if (!drawId) {
     throw new Error("Sorteio promocional não encontrado.");
   }
@@ -106,31 +110,36 @@ export async function reservePromocionalNumbers(drawId, payload) {
   });
 }
 
-export const reservePromotionalNumbers = reservePromocionalNumbers;
+export const reservePromocionalNumbers = reservePromotionalNumbers;
 export const reserveNumbers = reservePromotionalNumbers;
 
-export async function generatePromocionalPix(drawId, reservationId) {
-  if (!drawId || !reservationId) {
+export async function generatePromotionalPix(reservationId) {
+  if (!reservationId) {
     throw new Error("Dados da reserva promocional incompletos para gerar PIX.");
   }
 
   const data = await apiPost(
-    `/api/promotional/${encodePathValue(drawId)}/reservations/${encodePathValue(reservationId)}/pix`,
+    `/api/promotional/reservations/${encodePathValue(reservationId)}/pix`,
     {}
   );
+  const source = data?.payment || data?.pix || data?.data?.payment || data?.data?.pix || data?.data || data || {};
 
   return {
     ...data,
-    paymentId: data.paymentId || data.payment_id || data.id,
-    payment_id: data.payment_id || data.paymentId || data.id,
-    qr_code: data.qr_code || data.copy_paste_code || data.copy_paste || data.copy,
-    copy_paste_code: data.copy_paste_code || data.qr_code || data.copy_paste || data.copy,
-    qr_code_base64: data.qr_code_base64,
-    ticket_url: data.ticket_url,
-    amount_cents: data.amount_cents ?? data.amountCents,
-    amount: data.amount,
-    status: data.status || data.payment_status || "pending",
+    paymentId: source.paymentId || source.payment_id || source.id || data.paymentId || data.payment_id || data.id,
+    payment_id: source.payment_id || source.paymentId || source.id || data.payment_id || data.paymentId || data.id,
+    qr_code: source.qr_code || source.pix_qr_code || source.copy_paste_code || source.copy_paste || source.copy || data.qr_code,
+    copy_paste_code: source.copy_paste_code || source.qr_code || source.pix_qr_code || source.copy_paste || source.copy || data.copy_paste_code || data.qr_code,
+    qr_code_base64: source.qr_code_base64 || source.pix_qr_code_base64 || data.qr_code_base64,
+    ticket_url: source.ticket_url || source.pix_ticket_url || data.ticket_url,
+    amount_cents: source.amount_cents ?? source.amountCents ?? data.amount_cents ?? data.amountCents,
+    amount: source.amount ?? data.amount,
+    status: source.status || source.payment_status || data.status || data.payment_status || "pending",
   };
+}
+
+export async function generatePromocionalPix(drawIdOrReservationId, reservationId) {
+  return generatePromotionalPix(reservationId || drawIdOrReservationId);
 }
 
 export async function getMyPromocionalReservations() {

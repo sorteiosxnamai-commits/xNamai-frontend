@@ -65,29 +65,51 @@ function getReservationFromPayload(payload, fallbackDrawId) {
       source?.amountCents ??
       payload?.amount_cents ??
       payload?.amountCents,
+    numbers: source?.numbers || source?.selected_numbers || payload?.numbers || payload?.selected_numbers || [],
   };
 }
 
 function normalizePixPayload(payload) {
-  const source = payload?.payment || payload?.pix || payload?.data || payload || {};
+  const source =
+    payload?.payment ||
+    payload?.pix ||
+    payload?.data?.payment ||
+    payload?.data?.pix ||
+    payload?.data ||
+    payload ||
+    {};
   return {
     ...source,
     paymentId: source.paymentId || source.payment_id || source.id || payload?.paymentId || payload?.id,
     payment_id: source.payment_id || source.paymentId || source.id || payload?.payment_id || payload?.paymentId || payload?.id,
-    qr_code: source.qr_code || source.copy_paste_code || source.copy_paste || source.copy || payload?.qr_code,
+    qr_code:
+      source.qr_code ||
+      source.pix_qr_code ||
+      source.copy_paste_code ||
+      source.copy_paste ||
+      source.copy ||
+      payload?.qr_code ||
+      payload?.pix_qr_code,
     copy_paste_code:
       source.copy_paste_code ||
       source.qr_code ||
+      source.pix_qr_code ||
       source.copy_paste ||
       source.copy ||
       payload?.copy_paste_code ||
-      payload?.qr_code,
-    qr_code_base64: source.qr_code_base64 || payload?.qr_code_base64,
-    ticket_url: source.ticket_url || payload?.ticket_url,
+      payload?.qr_code ||
+      payload?.pix_qr_code,
+    qr_code_base64: source.qr_code_base64 || source.pix_qr_code_base64 || payload?.qr_code_base64 || payload?.pix_qr_code_base64,
+    ticket_url: source.ticket_url || source.pix_ticket_url || payload?.ticket_url || payload?.pix_ticket_url,
     amount_cents: source.amount_cents ?? source.amountCents ?? payload?.amount_cents ?? payload?.amountCents,
     amount: source.amount ?? payload?.amount,
     status: source.status || source.payment_status || payload?.status || payload?.payment_status || "pending",
   };
+}
+
+function getComparableNumber(value) {
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) ? String(parsed) : String(value);
 }
 
 export default function PromocionalDrawPage() {
@@ -107,8 +129,38 @@ export default function PromocionalDrawPage() {
   const [pixAmount, setPixAmount] = React.useState(null);
   const [pixMsg, setPixMsg] = React.useState("");
   const [pendingReservation, setPendingReservation] = React.useState(null);
+  const localReservedNumbersRef = React.useRef(new Map());
 
   const maxNumbers = Number.parseInt(draw?.max_numbers_per_user ?? draw?.maxNumbersPerUser ?? 0, 10);
+
+  const applyLocalReservedNumbers = React.useCallback((items) => {
+    const now = Date.now();
+
+    localReservedNumbersRef.current.forEach((reservation, key) => {
+      if (reservation.expiresAt <= now) {
+        localReservedNumbersRef.current.delete(key);
+      }
+    });
+
+    if (!localReservedNumbersRef.current.size) return items;
+
+    return items.map((item) => {
+      const rawNumber = getNumberValue(item);
+      const reservation = localReservedNumbersRef.current.get(getComparableNumber(rawNumber));
+
+      if (!reservation || !isPromocionalNumberAvailable(item)) {
+        return item;
+      }
+
+      return {
+        ...(typeof item === "object" && item !== null ? item : { number: rawNumber }),
+        status: "reserved",
+        reserved: true,
+        unavailable: true,
+        reservation_id: reservation.reservationId,
+      };
+    });
+  }, []);
 
   function saveReturnRouteAndGoLogin() {
     localStorage.setItem("xnamai_after_login", window.location.pathname + window.location.search);
@@ -125,23 +177,22 @@ export default function PromocionalDrawPage() {
     loadDraw();
   }
 
-  async function openPromotionalPix(reservation) {
+  async function openPromotionalPix(reservation, pixPayload = null) {
     if (!reservation?.reservation_id && !reservation?.reservationId) {
       setError("Reserva promocional não encontrada para gerar PIX.");
       return;
     }
 
     const reservationId = reservation.reservation_id || reservation.reservationId;
-    const drawId = reservation.draw_id || reservation.drawId || id;
 
     try {
       setPixOpen(true);
       setPixLoading(true);
       setPixData(null);
       setPixAmount(null);
-      setPixMsg("Gerando PIX promocional...");
+      setPixMsg(pixPayload ? "" : "Gerando PIX promocional...");
 
-      const payload = await generatePromocionalPix(drawId, reservationId);
+      const payload = pixPayload || (await generatePromocionalPix(reservationId));
       const normalized = normalizePixPayload(payload);
 
       setPixData(normalized);
@@ -153,8 +204,15 @@ export default function PromocionalDrawPage() {
         payload?.amountCents ??
         reservation?.amount_cents ??
         reservation?.amountCents;
+      const amount = Number(normalized?.amount ?? payload?.amount);
 
-      setPixAmount(Number.isFinite(Number(cents)) ? Number(cents) / 100 : null);
+      setPixAmount(
+        Number.isFinite(Number(cents))
+          ? Number(cents) / 100
+          : Number.isFinite(amount)
+            ? amount
+            : null
+      );
       setPixMsg("");
     } catch (err) {
       console.error("[PROMOCIONAL_PIX_ERROR]", err);
@@ -182,13 +240,13 @@ export default function PromocionalDrawPage() {
       const drawData = drawPayload?.draw || drawPayload?.data || drawPayload;
       const loadedNumbers = asList(numbersPayload);
       setDraw(drawData);
-      setNumbers(loadedNumbers.length ? loadedNumbers : buildNumbersFromRange(drawData));
+      setNumbers(applyLocalReservedNumbers(loadedNumbers.length ? loadedNumbers : buildNumbersFromRange(drawData)));
     } catch (err) {
       setError(err?.message || "Nao foi possivel carregar este sorteio promocional.");
     } finally {
       setLoading(false);
     }
-  }, [id]);
+  }, [applyLocalReservedNumbers, id]);
 
   React.useEffect(() => {
     loadDraw();
@@ -269,12 +327,12 @@ export default function PromocionalDrawPage() {
       setMessage("");
       setPendingReservation(null);
 
-      const payload = await reservePromocionalNumbers(id, {
-        numbers: numbersToReserve,
-        buyer_name: user.name || user.fullName || user.nome || user.displayName || "",
-        buyer_email: user.email || "",
-        buyer_phone: user.phone || user.telefone || user.whatsapp || "",
-      });
+      const payload = await reservePromocionalNumbers(id, numbersToReserve);
+
+      if (!payload || payload?.ok === false) {
+        throw new Error(payload?.message || "Erro ao processar número promocional.");
+      }
+
       const reservation = getReservationFromPayload(payload, id);
 
       if (!reservation?.reservation_id && !reservation?.reservationId) {
@@ -282,11 +340,40 @@ export default function PromocionalDrawPage() {
       }
 
       setPendingReservation(reservation);
+      const reservedNumbers = reservation?.numbers?.length ? reservation.numbers : numbersToReserve;
+      const reservedKeys = new Set(reservedNumbers.map(getComparableNumber));
+      const localReservation = {
+        reservationId: reservation.reservation_id || reservation.reservationId,
+        expiresAt: Date.now() + 30 * 60 * 1000,
+      };
+
+      reservedKeys.forEach((number) => {
+        localReservedNumbersRef.current.set(number, localReservation);
+      });
+
+      setNumbers((currentNumbers) =>
+        currentNumbers.map((item) => {
+          const rawNumber = getNumberValue(item);
+
+          if (!reservedKeys.has(getComparableNumber(rawNumber))) {
+            return item;
+          }
+
+          return {
+            ...(typeof item === "object" && item !== null ? item : { number: rawNumber }),
+            status: "reserved",
+            reserved: true,
+            unavailable: true,
+            reservation_id: reservation.reservation_id || reservation.reservationId,
+          };
+        })
+      );
       setSelectedNumbers([]);
 
-      await loadDraw();
+      const pixPayload = payload?.pix || payload?.data?.pix || null;
+      await openPromotionalPix(reservation, pixPayload);
 
-      await openPromotionalPix(reservation);
+      await loadDraw();
     } catch (err) {
       console.error("[PROMOCIONAL_FRONT_ERROR]", err);
 

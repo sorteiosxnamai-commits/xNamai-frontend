@@ -13,10 +13,17 @@ function getNumberValue(item) {
 }
 
 function getNumberStatus(item) {
-  const rawStatus = typeof item === "object" && item !== null ? item.status : "available";
+  const rawStatus =
+    typeof item === "object" && item !== null
+      ? item.reserved
+        ? "reserved"
+        : item.unavailable
+          ? "unavailable"
+          : item.status
+      : "available";
   const normalized = normalizePromocionalNumberStatus(rawStatus);
 
-  if (normalized === "sold" || normalized === "blocked") {
+  if (normalized === "sold" || normalized === "blocked" || normalized === "unavailable") {
     return "unavailable";
   }
 
