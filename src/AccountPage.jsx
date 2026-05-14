@@ -328,6 +328,7 @@ function normalizePromocionalParticipationRows(participations) {
     return {
       id: item?.id || item?._id || `promocional-${index}`,
       type: "promotional",
+      source: "promotional",
       typeLabel: "Promocional",
       drawId,
       reservationId,
@@ -349,7 +350,20 @@ function normalizePromocionalParticipationRows(participations) {
       whenMs,
       amount_cents: Number.isFinite(totalCents) ? totalCents : 0,
       payment_id: item?.payment_id || item?.paymentId || payment?.id || payment?.payment_id || null,
-      canPay: !/^(paid|approved|pago)$/i.test(String(paymentStatus || "")),
+      can_pay:
+        ["pending", "waiting", "created"].includes(
+          String(paymentStatus || "pending").toLowerCase()
+        ) &&
+        ["reserved", "pending", "active"].includes(
+          String(reservationStatus || "reserved").toLowerCase()
+        ),
+      canPay:
+        ["pending", "waiting", "created"].includes(
+          String(paymentStatus || "pending").toLowerCase()
+        ) &&
+        ["reserved", "pending", "active"].includes(
+          String(reservationStatus || "reserved").toLowerCase()
+        ),
       raw: item,
     };
   });
@@ -457,6 +471,7 @@ function normalizeUnifiedReservationRows(payload, drawsMap = new Map()) {
     return {
       id: item?.id || item?._id || `${isPromotional ? "promotional" : "normal"}-${index}`,
       type: isPromotional ? "promotional" : "normal",
+      source: isPromotional ? "promotional" : "normal",
       typeLabel: isPromotional ? "Promocional" : "Principal",
       drawId,
       reservationId,
@@ -480,7 +495,14 @@ function normalizeUnifiedReservationRows(payload, drawsMap = new Map()) {
       whenMs,
       amount_cents: Number.isFinite(amountCents) ? amountCents : 0,
       payment_id: item?.payment_id || item?.paymentId || payment?.id || payment?.payment_id || null,
-      canPay: !/^(paid|approved|pago)$/i.test(String(paymentStatus || "")),
+      can_pay: isPromotional
+        ? ["pending", "waiting", "created"].includes(String(paymentStatus || "pending").toLowerCase()) &&
+          ["reserved", "pending", "active"].includes(String(status || "reserved").toLowerCase())
+        : !/^(paid|approved|pago)$/i.test(String(paymentStatus || "")),
+      canPay: isPromotional
+        ? ["pending", "waiting", "created"].includes(String(paymentStatus || "pending").toLowerCase()) &&
+          ["reserved", "pending", "active"].includes(String(status || "reserved").toLowerCase())
+        : !/^(paid|approved|pago)$/i.test(String(paymentStatus || "")),
       raw: item,
     };
   });
@@ -676,15 +698,17 @@ export default function AccountPage() {
     );
 
     try {
-      if (row?.type === "promotional") {
+      if (row?.source === "promotional" || row?.type === "promotional") {
         const drawId = row?.drawId ?? row?.draw_id;
         const reservationId = row?.reservationId || row?.reservation_id;
 
-        if (!drawId || !reservationId) {
+        if (!reservationId) {
           throw new Error("Dados da reserva promocional incompletos para gerar PIX.");
         }
 
-        const created = await generatePromocionalPix(drawId, reservationId);
+        const created = drawId
+          ? await generatePromocionalPix(drawId, reservationId)
+          : await generatePromocionalPix(reservationId);
         console.log("[PIX_SUCCESS_PROMOTIONAL]", created);
 
         const pix = normalizePixData(created);
@@ -1472,11 +1496,20 @@ export default function AccountPage() {
                         row?.id ||
                         `${row?.type || "main"}-${row?.drawId || row?.draw_id || row?.sorteio}`;
                       const paymentStatus = String(row.paymentStatus ?? row.payment_status ?? row.pagamento ?? "").toLowerCase();
-                      const canGeneratePix = row.type === "promotional"
-                        ? !/^(paid|approved|pago)$/i.test(paymentStatus)
+                      const isPromotionalRow = row.source === "promotional" || row.type === "promotional";
+                      const reservationStatus = String(row.status ?? row.resultado ?? "reserved").toLowerCase();
+                      const canGeneratePix = isPromotionalRow
+                        ? (
+                            row.can_pay === true ||
+                            row.canPay === true ||
+                            (
+                              ["pending", "waiting", "created"].includes(paymentStatus || "pending") &&
+                              ["reserved", "pending", "active"].includes(reservationStatus || "reserved")
+                            )
+                          )
                         : row.canPay === true ||
                           /pendente|pending|await|aguard|open|ativo|active|reserved|reservado/i.test(paymentStatus);
-                      const clickable = row.type !== "promotional" && canGeneratePix;
+                      const clickable = !isPromotionalRow && canGeneratePix;
 
                       const isPaid   = /^(approved|paid|pago)$/i.test(String(row.paymentStatus ?? row.pagamento ?? ""));
                       const isClosed = /(closed|fechado|sorteado)/i.test(String(row.resultado || ""));
@@ -1497,17 +1530,17 @@ export default function AccountPage() {
                           sx={{ cursor: clickable ? "pointer" : "default" }}
                         >
                           <TableCell sx={{ width: 100, fontWeight: 700 }}>
-                            {row.type === "promotional" ? String(row.title || "Promocional") : String(row.sorteio || "--")}
+                            {isPromotionalRow ? String(row.title || "Promocional") : String(row.sorteio || "--")}
                           </TableCell>
                           <TableCell sx={{ minWidth: 160, fontWeight: 700 }}>
-                            {row.type === "promotional"
+                            {isPromotionalRow
                               ? (row.numbers || "--")
                               : row.numbers_label || (Array.isArray(row.numeros) ? row.numeros.map(pad2).join(", ") : (row.numero != null ? pad2(row.numero) : "--"))}
                           </TableCell>
                           <TableCell sx={{ width: 140 }}>{row.dia}</TableCell>
                           <TableCell><PayChip status={row.pagamento} /></TableCell>
                           <TableCell>
-                            {row.type === "promotional" ? (
+                            {isPromotionalRow ? (
                               <PlainStatusChip status={row.resultado} />
                             ) : (
                               <ResultChip result={row.resultado} />

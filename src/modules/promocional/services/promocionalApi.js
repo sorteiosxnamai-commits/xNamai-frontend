@@ -97,17 +97,27 @@ export async function reservePromotionalNumbers(drawId, numbers) {
 }
 
 export const reservePromocionalNumbers = reservePromotionalNumbers;
+export const reserveNumbers = reservePromotionalNumbers;
 
-export async function generatePromocionalPix(drawId, reservationId) {
-  if (!drawId || !reservationId) {
+export async function generatePromocionalPix(drawIdOrReservationId, reservationId) {
+  const drawId = reservationId ? drawIdOrReservationId : null;
+  const cleanReservationId = reservationId || drawIdOrReservationId;
+
+  if (!cleanReservationId) {
     throw new Error("Dados da reserva promocional incompletos para gerar PIX.");
   }
 
-  const response = await fetch(
-    apiJoin(
-      `/promotional/${encodePathValue(drawId)}/reservations/${encodePathValue(reservationId)}/pix`
-    ),
-    {
+  const paths = drawId
+    ? [
+        `/promotional/${encodePathValue(drawId)}/reservations/${encodePathValue(cleanReservationId)}/pix`,
+        `/promotional/reservations/${encodePathValue(cleanReservationId)}/pix`,
+      ]
+    : [`/promotional/reservations/${encodePathValue(cleanReservationId)}/pix`];
+
+  let lastError = null;
+
+  for (const path of paths) {
+    const response = await fetch(apiJoin(path), {
       method: "POST",
       headers: {
         Accept: "application/json",
@@ -115,35 +125,38 @@ export async function generatePromocionalPix(drawId, reservationId) {
         ...authHeaders(),
       },
       credentials: "omit",
-    }
-  );
-  const data = await response.json().catch(() => ({}));
-
-  if (!response.ok || data?.ok === false) {
-    console.error("[PROMOTIONAL_PIX_RESPONSE_ERROR]", {
-      status: response.status,
-      data,
     });
+    const data = await response.json().catch(() => ({}));
 
-    const error = new Error(data?.error || data?.message || "Erro ao gerar PIX promocional.");
-    error.status = response.status;
-    error.data = data;
-    error.responseBody = data;
-    throw error;
+    if (!response.ok || data?.ok === false) {
+      console.error("[PROMOTIONAL_PIX_RESPONSE_ERROR]", {
+        status: response.status,
+        data,
+      });
+
+      const error = new Error(data?.error || data?.message || "Erro ao gerar PIX promocional.");
+      error.status = response.status;
+      error.data = data;
+      error.responseBody = data;
+      lastError = error;
+      continue;
+    }
+
+    return {
+      ...data,
+      paymentId: data.paymentId || data.payment_id || data.id,
+      payment_id: data.payment_id || data.paymentId || data.id,
+      qr_code: data.qr_code || data.copy_paste_code || data.copy_paste || data.copy,
+      copy_paste_code: data.copy_paste_code || data.qr_code || data.copy_paste || data.copy,
+      qr_code_base64: data.qr_code_base64,
+      ticket_url: data.ticket_url,
+      amount_cents: data.amount_cents ?? data.amountCents,
+      amount: data.amount,
+      status: data.status || data.payment_status || "pending",
+    };
   }
 
-  return {
-    ...data,
-    paymentId: data.paymentId || data.payment_id || data.id,
-    payment_id: data.payment_id || data.paymentId || data.id,
-    qr_code: data.qr_code || data.copy_paste_code || data.copy_paste || data.copy,
-    copy_paste_code: data.copy_paste_code || data.qr_code || data.copy_paste || data.copy,
-    qr_code_base64: data.qr_code_base64,
-    ticket_url: data.ticket_url,
-    amount_cents: data.amount_cents ?? data.amountCents,
-    amount: data.amount,
-    status: data.status || data.payment_status || "pending",
-  };
+  throw lastError || new Error("Erro ao gerar PIX promocional.");
 }
 
 export async function getMyPromocionalReservations() {

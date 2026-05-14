@@ -154,13 +154,22 @@ export default function PromocionalDrawPage() {
     loadDraw();
   }
 
-  async function openPixForPromocionalReservation(reservation) {
-    const drawId = reservation?.draw_id || reservation?.drawId || draw?.id || draw?.draw_id || draw?._id || id;
-    const reservationId = reservation?.id || reservation?.reservation_id || reservation?.reservationId;
+  async function openPromotionalPixFromReservation(reservationPayload) {
+    const reservationId =
+      reservationPayload?.reservation_id ||
+      reservationPayload?.reservation?.id ||
+      reservationPayload?.id ||
+      reservationPayload?.reservationId;
+    const drawId =
+      reservationPayload?.draw_id ||
+      reservationPayload?.drawId ||
+      draw?.id ||
+      draw?.draw_id ||
+      draw?._id ||
+      id;
 
-    if (!drawId || !reservationId) {
-      setError("Reserva promocional criada, mas não foi possível abrir o PIX agora. Tente pela área do cliente.");
-      return;
+    if (!reservationId) {
+      throw new Error("Reserva promocional criada, mas o ID da reserva não foi retornado.");
     }
 
     try {
@@ -170,7 +179,16 @@ export default function PromocionalDrawPage() {
       setPixMsg("Gerando PIX promocional...");
 
       const pixPayload = await generatePromocionalPix(drawId, reservationId);
-      const normalizedPix = normalizePixPayload(pixPayload);
+      const normalizedPix = normalizePixPayload({
+        ...pixPayload,
+        reservation_id: reservationId,
+        draw_id: drawId,
+        numbers: selectedNumbers,
+        amount_cents:
+          pixPayload?.amount_cents ||
+          reservationPayload?.amount_cents ||
+          reservationPayload?.reservation?.amount_cents,
+      });
 
       setPixData({
         ...normalizedPix,
@@ -178,15 +196,15 @@ export default function PromocionalDrawPage() {
         reservationId,
         type: "promotional",
       });
-      setPixAmount(getPixAmount(pixPayload, reservation));
+      setPixAmount(getPixAmount(pixPayload, reservationPayload));
       setPixMsg("");
+      return normalizedPix;
     } catch (error) {
       console.error("[PROMOCIONAL_PIX_OPEN_ERROR]", error);
       setPixOpen(false);
       setPixData(null);
       setPixMsg("");
-      setMessage("Número reservado por 30 minutos. Não foi possível abrir o PIX agora, mas você pode gerar o PIX pela área do cliente.");
-      await loadDraw();
+      throw error;
     } finally {
       setPixLoading(false);
     }
@@ -249,7 +267,7 @@ export default function PromocionalDrawPage() {
     });
   }
 
-  async function handleReservePromocionalNumbers() {
+  async function handleReserve() {
     if (authLoading) return;
     const drawId = draw?.id || draw?.draw_id || draw?._id || id;
 
@@ -297,7 +315,15 @@ export default function PromocionalDrawPage() {
       setSelectedNumbers([]);
       setMessage("Número reservado por 30 minutos. Conclua o pagamento via PIX ou gere novamente na área do cliente.");
       await loadDraw();
-      await openPixForPromocionalReservation(reservation);
+
+      try {
+        await openPromotionalPixFromReservation(reservation);
+        setMessage("Reserva criada. O PIX foi gerado e seus números ficam reservados por 30 minutos.");
+      } catch (pixError) {
+        console.error("[PROMOCIONAL_PIX_ERROR]", pixError);
+        setMessage("Reserva criada. Não foi possível abrir o PIX agora, mas seus números ficam reservados por 30 minutos e podem ser pagos na área Minha Conta.");
+        await loadDraw();
+      }
     } catch (error) {
       console.error("[PROMOCIONAL_FRONT_ERROR]", {
         message: error?.message,
@@ -367,10 +393,10 @@ export default function PromocionalDrawPage() {
               <button
                 type="button"
                 className="promocional-primary-button promocional-primary-button--wide"
-                onClick={handleReservePromocionalNumbers}
+                onClick={handleReserve}
                 disabled={saving || authLoading || !selectedNumbers.length}
               >
-                {saving ? "Reservando..." : "Reservar / continuar"}
+                {saving ? "Processando..." : "Reservar / continuar"}
               </button>
             </section>
           </>
