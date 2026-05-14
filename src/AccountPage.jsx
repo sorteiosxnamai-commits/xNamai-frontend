@@ -288,7 +288,7 @@ function normalizePromocionalParticipationRows(participations) {
       item?.paymentStatus ??
       payment?.status ??
       payment?.payment_status ??
-      item?.payment ??
+      (typeof item?.payment === "string" ? item.payment : undefined) ??
       "pending";
     const reservationStatus =
       item?.status ??
@@ -321,6 +321,10 @@ function normalizePromocionalParticipationRows(participations) {
     const title =
       item?.draw_title ||
       item?.drawTitle ||
+      item?.title ||
+      item?.name ||
+      item?.promotional_title ||
+      item?.promotionalTitle ||
       draw?.title ||
       draw?.name ||
       "Promocional";
@@ -393,6 +397,7 @@ function normalizeUnifiedReservationRows(payload, drawsMap = new Map()) {
     const payment = item?.payment || {};
     const typeRaw = String(
       item?.type ||
+        item?.source ||
         item?.reservation_type ||
         item?.draw_type ||
         item?.kind ||
@@ -455,6 +460,10 @@ function normalizeUnifiedReservationRows(payload, drawsMap = new Map()) {
     const title =
       item?.draw_title ||
       item?.drawTitle ||
+      item?.title ||
+      item?.name ||
+      item?.promotional_title ||
+      item?.promotionalTitle ||
       draw?.title ||
       draw?.name ||
       (isPromotional ? "Promocional" : (drawId != null ? String(drawId) : "--"));
@@ -702,13 +711,11 @@ export default function AccountPage() {
         const drawId = row?.drawId ?? row?.draw_id;
         const reservationId = row?.reservationId || row?.reservation_id;
 
-        if (!reservationId) {
+        if (!drawId || !reservationId) {
           throw new Error("Dados da reserva promocional incompletos para gerar PIX.");
         }
 
-        const created = drawId
-          ? await generatePromocionalPix(drawId, reservationId)
-          : await generatePromocionalPix(reservationId);
+        const created = await generatePromocionalPix(drawId, reservationId);
         console.log("[PIX_SUCCESS_PROMOTIONAL]", created);
 
         const pix = normalizePixData(created);
@@ -1120,18 +1127,27 @@ export default function AccountPage() {
           });
         }
 
-        let promotionalRows = [];
+        let promotionalRows = unifiedRows.filter((row) => row.type === "promotional");
         let promotionalLoadError = "";
-        if (unifiedRows.length) {
-          promotionalRows = unifiedRows.filter((row) => row.type === "promotional");
-        } else {
-          try {
-            const promotionalReservations = await getMyPromocionalReservations();
-            promotionalRows = normalizePromocionalParticipationRows(promotionalReservations);
-          } catch (error) {
-            console.error("[PROMOCIONAL_FRONT_ERROR]", error);
-            promotionalLoadError = "Não foi possível carregar participações promocionais.";
-          }
+        try {
+          const promotionalReservations = await getMyPromocionalReservations();
+          const fetchedPromotionalRows = normalizePromocionalParticipationRows(promotionalReservations);
+          const promotionalByKey = new Map();
+
+          [...promotionalRows, ...fetchedPromotionalRows].forEach((row, index) => {
+            const key =
+              row?.reservationId ||
+              row?.reservation_id ||
+              `${row?.drawId || row?.draw_id || "promotional"}-${row?.numbers || row?.numbers_label || index}`;
+            promotionalByKey.set(String(key), row);
+          });
+
+          promotionalRows = Array.from(promotionalByKey.values());
+        } catch (error) {
+          console.error("[PROMOCIONAL_FRONT_ERROR]", error);
+          promotionalLoadError = promotionalRows.length
+            ? ""
+            : "Não foi possível carregar participações promocionais.";
         }
 
         if (alive) {

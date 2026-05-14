@@ -1,4 +1,4 @@
-const PROMOCIONAL_NUMBER_STATUSES = ["available", "reserved", "sold", "blocked"];
+const PROMOCIONAL_NUMBER_STATUSES = ["available", "reserved", "sold", "blocked", "unavailable"];
 
 export function formatPromocionalNumber(n) {
   const value = Number.parseInt(n, 10);
@@ -30,7 +30,7 @@ export function normalizePromocionalNumberStatus(status) {
     "processing",
   ];
   const soldLike = ["sold", "taken", "paid", "confirmed", "approved"];
-  const blockedLike = ["blocked", "inactive", "disabled"];
+  const blockedLike = ["blocked", "inactive", "disabled", "unavailable"];
 
   if (availableLike.includes(raw)) return "available";
   if (reservedLike.includes(raw)) return "reserved";

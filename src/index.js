@@ -1,4 +1,4 @@
-// src/index.js
+
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import './index.css';
@@ -14,5 +14,4 @@ root.render(
   </React.StrictMode>
 );
 
-// Opcional: envie métricas de performance para um endpoint/console
 reportWebVitals();

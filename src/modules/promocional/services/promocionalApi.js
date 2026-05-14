@@ -39,6 +39,33 @@ async function patchJSON(path, body) {
   return contentType.includes("application/json") ? response.json() : response.text();
 }
 
+async function apiPost(path, body) {
+  const response = await fetch(apiJoin(path), {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      ...authHeaders(),
+    },
+    credentials: "omit",
+    body: JSON.stringify(body || {}),
+  });
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok || data?.ok === false) {
+    const error = new Error(
+      data?.message || data?.error || "Erro inesperado ao processar a solicitação."
+    );
+    error.status = response.status;
+    error.data = data;
+    error.response = { data };
+    error.responseBody = data;
+    throw error;
+  }
+
+  return data;
+}
+
 export function getPromocionalDraws() {
   return getJSON("/promotional");
 }
@@ -51,7 +78,7 @@ export function getPromocionalNumbers(id) {
   return getJSON(`/promotional/${encodePathValue(id)}/numbers`);
 }
 
-export async function reservePromotionalNumbers(drawId, numbers) {
+export async function reservePromocionalNumbers(drawId, payload) {
   if (!drawId) {
     throw new Error("Sorteio promocional não encontrado.");
   }
@@ -63,100 +90,47 @@ export async function reservePromotionalNumbers(drawId, numbers) {
     throw error;
   }
 
-  const selectedNumbers = Array.isArray(numbers)
-    ? numbers
-    : Array.isArray(numbers?.numbers)
-      ? numbers.numbers
+  const selectedNumbers = Array.isArray(payload)
+    ? payload
+    : Array.isArray(payload?.numbers)
+      ? payload.numbers
       : [];
 
   if (!selectedNumbers.length) {
     throw new Error("Selecione pelo menos um número promocional.");
   }
 
-  const response = await fetch(apiJoin(`/promotional/${encodePathValue(drawId)}/reservations`), {
-    method: "POST",
-    headers: {
-      Accept: "application/json",
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    credentials: "omit",
-    body: JSON.stringify({ numbers: selectedNumbers }),
+  return apiPost(`/api/promotional/${encodePathValue(drawId)}/reservations`, {
+    ...(payload && !Array.isArray(payload) ? payload : {}),
+    numbers: selectedNumbers,
   });
-  const data = await response.json().catch(() => null);
-
-  if (!response.ok || !data?.ok) {
-    const error = new Error(data?.message || data?.error || "Erro ao processar número promocional.");
-    error.status = response.status;
-    error.data = data;
-    error.responseBody = data;
-    throw error;
-  }
-
-  return data;
 }
 
-export const reservePromocionalNumbers = reservePromotionalNumbers;
+export const reservePromotionalNumbers = reservePromocionalNumbers;
 export const reserveNumbers = reservePromotionalNumbers;
 
-export async function generatePromocionalPix(drawIdOrReservationId, reservationId) {
-  const drawId = reservationId ? drawIdOrReservationId : null;
-  const cleanReservationId = reservationId || drawIdOrReservationId;
-
-  if (!cleanReservationId) {
+export async function generatePromocionalPix(drawId, reservationId) {
+  if (!drawId || !reservationId) {
     throw new Error("Dados da reserva promocional incompletos para gerar PIX.");
   }
 
-  const paths = drawId
-    ? [
-        `/promotional/${encodePathValue(drawId)}/reservations/${encodePathValue(cleanReservationId)}/pix`,
-        `/promotional/reservations/${encodePathValue(cleanReservationId)}/pix`,
-      ]
-    : [`/promotional/reservations/${encodePathValue(cleanReservationId)}/pix`];
+  const data = await apiPost(
+    `/api/promotional/${encodePathValue(drawId)}/reservations/${encodePathValue(reservationId)}/pix`,
+    {}
+  );
 
-  let lastError = null;
-
-  for (const path of paths) {
-    const response = await fetch(apiJoin(path), {
-      method: "POST",
-      headers: {
-        Accept: "application/json",
-        "Content-Type": "application/json",
-        ...authHeaders(),
-      },
-      credentials: "omit",
-    });
-    const data = await response.json().catch(() => ({}));
-
-    if (!response.ok || data?.ok === false) {
-      console.error("[PROMOTIONAL_PIX_RESPONSE_ERROR]", {
-        status: response.status,
-        data,
-      });
-
-      const error = new Error(data?.error || data?.message || "Erro ao gerar PIX promocional.");
-      error.status = response.status;
-      error.data = data;
-      error.responseBody = data;
-      lastError = error;
-      continue;
-    }
-
-    return {
-      ...data,
-      paymentId: data.paymentId || data.payment_id || data.id,
-      payment_id: data.payment_id || data.paymentId || data.id,
-      qr_code: data.qr_code || data.copy_paste_code || data.copy_paste || data.copy,
-      copy_paste_code: data.copy_paste_code || data.qr_code || data.copy_paste || data.copy,
-      qr_code_base64: data.qr_code_base64,
-      ticket_url: data.ticket_url,
-      amount_cents: data.amount_cents ?? data.amountCents,
-      amount: data.amount,
-      status: data.status || data.payment_status || "pending",
-    };
-  }
-
-  throw lastError || new Error("Erro ao gerar PIX promocional.");
+  return {
+    ...data,
+    paymentId: data.paymentId || data.payment_id || data.id,
+    payment_id: data.payment_id || data.paymentId || data.id,
+    qr_code: data.qr_code || data.copy_paste_code || data.copy_paste || data.copy,
+    copy_paste_code: data.copy_paste_code || data.qr_code || data.copy_paste || data.copy,
+    qr_code_base64: data.qr_code_base64,
+    ticket_url: data.ticket_url,
+    amount_cents: data.amount_cents ?? data.amountCents,
+    amount: data.amount,
+    status: data.status || data.payment_status || "pending",
+  };
 }
 
 export async function getMyPromocionalReservations() {
