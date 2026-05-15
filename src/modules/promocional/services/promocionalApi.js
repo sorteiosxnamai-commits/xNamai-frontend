@@ -82,12 +82,13 @@ export function getPromotionalNumbers(drawId) {
 
 export const getPromocionalNumbers = getPromotionalNumbers;
 
-export async function reservePromotionalNumbers(drawId, payload) {
+export async function checkoutPromocionalReservation(drawId, payload) {
   if (!drawId) {
     throw new Error("Sorteio promocional não encontrado.");
   }
 
   const token = getStoredToken();
+
   if (!token) {
     const error = new Error("Faça login para reservar números promocionais.");
     error.status = 401;
@@ -104,14 +105,30 @@ export async function reservePromotionalNumbers(drawId, payload) {
     throw new Error("Selecione pelo menos um número promocional.");
   }
 
-  return apiPost(`/promotional/${encodePathValue(drawId)}/reservations`, {
+  const path = `/promotional/${encodePathValue(drawId)}/checkout`;
+
+  console.warn("[PROMOCIONAL_CHECKOUT_FRONT_CALL]", {
+    path,
+    drawId,
+    numbers: selectedNumbers,
+  });
+
+  return apiPost(path, {
     ...(payload && !Array.isArray(payload) ? payload : {}),
     numbers: selectedNumbers,
   });
 }
 
-export const reservePromocionalNumbers = reservePromotionalNumbers;
-export const reserveNumbers = reservePromotionalNumbers;
+export const checkoutPromotionalReservation = checkoutPromocionalReservation;
+
+// Compatibilidade: qualquer código antigo que ainda chame reservePromotionalNumbers
+// também será forçado a usar o checkout promocional.
+export async function reservePromotionalNumbers(drawId, payload) {
+  return checkoutPromocionalReservation(drawId, payload);
+}
+
+export const reservePromocionalNumbers = checkoutPromocionalReservation;
+export const reserveNumbers = checkoutPromocionalReservation;
 
 export async function generatePromotionalPix(drawIdOrReservationId, maybeReservationId = null) {
   const hasDrawId =
@@ -130,20 +147,91 @@ export async function generatePromotionalPix(drawIdOrReservationId, maybeReserva
     ? `/promotional/${encodePathValue(drawId)}/reservations/${encodePathValue(reservationId)}/pix`
     : `/promotional/reservations/${encodePathValue(reservationId)}/pix`;
 
+  console.warn("[PROMOCIONAL_PIX_FRONT_CALL]", {
+    path,
+    drawId,
+    reservationId,
+  });
+
   const data = await apiPost(path, {});
-  const source = data?.payment || data?.pix || data?.data?.payment || data?.data?.pix || data?.data || data || {};
+
+  const source =
+    data?.payment ||
+    data?.pix ||
+    data?.data?.payment ||
+    data?.data?.pix ||
+    data?.data ||
+    data ||
+    {};
 
   return {
     ...data,
-    paymentId: source.paymentId || source.payment_id || source.id || data.paymentId || data.payment_id || data.id,
-    payment_id: source.payment_id || source.paymentId || source.id || data.payment_id || data.paymentId || data.id,
-    qr_code: source.qr_code || source.pix_qr_code || source.copy_paste_code || source.copy_paste || source.copy || data.qr_code,
-    copy_paste_code: source.copy_paste_code || source.qr_code || source.pix_qr_code || source.copy_paste || source.copy || data.copy_paste_code || data.qr_code,
-    qr_code_base64: source.qr_code_base64 || source.pix_qr_code_base64 || data.qr_code_base64,
-    ticket_url: source.ticket_url || source.pix_ticket_url || data.ticket_url,
-    amount_cents: source.amount_cents ?? source.amountCents ?? data.amount_cents ?? data.amountCents,
-    amount: source.amount ?? data.amount,
-    status: source.status || source.payment_status || data.status || data.payment_status || "pending",
+    type: "promotional",
+    source: "promotional",
+
+    paymentId:
+      source.paymentId ||
+      source.payment_id ||
+      source.id ||
+      data.paymentId ||
+      data.payment_id ||
+      data.id,
+
+    payment_id:
+      source.payment_id ||
+      source.paymentId ||
+      source.id ||
+      data.payment_id ||
+      data.paymentId ||
+      data.id,
+
+    qr_code:
+      source.qr_code ||
+      source.pix_qr_code ||
+      source.copy_paste_code ||
+      source.copy_paste ||
+      source.copy ||
+      data.qr_code ||
+      data.pix_qr_code,
+
+    copy_paste_code:
+      source.copy_paste_code ||
+      source.qr_code ||
+      source.pix_qr_code ||
+      source.copy_paste ||
+      source.copy ||
+      data.copy_paste_code ||
+      data.qr_code ||
+      data.pix_qr_code,
+
+    qr_code_base64:
+      source.qr_code_base64 ||
+      source.pix_qr_code_base64 ||
+      data.qr_code_base64 ||
+      data.pix_qr_code_base64,
+
+    ticket_url:
+      source.ticket_url ||
+      source.pix_ticket_url ||
+      data.ticket_url ||
+      data.pix_ticket_url,
+
+    amount_cents:
+      source.amount_cents ??
+      source.amountCents ??
+      data.amount_cents ??
+      data.amountCents,
+
+    amount:
+      source.amount ??
+      data.amount,
+
+    status:
+      source.status ||
+      source.payment_status ||
+      data.status ||
+      data.payment_status ||
+      "pending",
   };
 }
 

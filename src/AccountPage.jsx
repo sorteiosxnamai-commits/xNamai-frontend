@@ -721,7 +721,15 @@ export default function AccountPage() {
           throw new Error("Dados da reserva promocional incompletos para gerar PIX.");
         }
 
-        const created = await generatePromocionalPix(reservationId);
+        const drawId =
+          row?.drawId ||
+          row?.draw_id ||
+          row?.promotional_draw_id ||
+          row?.promotionalDrawId;
+
+        const created = drawId
+          ? await generatePromocionalPix(drawId, reservationId)
+          : await generatePromocionalPix(reservationId);
         console.log("[PIX_SUCCESS_PROMOTIONAL]", created);
 
         const pix = normalizePixData(created);

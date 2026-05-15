@@ -5,10 +5,10 @@ import PublicTopbar from "../../../components/PublicTopbar";
 import PixModal from "../../../PixModal";
 import PromocionalNumbersGrid from "../components/PromocionalNumbersGrid";
 import {
+  checkoutPromocionalReservation,
   generatePromocionalPix,
   getPromocionalDraw,
   getPromocionalNumbers,
-  reservePromocionalNumbers,
 } from "../services/promocionalApi";
 import { isPromocionalNumberAvailable } from "../utils/promocionalNumbers";
 
@@ -42,11 +42,12 @@ function buildNumbersFromRange(draw) {
 function getReservationFromPayload(payload, fallbackDrawId) {
   const source = payload?.reservation || payload?.data?.reservation || payload?.data || payload || {};
   const id =
-    source?.id ||
     source?.reservation_id ||
     source?.reservationId ||
     payload?.reservation_id ||
-    payload?.reservationId;
+    payload?.reservationId ||
+    source?.id ||
+    payload?.id;
   const drawId =
     source?.draw_id ||
     source?.drawId ||
@@ -333,7 +334,14 @@ export default function PromocionalDrawPage() {
       setMessage("");
       setPendingReservation(null);
 
-      const payload = await reservePromocionalNumbers(id, { numbers: numbersToReserve });
+      console.warn("[PROMOCIONAL_HANDLE_RESERVE_USING_CHECKOUT]", {
+        drawId: id,
+        numbers: numbersToReserve,
+      });
+
+      const payload = await checkoutPromocionalReservation(id, {
+        numbers: numbersToReserve,
+      });
 
       if (!payload || payload?.ok === false) {
         throw new Error(payload?.message || "Erro ao processar número promocional.");
@@ -376,8 +384,24 @@ export default function PromocionalDrawPage() {
       );
       setSelectedNumbers([]);
 
-      const pixPayload = payload?.pix || payload?.data?.pix || null;
-      await openPromotionalPix(reservation, pixPayload);
+      const pixPayload =
+        payload?.pix ||
+        payload?.payment ||
+        payload?.data?.pix ||
+        payload?.data?.payment ||
+        null;
+
+      if (pixPayload) {
+        await openPromotionalPix(reservation, pixPayload);
+      } else {
+        console.warn("[PROMOCIONAL_CHECKOUT_WITHOUT_PIX]", {
+          reservationId: reservation.reservation_id || reservation.reservationId,
+          drawId: reservation.draw_id || reservation.drawId || id,
+          pixError: payload?.pix_error || null,
+        });
+
+        await openPromotionalPix(reservation, null);
+      }
 
       await loadDraw();
     } catch (err) {
