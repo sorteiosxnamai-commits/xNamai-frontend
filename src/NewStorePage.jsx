@@ -123,20 +123,31 @@ function getAuthToken() {
     return "";
   }
 }
-async function reserveNumbers(numbers) {
+async function reserveNumbers(numbers, drawId) {
   const token = getAuthToken();
   const headers = { "Content-Type": "application/json" };
+
   if (token) headers.Authorization = `Bearer ${token}`;
+
+  const body = {
+    numbers,
+  };
+
+  if (drawId != null && Number.isFinite(Number(drawId))) {
+    body.draw_id = Number(drawId);
+  }
 
   const r = await fetch(`${API_BASE}/api/reservations`, {
     method: "POST",
     headers,
     credentials: "include",
-    body: JSON.stringify({ numbers }),
+    cache: "no-store",
+    body: JSON.stringify(body),
   });
 
+  const j = await r.json().catch(() => ({}));
+
   if (r.status === 409) {
-    const j = await r.json().catch(() => ({}));
     const c = j?.conflicts || j?.n || [];
     throw new Error(
       `Alguns números ficaram indisponíveis: ${
@@ -144,11 +155,12 @@ async function reserveNumbers(numbers) {
       }`
     );
   }
+
   if (!r.ok) {
-    const j = await r.json().catch(() => ({}));
-    throw new Error(j?.error || "Falha ao reservar");
+    throw new Error(j?.message || j?.error || "Falha ao reservar");
   }
-  return r.json(); // { reservationId, drawId, expiresAt, numbers }
+
+  return j;
 }
 
 // Checagem do limite no backend (evita preflight; re-tenta com Authorization se 401)
@@ -370,7 +382,17 @@ export default function NewStorePage({
   // Polling leve de /api/numbers (sem Content-Type p/ não gerar preflight)
   const reloadSrvNumbers = React.useCallback(async () => {
     try {
-      const res = await fetch(`${API_BASE}/api/numbers`, {
+      const qs = new URLSearchParams();
+
+      if (currentDrawId != null && Number.isFinite(Number(currentDrawId))) {
+        qs.set("draw_id", String(currentDrawId));
+      }
+
+      const numbersUrl = qs.toString()
+        ? `${API_BASE}/api/numbers?${qs.toString()}`
+        : `${API_BASE}/api/numbers`;
+
+      const res = await fetch(numbersUrl, {
         credentials: "include",
         cache: "no-store",
       });
@@ -423,7 +445,7 @@ export default function NewStorePage({
     } catch {
       /* silencioso */
     }
-  }, []);
+  }, [currentDrawId]);
 
   React.useEffect(() => {
     let alive = true;
@@ -537,7 +559,12 @@ export default function NewStorePage({
     setPixApproved(false);
 
     try {
-      const { reservationId } = await reserveNumbers(selecionados);
+      const { reservationId } = await reserveNumbers(selecionados, currentDrawId);
+
+      // Atualiza a grade imediatamente após reservar.
+      // Assim os números ficam amarelos sem depender do polling ou do refresh.
+      await reloadSrvNumbers();
+
       const data = await createPixPayment({
         orderId: String(Date.now()),
         amount,
@@ -552,6 +579,8 @@ export default function NewStorePage({
         max: old.max,
       }));
     } catch (e) {
+      await reloadSrvNumbers();
+
       alert(e.message || "Falha ao gerar PIX");
       setPixOpen(false);
     } finally {
