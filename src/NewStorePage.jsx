@@ -746,8 +746,7 @@ export default function NewStorePage({
                       fontSize: { xs: 31, sm: 36, md: 48 },
                     }}
                   >
-                    Bem-vindos ao Sorteio da
-                    <br />
+                    Bem-vindo aos Sorteios da{" "}
                     <Box
                       component="span"
                       sx={{
@@ -767,7 +766,7 @@ export default function NewStorePage({
                       lineHeight: 1.35,
                     }}
                   >
-                    “Participe, concorra e ainda receba 100% do valor de volta.”
+                    Participe, concorra e ainda receba 50% do valor de volta
                   </Typography>
 
                   <Typography
@@ -779,16 +778,16 @@ export default function NewStorePage({
                       lineHeight: 1.65,
                     }}
                   >
-                    A xNaMai apresenta o único sorteio em que você nunca sai perdendo. Ao
-                    participar, você garante uma vaga na disputa por{" "}
-                    <strong>R$ 5.000 em créditos</strong>, e ainda transforma o valor da sua
-                    participação em um Cartão Presente Digital, válido para compras em todo o
-                    site.
+                    A xNaMai apresenta o sorteio em que você nunca sai perdendo. Ao participar,
+                    você garante uma vaga na disputa por um item premium e ainda transforma parte
+                    do valor da sua participação em um Cartão Presente Digital, válido para
+                    compras no site da xNaMai, exceto em itens promocionais.
                   </Typography>
 
                   <Typography variant="body2" sx={{ color: "rgba(11,27,51,0.60)", fontSize: 12.8, lineHeight: 1.5 }}>
-                    Sorteio válido até o preenchimento total da tabela. Baseado no resultado
-                    oficial da Loteria Federal (Caixa Econômica Federal).
+                    Sorteio válido até o preenchimento total da tabela. Resultado baseado no
+                    primeiro resultado oficial da Lotomania após todos os números serem
+                    reservados.
                   </Typography>
                 </Stack>
 
@@ -1023,19 +1022,11 @@ export default function NewStorePage({
                 </Box>
             </Box>
 
-            {/* >>>>> LINHA INFERIOR (apenas texto adicionado) */}
             <Box sx={{ mt: 2.5, textAlign: "center" }}>
-              {(() => {
-                const d = new Date();
-                d.setDate(d.getDate() + 7);
-                const dia = String(d.getDate()).padStart(2, "0");
-                return (
-                  <Typography variant="subtitle1" sx={{ opacity: 0.95, fontWeight: 800, color: "rgba(11,27,51,0.82)" }}>
-                    📅 Utilizaremos o sorteio do dia <strong>{dia}</strong> ou o
-                    primeiro sorteio da <strong>Loteria Federal</strong> após a tabela fechada.
-                  </Typography>
-                );
-              })()}
+              <Typography variant="subtitle1" sx={{ opacity: 0.95, fontWeight: 800, color: "rgba(11,27,51,0.82)" }}>
+                Resultado baseado no primeiro resultado oficial da Lotomania após todos os
+                números serem reservados.
+              </Typography>
             </Box>
           </Paper>
           {/* === FIM CARTELA === */}
@@ -1079,7 +1070,7 @@ export default function NewStorePage({
                 <ReplayRoundedIcon sx={{ color: "primary.main" }} />
                 <Box>
                   <Typography sx={{ fontWeight: 900, lineHeight: 1.1 }}>
-                    100% do valor de volta
+                    50% do valor de volta
                   </Typography>
                   <Typography variant="body2" sx={{ color: "rgba(11,27,51,0.62)" }}>
                     Em cartão presente digital
@@ -1100,7 +1091,7 @@ export default function NewStorePage({
                     Transparência total
                   </Typography>
                   <Typography variant="body2" sx={{ color: "rgba(11,27,51,0.62)" }}>
-                    Resultado via Loteria Federal
+                    Resultado via Lotomania (Caixa)
                   </Typography>
                 </Box>
               </Stack>
@@ -1136,34 +1127,34 @@ export default function NewStorePage({
                   textShadow: "0 0 12px rgba(103,194,58,0.18)",
                 }}
               >
-               Como Funciona Seu Cartão Presente Digital
+               Como funciona seu Cartão Presente Digital
               </Typography>
             </Box>
               <Typography variant="body1">
-      Cada participação que você faz se transforma em crédito no seu Cartão Presente Digital, acumulando automaticamente o valor investido.
-      A validade do saldo é de 6 meses, sendo renovada a cada nova participação.
-    </Typography>
-      <Typography variant="body1">
-      • Saldo acumulativo em um único cartão
-    </Typography>
-
-    <Typography variant="body1">
-      • Validade renovada automaticamente
-    </Typography>
-
-    <Typography variant="body1">
-              • Uso exclusivo no site da xNaMai Sorteios
-    </Typography>
-
-    <Typography variant="body1">
-      • Código pessoal e intransferível
-    </Typography>
-    <Typography variant="body1">
-      • Crédito perfeito para planejar a compra do seu próximo relógio
-    </Typography>
-    <Typography variant="body1">
-      <strong>Dica:</strong> É a maneira mais inteligente de participar, enquanto concorre, você acumula crédito para usar quando quiser.
-    </Typography>
+                Cada participação se transforma em crédito no seu Cartão Presente Digital,
+                acumulando automaticamente parte do valor investido. A validade do saldo é de 3
+                meses e é renovada a cada nova participação.
+              </Typography>
+              <Typography variant="body1">
+                • Saldo acumulativo em um único cartão
+              </Typography>
+              <Typography variant="body1">
+                • Validade renovada automaticamente a cada nova participação
+              </Typography>
+              <Typography variant="body1">
+                • Uso exclusivo no site da xNaMai
+              </Typography>
+              <Typography variant="body1">
+                • Código pessoal e intransferível
+              </Typography>
+              <Typography variant="body1">
+                • Crédito ideal para planejar a compra do seu próximo pedido
+              </Typography>
+              <Typography variant="body1">
+                <strong>Dica:</strong> É a maneira mais inteligente de participar: enquanto
+                concorre, você acumula crédito retornando parte do valor pago no seu número da
+                sorte.
+              </Typography>
   </Stack>
 </Paper>
 
@@ -1214,57 +1205,86 @@ export default function NewStorePage({
                 • A vaga só é confirmada após a compensação do pagamento.
               </Typography>
               <Typography variant="body1">
-                • O sorteio é realizado assim que todos os números são vendidos.
+                • O sorteio é realizado quando todos os números forem vendidos ou reservados
+                conforme as regras da campanha.
               </Typography>
               <Typography variant="body1">
-                • O ganhador é o participante com o último número sorteado pela Lotomania.
+                • O ganhador será definido pelo último número sorteado no resultado oficial da
+                Lotomania.
               </Typography>
               <Typography variant="body1">
-                • Prazo máximo: 7 dias após abertura da rodada.
+                • Exemplo: se a linha final da Lotomania terminar com 82, 84, 85, 88 e 99, o
+                número considerado será o último: 99.
+              </Typography>
+              <Typography variant="body1">
+                • Caso o número sorteado esteja entre 00 e 09, será considerado com dois
+                algarismos, incluindo o zero.
+              </Typography>
+              <Typography variant="body1">
+                • Para o resultado, será utilizado o primeiro resultado da Lotomania após todos
+                os números serem reservados.
+              </Typography>
+              <Typography variant="body1">
+                • Prazo máximo da rodada: 7 dias após a abertura.
               </Typography>
               <Typography variant="body1">
                 • Envio do prêmio: frete por conta do vencedor.
               </Typography>
               <Typography variant="body1">
-                • O Cartão Presente não é cumulativo com o prêmio nem com outras promoções do site.
+                • O Cartão Presente não é cumulativo com o prêmio nem com outras promoções do
+                site.
+              </Typography>
+            </Stack>
+          </Paper>
+
+          <Paper variant="outlined" sx={{ p: { xs: 2, md: 3 } }}>
+            <Stack spacing={1.2}>
+              <Typography variant="h6" fontWeight={800}>
+                Transparência total
               </Typography>
               <Typography variant="body1">
-                Transparência total: o resultado pode ser conferido publicamente no site oficial da Caixa Econômica Federal.
+                O resultado pode ser conferido publicamente no site oficial da Caixa Econômica
+                Federal, na modalidade Lotomania.
               </Typography>
-              
             </Stack>
           </Paper>
 
           <Paper variant="outlined" sx={{ p: { xs: 2, md: 3 } }}>
             <Stack spacing={2}>
               <Typography variant="h5" fontWeight={900}>
-                Regras para utilização dos <Box component="span" sx={{ opacity: 0.85 }}>cartões presente</Box>
+                Regras para utilização dos Cartões Presente
               </Typography>
               <Stack component="ul" sx={{ pl: 3, m: 0 }} spacing={1}>
-                <Typography component="li">Uso exclusivo no site da <strong>xNaMai Sorteios.</strong></Typography>
+                <Typography component="li">
+                  Uso exclusivo no site da xNaMai.
+                </Typography>
                 <Typography component="li">
                   Não é possível comprar outro cartão-presente com crédito de sorteio.
                 </Typography>
                 <Typography component="li">Sem conversão em dinheiro.</Typography>
-               <Typography component="li">
-                  Utilização em uma única compra, na compra de diversos produtos e também é possível usar somente parte do valor acumulado. 
+                <Typography component="li">
+                  O crédito pode ser utilizado em uma única compra, em diversos produtos ou
+                  parcialmente, conforme orientação do atendimento.
+                </Typography>
+                <Typography component="li">
+                  Para utilizar o saldo, solicite atendimento pelo canal oficial da xNaMai.{" "}
                   <Link
-                    href="https://chat.whatsapp.com/GdosYmyW2Jj1mDXNDTFt6F"
+                    href="https://wa.me/5511945145530"
                     target="_blank"
                     rel="noopener noreferrer"
                   >
-                    {" "}Solicitar no grupo
+                    WhatsApp
                   </Link>
                 </Typography>
-                
-                <Typography component="li">Validade: <strong>6 meses</strong>, renovável automaticamente a cada participação..</Typography>
+                <Typography component="li">
+                  Validade de 3 meses, renovável automaticamente a cada nova participação.
+                </Typography>
                 <Typography component="li">
                   A xNaMai não se responsabiliza por perda, extravio ou validade expirada.
                 </Typography>
                 <Typography component="li">
                   O cartão não é cumulativo com outros cupons de desconto.
                 </Typography>
-                
               </Stack>
               <Box
                 component="img"
