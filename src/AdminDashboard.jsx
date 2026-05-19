@@ -319,8 +319,35 @@ export default function AdminDashboard() {
 
   const draw = summary?.draw || summary?.current_draw || summary?.currentDraw;
 
-  const sold = Number(draw?.sold_numbers || summary?.sold_numbers || 0);
-  const remaining = Number(draw?.remaining_numbers || summary?.remaining_numbers || 0);
+  const totalNumbers = Number(
+    draw?.total_numbers ||
+      summary?.total_numbers ||
+      summary?.total ||
+      100
+  );
+
+  const sold = Number(
+    draw?.sold_numbers ??
+      summary?.sold_numbers ??
+      summary?.sold ??
+      0
+  );
+
+  const reserved = Number(
+    draw?.reserved_numbers ??
+      summary?.reserved_numbers ??
+      summary?.reserved ??
+      0
+  );
+
+  const remainingFromApi =
+    draw?.remaining_numbers ??
+    summary?.remaining_numbers ??
+    summary?.remaining;
+
+  const remaining = Number(
+    remainingFromApi ?? Math.max(0, totalNumbers - sold - reserved)
+  );
 
   async function handleSaveConfig(event) {
     event.preventDefault();
@@ -413,6 +440,11 @@ export default function AdminDashboard() {
               <div>
                 <div style={styles.statLabel}>Nº Sorteio atual</div>
                 <div style={styles.statValue}>{loading ? "..." : draw?.id || "-"}</div>
+              </div>
+
+              <div>
+                <div style={styles.statLabel}>Total de números</div>
+                <div style={styles.statValue}>{loading ? "..." : totalNumbers}</div>
               </div>
 
               <div>
