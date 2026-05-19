@@ -15,10 +15,57 @@ function asList(payload, keys = []) {
   return [];
 }
 
+async function parseApiResponse(response, path) {
+  const rawText = await response.text();
+
+  let data = null;
+  try {
+    data = rawText ? JSON.parse(rawText) : null;
+  } catch {
+    data = rawText ? { raw: rawText } : null;
+  }
+
+  if (!response.ok || data?.ok === false) {
+    const message =
+      data?.message ||
+      data?.error ||
+      data?.detail ||
+      `Erro HTTP ${response.status} ao chamar ${path}`;
+
+    console.error("[PROMOCIONAL_API_ERROR_BODY]", {
+      path,
+      status: response.status,
+      statusText: response.statusText,
+      data,
+      rawText,
+    });
+
+    const error = new Error(message);
+    error.status = response.status;
+    error.statusCode = response.status;
+    error.data = data;
+    error.response = { data };
+    error.responseBody = data;
+    error.code = data?.code || data?.error || null;
+    error.detail = data?.detail || null;
+    error.hint = data?.hint || null;
+    error.constraint = data?.constraint || null;
+    error.table = data?.table || null;
+    error.column = data?.column || null;
+    error.schema = data?.schema || null;
+    error.debug_route = data?.debug_route || null;
+
+    throw error;
+  }
+
+  return data;
+}
+
 async function patchJSON(path, body) {
   const response = await fetch(apiJoin(path), {
     method: "PATCH",
     headers: {
+      Accept: "application/json",
       "Content-Type": "application/json",
       ...authHeaders(),
     },
@@ -26,17 +73,7 @@ async function patchJSON(path, body) {
     body: JSON.stringify(body || {}),
   });
 
-  if (!response.ok) {
-    let message = `${response.status}`;
-    try {
-      const payload = await response.json();
-      message = payload?.error || payload?.message || message;
-    } catch {}
-    throw new Error(message);
-  }
-
-  const contentType = response.headers.get("content-type") || "";
-  return contentType.includes("application/json") ? response.json() : response.text();
+  return parseApiResponse(response, path);
 }
 
 async function apiPost(path, body) {
@@ -50,20 +87,8 @@ async function apiPost(path, body) {
     credentials: "omit",
     body: JSON.stringify(body || {}),
   });
-  const data = await response.json().catch(() => ({}));
 
-  if (!response.ok || data?.ok === false) {
-    const error = new Error(
-      data?.message || data?.error || "Erro inesperado ao processar a solicitação."
-    );
-    error.status = response.status;
-    error.data = data;
-    error.response = { data };
-    error.responseBody = data;
-    throw error;
-  }
-
-  return data;
+  return parseApiResponse(response, path);
 }
 
 export function getPromocionalDraws() {
@@ -288,16 +313,10 @@ export async function adminGetPromocionalNumbers(drawId) {
     credentials: "omit",
   });
 
-  const data = await response.json().catch(() => ({}));
-
-  if (!response.ok || data.ok === false) {
-    throw new Error(
-      data?.error || data?.message || "Erro ao carregar números promocionais."
-    );
-  }
+  const data = await parseApiResponse(response, path);
 
   if (Array.isArray(data)) return data;
-  return data.numbers || data.items || [];
+  return data?.numbers || data?.items || [];
 }
 
 /**

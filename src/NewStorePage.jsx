@@ -202,6 +202,8 @@ export default function NewStorePage({
 
   // Estados vindos do backend
   const [srvIndisponiveis, setSrvIndisponiveis] = React.useState([]);
+  // Números com reserva ativa no backend (status reserved/pending)
+  const [srvReservados, setSrvReservados] = React.useState([]);
 
   // Iniciais dos vendidos (n -> "AB")
   const [soldInitials, setSoldInitials] = React.useState({});
@@ -376,12 +378,32 @@ export default function NewStorePage({
       const j = await res.json();
 
       const indis = [];
+      const reservs = [];
       const initials = {};
+
+      const SOLD_STATUSES = new Set([
+        "taken",
+        "sold",
+        "paid",
+        "approved",
+        "unavailable",
+        "blocked",
+        "vendido",
+        "pago",
+        "indisponivel",
+        "indisponível",
+      ]);
+      const RESERVED_STATUSES = new Set([
+        "reserved",
+        "pending",
+        "reservado",
+        "pendente",
+      ]);
 
       for (const it of j?.numbers || []) {
         const st = String(it.status || "").toLowerCase();
         const num = Number(it.n);
-        if (st === "taken" || st === "sold") {
+        if (SOLD_STATUSES.has(st)) {
           indis.push(num);
           const rawInit =
             it.initials ||
@@ -390,10 +412,13 @@ export default function NewStorePage({
             it.owner ||
             it.oi;
           if (rawInit) initials[num] = String(rawInit).slice(0, 3).toUpperCase();
+        } else if (RESERVED_STATUSES.has(st)) {
+          reservs.push(num);
         }
       }
 
       setSrvIndisponiveis(Array.from(new Set(indis)));
+      setSrvReservados(Array.from(new Set(reservs)));
       setSoldInitials(initials);
     } catch {
       /* silencioso */
@@ -430,6 +455,13 @@ export default function NewStorePage({
       Array.from(new Set([...(indisponiveis || []), ...srvIndisponiveis])),
     [indisponiveis, srvIndisponiveis]
   );
+
+  // Reservados efetivos = reservados do servidor que ainda NÃO foram marcados
+  // como vendidos/indisponíveis (evita conflito visual entre estados).
+  const reservadosAll = React.useMemo(() => {
+    const indisSet = new Set(indisponiveisAll);
+    return srvReservados.filter((n) => !indisSet.has(n));
+  }, [srvReservados, indisponiveisAll]);
 
   // modal (confirmação)
   const [open, setOpen] = React.useState(false);
@@ -541,9 +573,23 @@ export default function NewStorePage({
 
   // Seleção com teto (front)
   const isIndisponivel = (n) => indisponiveisAll.includes(n);
+  const isReservado = (n) => reservadosAll.includes(n);
   const isSelecionado = (n) => selecionados.includes(n);
+
+  // Se um número selecionado localmente passou a ser reservado/indisponível
+  // no backend, o servidor prevalece: removemos da seleção do usuário.
+  React.useEffect(() => {
+    if (!selecionados.length) return;
+    const bloqueados = new Set([...indisponiveisAll, ...reservadosAll]);
+    const filtrados = selecionados.filter((n) => !bloqueados.has(n));
+    if (filtrados.length !== selecionados.length) {
+      setSelecionados(filtrados);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [indisponiveisAll, reservadosAll]);
+
   const handleClickNumero = (n) => {
-    if (isIndisponivel(n)) return;
+    if (isIndisponivel(n) || isReservado(n)) return;
     setSelecionados((prev) => {
       const already = prev.includes(n);
       if (already) return prev.filter((x) => x !== n);
@@ -579,6 +625,22 @@ export default function NewStorePage({
         cursor: "not-allowed",
         boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.08)",
         opacity: 0.9,
+      };
+
+    // Reservado tem precedência sobre seleção local:
+    // mesmo que o usuário tenha clicado, o backend manda no status final.
+    if (isReservado(n))
+      return {
+        border: "1px solid #F2C94C",
+        bgcolor: "#FFE9A8",
+        color: "#8A5A00",
+        cursor: "not-allowed",
+        boxShadow: "inset 0 0 0 1px rgba(242, 201, 76, 0.35)",
+        "&:hover": {
+          bgcolor: "#FFE08A",
+          borderColor: "#E0B93E",
+          color: "#7A4F00",
+        },
       };
 
     if (isSelecionado(n))
@@ -776,8 +838,8 @@ export default function NewStorePage({
                     DISPONÍVEL
                   </Typography>
                 </Stack>
-                <Stack direction="row" spacing={0.6} alignItems="center" sx={{ px: 1.05, py: 0.46, borderRadius: 999, border: "1px solid rgba(30,102,255,0.48)", bgcolor: "rgba(30,102,255,0.12)" }}>
-                  <Typography variant="caption" sx={{ color: "#1E66FF", fontWeight: 900, letterSpacing: 0.3 }}>
+                <Stack direction="row" spacing={0.6} alignItems="center" sx={{ px: 1.05, py: 0.46, borderRadius: 999, border: "1px solid #F2C94C", bgcolor: "#FFE9A8" }}>
+                  <Typography variant="caption" sx={{ color: "#8A5A00", fontWeight: 900, letterSpacing: 0.3 }}>
                     RESERVADO
                   </Typography>
                 </Stack>
@@ -879,6 +941,7 @@ export default function NewStorePage({
                   >
                     {Array.from({ length: totalGridNumbers }).map((_, idx) => {
                       const sold = isIndisponivel(idx);
+                      const reservado = isReservado(idx);
                       const initials = soldInitials[idx];
                       return (
                         <Box
@@ -888,7 +951,7 @@ export default function NewStorePage({
                             ...getCellSx(idx),
                             borderRadius: 1.1,
                             userSelect: "none",
-                            cursor: sold ? "not-allowed" : "pointer",
+                            cursor: sold || reservado ? "not-allowed" : "pointer",
                             aspectRatio: "1 / 1",
                             width: "100%",
                             height: { xs: 42, md: 56 },
