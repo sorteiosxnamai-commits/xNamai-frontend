@@ -20,6 +20,16 @@ function onlyNumbers(value) {
   return String(value || "").replace(/\D/g, "");
 }
 
+function clampPercent(value, fallback = 100) {
+  if (value === undefined || value === null || value === "") return fallback;
+
+  const parsed = Number.parseInt(String(value).replace(/\D/g, ""), 10);
+
+  if (!Number.isFinite(parsed)) return fallback;
+
+  return Math.max(0, Math.min(100, parsed));
+}
+
 const styles = {
   page: {
     minHeight: "100vh",
@@ -219,6 +229,7 @@ export default function AdminDashboard() {
     ticket_price_cents: "5500",
     max_numbers_per_selection: "5",
     promo_text: "",
+    cashback_percent: "100",
   });
 
   const [createForm, setCreateForm] = React.useState({
@@ -227,6 +238,7 @@ export default function AdminDashboard() {
     promo_text: "",
     ticket_price_cents: "5500",
     max_numbers_per_selection: "5",
+    cashback_percent: "100",
   });
 
   async function loadSummary() {
@@ -254,6 +266,12 @@ export default function AdminDashboard() {
             5
         ),
         promo_text: draw?.promo_text || config.promo_text || config.banner_title || "",
+        cashback_percent: String(
+          draw?.cashback_percent ??
+            data?.currentDraw?.cashback_percent ??
+            config.cashback_percent ??
+            100
+        ),
       });
 
       setCreateForm((old) => ({
@@ -269,6 +287,13 @@ export default function AdminDashboard() {
             config.max_numbers_per_selection ||
             config.max_numbers_per_user ||
             5
+        ),
+        cashback_percent: String(
+          draw?.cashback_percent ??
+            data?.currentDraw?.cashback_percent ??
+            config.cashback_percent ??
+            old.cashback_percent ??
+            100
         ),
       }));
     } catch (err) {
@@ -311,6 +336,7 @@ export default function AdminDashboard() {
           onlyNumbers(configForm.max_numbers_per_selection) || 5
         ),
         promo_text: configForm.promo_text,
+        cashback_percent: clampPercent(configForm.cashback_percent),
       });
 
       setMessage("Configurações atualizadas com sucesso.");
@@ -346,6 +372,7 @@ export default function AdminDashboard() {
         max_numbers_per_selection: Number(
           onlyNumbers(createForm.max_numbers_per_selection) || 5
         ),
+        cashback_percent: clampPercent(createForm.cashback_percent),
         numbers_count: 100,
         numbers_start: 0,
         numbers_end: 99,
@@ -359,8 +386,9 @@ export default function AdminDashboard() {
         title: "",
         prize_title: "",
         promo_text: "",
-        ticket_price_cents: payload.ticket_price_cents,
-        max_numbers_per_selection: payload.max_numbers_per_selection,
+        ticket_price_cents: String(payload.ticket_price_cents),
+        max_numbers_per_selection: String(payload.max_numbers_per_selection),
+        cashback_percent: String(payload.cashback_percent),
       });
 
       await loadSummary();
@@ -477,6 +505,29 @@ export default function AdminDashboard() {
                   </label>
 
                   <label>
+                    <span style={styles.label}>Cashback / saldo (%)</span>
+                    <input
+                      style={styles.input}
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="1"
+                      value={createForm.cashback_percent}
+                      onChange={(e) =>
+                        setCreateForm((old) => ({
+                          ...old,
+                          cashback_percent: e.target.value,
+                        }))
+                      }
+                      placeholder="100"
+                    />
+                    <div style={styles.hint}>
+                      Ex.: se o número custa R$ 100,00 e o cashback for 50%, o cliente recebe
+                      R$ 50,00 de saldo.
+                    </div>
+                  </label>
+
+                  <label>
                     <span style={styles.label}>Máximo de tickets por compra</span>
                     <input
                       style={styles.input}
@@ -556,6 +607,29 @@ export default function AdminDashboard() {
                       }
                       placeholder="em centavos (ex.: 5500)"
                     />
+                  </label>
+
+                  <label>
+                    <span style={styles.label}>Cashback / saldo (%)</span>
+                    <input
+                      style={styles.input}
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="1"
+                      value={configForm.cashback_percent}
+                      onChange={(e) =>
+                        setConfigForm((old) => ({
+                          ...old,
+                          cashback_percent: e.target.value,
+                        }))
+                      }
+                      placeholder="100"
+                    />
+                    <div style={styles.hint}>
+                      Define quanto do valor pago vira saldo/cartão presente. Ex.: 50% de R$
+                      100,00 gera R$ 50,00 de saldo.
+                    </div>
                   </label>
 
                   <label>
