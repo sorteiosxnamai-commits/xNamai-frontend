@@ -96,6 +96,9 @@ function pickFirstText(...values) {
 // Mocks
 const MOCK_INDISPONIVEIS = [];
 
+const XNAMAI_WHATSAPP_GROUP_URL =
+  "https://chat.whatsapp.com/GN2cTb75SAyEBabyxVdaxC?mode=gi_t";
+
 // Base do backend
 const API_BASE = String(API_CONFIG.baseUrl || "/api").replace(/\/+$/, "");
 
@@ -203,7 +206,7 @@ async function checkUserPurchaseLimit({ addCount = 0, drawId } = {}) {
 
 export default function NewStorePage({
   indisponiveis = MOCK_INDISPONIVEIS,
-  groupUrl = "https://chat.whatsapp.com/GdosYmyW2Jj1mDXNDTFt6F",
+  groupUrl = XNAMAI_WHATSAPP_GROUP_URL,
 }) {
   const totalGridNumbers = 100;
   const navigate = useNavigate();
@@ -1505,7 +1508,7 @@ export default function NewStorePage({
               component="a"
               href={groupUrl}
               target="_blank"
-              rel="noopener"
+              rel="noopener noreferrer"
               size="large"
               variant="contained"
               color="success"

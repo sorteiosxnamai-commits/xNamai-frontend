@@ -42,6 +42,7 @@ const theme = createTheme({
 });
 
 const pad2 = (n) => String(n).padStart(2, "0");
+const XNAMAI_SITE_URL = "https://www.xnamai.com/";
 const ADMIN_EMAIL = "admin@newstore.com.br";
 const TTL_MINUTES = Number(process.env.REACT_APP_RESERVATION_TTL_MINUTES || 15);
 const COUPON_VALIDITY_DAYS = Number(process.env.REACT_APP_COUPON_VALIDITY_DAYS || 180);
@@ -1618,9 +1619,9 @@ export default function AccountPage() {
                   <Box className="xn-actionsRow" sx={{ pt: 1 }}>
                     <Button
                       component="a"
-                      href="http://newstorerj.com.br/"
+                      href={XNAMAI_SITE_URL}
                       target="_blank"
-                      rel="noopener"
+                      rel="noopener noreferrer"
                       variant="outlined"
                       className="xn-btnSoft"
                       sx={{
