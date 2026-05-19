@@ -48,12 +48,14 @@ async function postJson(path, body) {
   return data;
 }
 
-async function registerRequest({ name, email, password, phone }) {
+async function registerRequest({ name, email, password, phone, city, state }) {
   const payload = {
     name: String(name || '').trim(),
     email: String(email || '').trim().toLowerCase(),
     password: String(password || ''),
     phone: String(phone || '').trim(),
+    city: String(city || '').trim(),
+    state: String(state || '').trim(),
   };
 
   const paths = ['/api/auth/register', '/api/register', '/api/users/register'];
@@ -72,7 +74,14 @@ async function registerRequest({ name, email, password, phone }) {
 
 export default function RegisterPage() {
   const navigate = useNavigate();
-  const [form, setForm] = React.useState({ name: '', email: '', password: '', phone: '' });
+  const [form, setForm] = React.useState({
+    name: '',
+    email: '',
+    password: '',
+    phone: '',
+    city: '',
+    state: '',
+  });
   const [errors, setErrors] = React.useState({});
   const [loading, setLoading] = React.useState(false);
 
@@ -91,6 +100,8 @@ export default function RegisterPage() {
     if (!form.name.trim()) err.name = 'Informe seu nome completo.';
     if (!emailOk(form.email)) err.email = 'E-mail inválido.';
     if (!phoneOk(form.phone)) err.phone = 'Informe um telefone válido com DDD.';
+    if (!form.city.trim()) err.city = 'Informe sua cidade.';
+    if (!form.state.trim()) err.state = 'Informe seu estado.';
     if (!form.password) err.password = 'Informe uma senha.';
     setErrors(err);
     return Object.keys(err).length === 0;
@@ -113,7 +124,13 @@ export default function RegisterPage() {
   };
 
   const canSubmit =
-    form.name.trim() && emailOk(form.email) && phoneOk(form.phone) && form.password && !loading;
+    form.name.trim() &&
+    emailOk(form.email) &&
+    phoneOk(form.phone) &&
+    form.city.trim() &&
+    form.state.trim() &&
+    form.password &&
+    !loading;
 
   return (
     <ThemeProvider theme={theme}>
@@ -230,6 +247,35 @@ export default function RegisterPage() {
                       required
                       error={!!errors.phone}
                       helperText={errors.phone}
+                      sx={{ "& .MuiOutlinedInput-root": { bgcolor: "#fff" } }}
+                    />
+
+                    <TextField
+                      label="Cidade"
+                      name="city"
+                      value={form.city}
+                      onChange={onChange}
+                      placeholder="Ex.: Ourinhos"
+                      autoComplete="address-level2"
+                      fullWidth
+                      required
+                      error={!!errors.city}
+                      helperText={errors.city}
+                      sx={{ "& .MuiOutlinedInput-root": { bgcolor: "#fff" } }}
+                    />
+
+                    <TextField
+                      label="Estado"
+                      name="state"
+                      value={form.state}
+                      onChange={onChange}
+                      placeholder="Ex.: SP"
+                      autoComplete="address-level1"
+                      inputProps={{ maxLength: 30 }}
+                      fullWidth
+                      required
+                      error={!!errors.state}
+                      helperText={errors.state}
                       sx={{ "& .MuiOutlinedInput-root": { bgcolor: "#fff" } }}
                     />
 
