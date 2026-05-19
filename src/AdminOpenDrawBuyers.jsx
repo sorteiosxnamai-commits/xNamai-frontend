@@ -2,6 +2,7 @@
 import * as React from "react";
 import {
   Box, Button, Chip, Divider,
+  Dialog, DialogActions, DialogContent, DialogTitle,
   Paper, Stack, Tab, Tabs, TextField, Typography,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow
 } from "@mui/material";
@@ -151,28 +152,123 @@ export default function AdminOpenDrawBuyers() {
   const [buyers, setBuyers] = React.useState([]);      // [{user_id, name, email, numbers[], count, total_cents}]
   const [numbers, setNumbers] = React.useState([]);    // [{n, user_id, name, email}]
   const [query, setQuery] = React.useState("");
+  const [selectedNumber, setSelectedNumber] = React.useState(null);
 
   const load = React.useCallback(async () => {
     setLoading(true);
+
     try {
       const r = await getJSON("/admin/dashboard/open-buyers");
-      setDrawId(r.draw_id ?? null);
-      setSold(r.sold ?? 0);
-      setRemaining(r.remaining ?? Math.max(0, 100 - Number(r.sold || 0)));
-      setBuyers(Array.isArray(r.buyers) ? r.buyers : []);
-      setNumbers(Array.isArray(r.numbers) ? r.numbers : []);
+
+      const nextBuyers = Array.isArray(r.buyers)
+        ? r.buyers
+        : Array.isArray(r.participants)
+          ? r.participants
+          : [];
+
+      const normalizedBuyers = nextBuyers.map((buyer, index) => {
+        const numbers = Array.isArray(buyer.numbers)
+          ? buyer.numbers.map((number) => Number(number)).filter(Number.isFinite)
+          : [];
+
+        const buyerKey =
+          buyer.buyer_key ||
+          (buyer.user_id ? `user:${buyer.user_id}` : `buyer:${buyer.email || buyer.name || index}`);
+
+        return {
+          ...buyer,
+          buyer_key: buyerKey,
+          user_id: buyer.user_id ?? null,
+          name: buyer.name || buyer.customer_name || "(sem nome)",
+          email: buyer.email || buyer.customer_email || "",
+          numbers,
+          count: Number(buyer.count ?? buyer.qtd ?? buyer.quantity ?? numbers.length ?? 0),
+          qtd: Number(buyer.qtd ?? buyer.count ?? buyer.quantity ?? numbers.length ?? 0),
+          total_cents: Number(buyer.total_cents ?? buyer.value_cents ?? buyer.amount_cents ?? 0),
+          source_label: buyer.source_label || buyer.sources?.join?.(" + ") || "Pago",
+        };
+      });
+
+      const apiNumbers = Array.isArray(r.numbers) ? r.numbers : [];
+
+      const fallbackNumbers = normalizedBuyers.flatMap((buyer) =>
+        (buyer.numbers || []).map((number) => ({
+          n: Number(number),
+          number: Number(number),
+          label: pad2(number),
+          buyer_key: buyer.buyer_key,
+          user_id: buyer.user_id,
+          name: buyer.name,
+          email: buyer.email,
+          source_label: buyer.source_label || "Pago",
+          unit_cents:
+            buyer.count > 0
+              ? Math.round(Number(buyer.total_cents || 0) / buyer.count)
+              : 0,
+        }))
+      );
+
+      const normalizedNumbers = (apiNumbers.length ? apiNumbers : fallbackNumbers)
+        .map((item) => {
+          const number = Number(item.n ?? item.number);
+
+          return {
+            ...item,
+            n: number,
+            number,
+            label: item.label || pad2(number),
+            buyer_key:
+              item.buyer_key ||
+              (item.user_id ? `user:${item.user_id}` : `number:${number}`),
+            user_id: item.user_id ?? null,
+            name: item.name || item.customer_name || "(sem nome)",
+            email: item.email || item.customer_email || "",
+            source_label: item.source_label || "Pago",
+            unit_cents: Number(item.unit_cents ?? item.value_cents ?? 0),
+          };
+        })
+        .filter((item) => Number.isFinite(item.n));
+
+      const nextSold = Number(
+        r.sold ??
+          r.sold_numbers ??
+          r.draw?.sold_numbers ??
+          normalizedNumbers.length ??
+          0
+      );
+
+      const nextRemaining = Number(
+        r.remaining ??
+          r.remaining_numbers ??
+          r.draw?.remaining_numbers ??
+          Math.max(0, 100 - nextSold)
+      );
+
+      setDrawId(r.draw_id ?? r.draw?.id ?? null);
+      setSold(nextSold);
+      setRemaining(nextRemaining);
+      setBuyers(normalizedBuyers);
+      setNumbers(normalizedNumbers);
     } finally {
       setLoading(false);
     }
   }, []);
   React.useEffect(() => { load(); }, [load]);
 
-  // Map de user_id -> idx/color
   const idToIdx = React.useMemo(() => {
-    const ids = buyers.map(b => b.user_id);
     const map = new Map();
     let k = 0;
-    ids.forEach(id => { if (!map.has(id)) { map.set(id, k++); } });
+
+    buyers.forEach((buyer) => {
+      const key =
+        buyer.buyer_key ||
+        (buyer.user_id ? `user:${buyer.user_id}` : `buyer:${buyer.email || buyer.name}`);
+
+      if (!map.has(key)) {
+        map.set(key, k++);
+      }
+    });
+
     return map;
   }, [buyers]);
 
@@ -185,6 +281,20 @@ export default function AdminOpenDrawBuyers() {
       (Array.isArray(b.numbers) && b.numbers.some(n => pad2(n).includes(q)))
     );
   }, [buyers, query]);
+
+  const numberOwnerMap = React.useMemo(() => {
+    const map = new Map();
+
+    numbers.forEach((item) => {
+      const number = Number(item.n ?? item.number);
+
+      if (Number.isFinite(number)) {
+        map.set(number, item);
+      }
+    });
+
+    return map;
+  }, [numbers]);
 
   const exportCSV = () => {
     const rows = [];
@@ -287,7 +397,10 @@ export default function AdminOpenDrawBuyers() {
     const ownByNum = new Map();
     numbers.forEach((x) => {
       const nNum = Number(x.n);
-      const idx  = idToIdx.get(x.user_id) ?? 0;
+      const buyerKey =
+        x.buyer_key ||
+        (x.user_id ? `user:${x.user_id}` : `number:${nNum}`);
+      const idx = idToIdx.get(buyerKey) ?? 0;
       ownByNum.set(nNum, { idx, owner: x });
     });
 
@@ -742,19 +855,35 @@ export default function AdminOpenDrawBuyers() {
                         <TableRow><TableCell colSpan={4} className="xnamai-admin-empty">Nenhum comprador.</TableCell></TableRow>
                       )}
                       {filteredBuyers.map((b, i) => (
-                        <TableRow key={b.user_id || i} hover>
+                        <TableRow key={b.buyer_key || b.user_id || i} hover>
                           <TableCell sx={{ fontWeight: 800 }}>
-                            <Stack direction="row" spacing={1} alignItems="center">
+                            <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
                               <Chip
                                 size="small"
                                 label={pad2(i + 1)}
                                 sx={{
-                                  bgcolor: buyerColor(idToIdx.get(b.user_id) ?? i),
+                                  bgcolor: buyerColor(
+                                    idToIdx.get(
+                                      b.buyer_key ||
+                                        (b.user_id ? `user:${b.user_id}` : `buyer:${b.email || b.name}`)
+                                    ) ?? i
+                                  ),
                                   color: "#000",
-                                  fontWeight: 900
+                                  fontWeight: 900,
                                 }}
                               />
                               <span>{b.name || "(sem nome)"}</span>
+                              <Chip
+                                size="small"
+                                label={b.source_label || "Pago"}
+                                variant="outlined"
+                                sx={{
+                                  fontSize: 10,
+                                  height: 22,
+                                  fontWeight: 800,
+                                  borderRadius: 999,
+                                }}
+                              />
                             </Stack>
                           </TableCell>
                           <TableCell sx={{ fontWeight: 900, color: "primary.main" }}>{b.count || 0}</TableCell>
@@ -785,27 +914,52 @@ export default function AdminOpenDrawBuyers() {
                 }}
               >
                 {Array.from({ length: 100 }, (_, n) => {
-                  const owner = numbers.find(x => Number(x.n) === n);
-                  const idx   = owner ? (idToIdx.get(owner.user_id) ?? 0) : 0;
-                  const bg    = owner ? buyerColor(idx) : "transparent";
-                  const bd    = owner ? "none" : "1px solid rgba(15,23,42,0.12)";
-                  const fg    = owner ? "#000" : "#0B1B33";
-                  const title = owner ? `${pad2(n)} • ${owner.name || owner.email || "Comprador"}` : pad2(n);
+                  const owner = numberOwnerMap.get(n);
+                  const buyerKey =
+                    owner?.buyer_key ||
+                    (owner?.user_id ? `user:${owner.user_id}` : `number:${n}`);
+
+                  const idx = owner ? (idToIdx.get(buyerKey) ?? 0) : 0;
+                  const bg = owner ? buyerColor(idx) : "transparent";
+                  const bd = owner ? "1px solid rgba(0,0,0,0.18)" : "1px solid rgba(15,23,42,0.12)";
+                  const fg = owner ? "#000" : "#0B1B33";
+
+                  const title = owner
+                    ? `${pad2(n)} • ${owner.name || owner.email || "Comprador"} • ${owner.source_label || "Pago"}`
+                    : `${pad2(n)} • disponível`;
+
                   return (
                     <Box
                       key={n}
                       title={title}
+                      onClick={() => {
+                        if (owner) {
+                          setSelectedNumber({
+                            number: n,
+                            owner,
+                          });
+                        }
+                      }}
                       sx={{
                         userSelect: "none",
                         textAlign: "center",
-                        py: .8,
+                        py: 0.8,
                         borderRadius: 1.5,
                         fontWeight: 900,
-                        letterSpacing: .4,
+                        letterSpacing: 0.4,
                         fontSize: 12,
                         border: bd,
                         bgcolor: bg,
                         color: fg,
+                        cursor: owner ? "pointer" : "default",
+                        boxShadow: owner ? "0 4px 12px rgba(15,23,42,0.14)" : "none",
+                        transition: "transform .15s ease, box-shadow .15s ease",
+                        "&:hover": owner
+                          ? {
+                              transform: "translateY(-2px)",
+                              boxShadow: "0 8px 18px rgba(15,23,42,0.18)",
+                            }
+                          : {},
                       }}
                     >
                       {pad2(n)}
@@ -817,6 +971,79 @@ export default function AdminOpenDrawBuyers() {
           </Box>
         )}
       </Paper>
+
+      <Dialog
+        open={Boolean(selectedNumber)}
+        onClose={() => setSelectedNumber(null)}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle sx={{ fontWeight: 900 }}>
+          Número {selectedNumber ? pad2(selectedNumber.number) : ""}
+        </DialogTitle>
+
+        <DialogContent dividers>
+          {selectedNumber?.owner && (
+            <Stack spacing={1.5}>
+              <Box>
+                <Typography sx={{ fontSize: 12, color: "text.secondary", fontWeight: 800 }}>
+                  Usuário
+                </Typography>
+                <Typography sx={{ fontWeight: 900 }}>
+                  {selectedNumber.owner.name || "(sem nome)"}
+                </Typography>
+              </Box>
+
+              <Box>
+                <Typography sx={{ fontSize: 12, color: "text.secondary", fontWeight: 800 }}>
+                  E-mail
+                </Typography>
+                <Typography sx={{ fontWeight: 700 }}>
+                  {selectedNumber.owner.email || "-"}
+                </Typography>
+              </Box>
+
+              <Box>
+                <Typography sx={{ fontSize: 12, color: "text.secondary", fontWeight: 800 }}>
+                  Status
+                </Typography>
+                <Chip
+                  label={selectedNumber.owner.source_label || "Pago"}
+                  sx={{
+                    mt: 0.5,
+                    fontWeight: 900,
+                    borderRadius: 999,
+                    bgcolor:
+                      selectedNumber.owner.source === "admin_assigned"
+                        ? "rgba(255,193,7,0.22)"
+                        : "rgba(37,109,255,0.12)",
+                    color: "#0b1933",
+                    border: "1px solid rgba(15,23,42,0.12)",
+                  }}
+                />
+              </Box>
+
+              <Box>
+                <Typography sx={{ fontSize: 12, color: "text.secondary", fontWeight: 800 }}>
+                  Valor do número
+                </Typography>
+                <Typography sx={{ fontWeight: 900 }}>
+                  {((Number(selectedNumber.owner.unit_cents || selectedNumber.owner.value_cents || 0)) / 100).toLocaleString("pt-BR", {
+                    style: "currency",
+                    currency: "BRL",
+                  })}
+                </Typography>
+              </Box>
+            </Stack>
+          )}
+        </DialogContent>
+
+        <DialogActions>
+          <Button onClick={() => setSelectedNumber(null)} variant="contained">
+            Fechar
+          </Button>
+        </DialogActions>
+      </Dialog>
     </>
   );
 }
