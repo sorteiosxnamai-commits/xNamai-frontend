@@ -23,6 +23,7 @@ import AdminUsersPage from "./AdminUsersPage";
 import DrawBoardPage from "./DrawBoardPage";
 import AdminOpenDrawBuyers from "./AdminOpenDrawBuyers";
 import AdminAnalytics from "./AdminAnalytics";
+import AdminPurchaseHistory from "./AdminPurchaseHistory";
 
 import AdminErrorBoundary from "./components/admin/AdminErrorBoundary";
 import XnamaiAdminLayout from "./XnamaiAdminLayout";
@@ -165,6 +166,15 @@ export default function App() {
                 element={
                   <AdminErrorBoundary>
                     <AdminVencedores />
+                  </AdminErrorBoundary>
+                }
+              />
+
+              <Route
+                path="historico-compras"
+                element={
+                  <AdminErrorBoundary>
+                    <AdminPurchaseHistory />
                   </AdminErrorBoundary>
                 }
               />

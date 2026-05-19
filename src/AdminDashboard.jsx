@@ -745,6 +745,19 @@ export default function AdminDashboard() {
 
           <div
             style={styles.quickCard}
+            onClick={() => navigate("/admin/historico-compras")}
+          >
+            <div>
+              <div style={styles.quickName}>Histórico de compras dos clientes</div>
+              <div style={styles.quickDesc}>
+                Veja todos os clientes, sorteios comprados, números, valores e datas.
+              </div>
+            </div>
+            <strong>→</strong>
+          </div>
+
+          <div
+            style={styles.quickCard}
             onClick={() => navigate("/admin/vencedores")}
           >
             <div>
