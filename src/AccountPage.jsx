@@ -47,6 +47,41 @@ const ADMIN_EMAIL = "admin@newstore.com.br";
 const TTL_MINUTES = Number(process.env.REACT_APP_RESERVATION_TTL_MINUTES || 15);
 const COUPON_VALIDITY_DAYS = Number(process.env.REACT_APP_COUPON_VALIDITY_DAYS || 180);
 
+function formatDateTimeBR(value) {
+  if (!value) return "--/--/---- --:--";
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "--/--/---- --:--";
+  }
+
+  return date.toLocaleString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function formatMoneyBRFromCents(cents) {
+  return ((Number(cents) || 0) / 100).toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  });
+}
+
+function normalizePurchaseHistoryPayload(payload) {
+  const items = Array.isArray(payload?.items) ? payload.items : [];
+  const lastPurchase = payload?.last_purchase || items[0] || null;
+
+  return {
+    items,
+    lastPurchase,
+  };
+}
+
 // chips
 const PayChip = ({ status }) => {
   const st = String(status || "").toLowerCase();
@@ -578,6 +613,11 @@ export default function AccountPage() {
 
   const [cupom, setCupom] = React.useState("CUPOMAQUI");
   const [validade, setValidade] = React.useState("--/--/--");
+
+  const [purchaseHistory, setPurchaseHistory] = React.useState([]);
+  const [lastPurchase, setLastPurchase] = React.useState(null);
+  const [purchaseHistoryLoading, setPurchaseHistoryLoading] = React.useState(true);
+  const [purchaseHistoryError, setPurchaseHistoryError] = React.useState("");
 
   // estado das configurações (apenas admin)
   const [cfgLoading, setCfgLoading] = React.useState(false);
@@ -1215,6 +1255,31 @@ export default function AccountPage() {
         }
 
         await reloadBalances();
+
+        try {
+          setPurchaseHistoryLoading(true);
+          setPurchaseHistoryError("");
+
+          const historyPayload = await getJSON("/me/purchase-history");
+          const normalizedHistory = normalizePurchaseHistoryPayload(historyPayload);
+
+          if (alive) {
+            setPurchaseHistory(normalizedHistory.items);
+            setLastPurchase(normalizedHistory.lastPurchase);
+          }
+        } catch (historyError) {
+          console.error("[PURCHASE_HISTORY_ERROR]", historyError);
+
+          if (alive) {
+            setPurchaseHistory([]);
+            setLastPurchase(null);
+            setPurchaseHistoryError("Não foi possível carregar o histórico de compras.");
+          }
+        } finally {
+          if (alive) {
+            setPurchaseHistoryLoading(false);
+          }
+        }
       } finally {
         setLoading(false);
       }
@@ -1493,6 +1558,145 @@ export default function AccountPage() {
               </Stack>
             </Paper>
           */}
+
+          <Paper className="xn-card" variant="outlined" sx={{ p: { xs: 2, md: 2.5 } }}>
+            <Stack spacing={1.6}>
+              <Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 2, flexWrap: "wrap" }}>
+                <Box>
+                  <Typography variant="h6" className="xn-sectionTitle">
+                    Histórico de compras
+                  </Typography>
+                  <Typography variant="body2" className="xn-muted" sx={{ mt: 0.5, fontWeight: 700 }}>
+                    Veja suas compras pagas e o último sorteio em que você participou.
+                  </Typography>
+                </Box>
+
+                <Chip
+                  label={purchaseHistory.length ? `${purchaseHistory.length} compra(s)` : "Sem compras pagas"}
+                  sx={{
+                    bgcolor: "rgba(37,109,255,0.10)",
+                    color: "#16325c",
+                    fontWeight: 900,
+                    borderRadius: 999,
+                    border: "1px solid rgba(37,109,255,0.22)",
+                  }}
+                />
+              </Box>
+
+              {lastPurchase && (
+                <Box
+                  sx={{
+                    p: 1.6,
+                    borderRadius: 3,
+                    bgcolor: "rgba(37,109,255,0.06)",
+                    border: "1px solid rgba(37,109,255,0.16)",
+                  }}
+                >
+                  <Typography className="xn-statLabel xn-mono">
+                    ÚLTIMO SORTEIO COMPRADO
+                  </Typography>
+
+                  <Typography sx={{ mt: 0.5, fontWeight: 950, color: "#16325c" }}>
+                    {lastPurchase.draw_title || "Sorteio"}
+                  </Typography>
+
+                  <Typography className="xn-muted" sx={{ mt: 0.4, fontWeight: 700 }}>
+                    Número(s): {lastPurchase.numbers_label || "--"} • Valor:{" "}
+                    {lastPurchase.amount_label || formatMoneyBRFromCents(lastPurchase.amount_cents)} •{" "}
+                    {formatDateTimeBR(lastPurchase.purchased_at || lastPurchase.paid_at)}
+                  </Typography>
+                </Box>
+              )}
+
+              {purchaseHistoryError && (
+                <Alert severity="warning" variant="outlined">
+                  {purchaseHistoryError}
+                </Alert>
+              )}
+
+              {purchaseHistoryLoading ? (
+                <Box sx={{ px: 0.5, py: 0.5 }}>
+                  <LinearProgress />
+                </Box>
+              ) : purchaseHistory.length === 0 ? (
+                <Box className="xn-emptyState">
+                  <Typography sx={{ fontWeight: 900, color: "#16325c" }}>
+                    Nenhuma compra paga encontrada.
+                  </Typography>
+                  <Typography className="xn-muted" sx={{ mt: 0.4, fontWeight: 700 }}>
+                    Quando um pagamento for aprovado, ele aparecerá neste histórico.
+                  </Typography>
+                </Box>
+              ) : (
+                <TableContainer sx={{ width: "100%", overflowX: "auto" }}>
+                  <Table size="small" sx={{ minWidth: { xs: 720, sm: 920 } }}>
+                    <TableHead>
+                      <TableRow>
+                        <TableCell sx={{ fontWeight: 900, whiteSpace: "nowrap", color: "rgba(22,50,92,0.72)" }}>
+                          TIPO
+                        </TableCell>
+                        <TableCell sx={{ fontWeight: 900, whiteSpace: "nowrap", color: "rgba(22,50,92,0.72)" }}>
+                          SORTEIO
+                        </TableCell>
+                        <TableCell sx={{ fontWeight: 900, whiteSpace: "nowrap", color: "rgba(22,50,92,0.72)" }}>
+                          NÚMEROS
+                        </TableCell>
+                        <TableCell sx={{ fontWeight: 900, whiteSpace: "nowrap", color: "rgba(22,50,92,0.72)" }}>
+                          VALOR
+                        </TableCell>
+                        <TableCell sx={{ fontWeight: 900, whiteSpace: "nowrap", color: "rgba(22,50,92,0.72)" }}>
+                          DATA
+                        </TableCell>
+                        <TableCell sx={{ fontWeight: 900, whiteSpace: "nowrap", color: "rgba(22,50,92,0.72)" }}>
+                          STATUS
+                        </TableCell>
+                      </TableRow>
+                    </TableHead>
+
+                    <TableBody>
+                      {purchaseHistory.map((item, index) => (
+                        <TableRow key={`${item.type || "purchase"}-${item.id || index}`} hover>
+                          <TableCell sx={{ fontWeight: 800 }}>
+                            {item.type_label || (item.type === "promotional" ? "Promocional" : "Principal")}
+                          </TableCell>
+
+                          <TableCell sx={{ fontWeight: 800 }}>
+                            {item.draw_title || "--"}
+                          </TableCell>
+
+                          <TableCell sx={{ fontWeight: 800 }}>
+                            {item.numbers_label || "--"}
+                          </TableCell>
+
+                          <TableCell sx={{ fontWeight: 800 }}>
+                            {item.amount_label || formatMoneyBRFromCents(item.amount_cents)}
+                          </TableCell>
+
+                          <TableCell>
+                            {formatDateTimeBR(item.purchased_at || item.paid_at)}
+                          </TableCell>
+
+                          <TableCell>
+                            <Chip
+                              label="PAGO"
+                              sx={{
+                                bgcolor: "rgba(37,109,255,0.12)",
+                                color: "#16325c",
+                                fontWeight: 900,
+                                borderRadius: 999,
+                                px: 1.5,
+                                border: "1px solid rgba(37,109,255,0.26)",
+                              }}
+                            />
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              )}
+            </Stack>
+          </Paper>
 
           {/* Tabela */}
               <Paper className="xn-card" variant="outlined" sx={{ p: { xs: 2, md: 2.5 } }}>
