@@ -148,7 +148,7 @@ export default function GiftCardSimulator({
   };
 
   return (
-    <Card elevation={6} sx={{ borderRadius: 3 }}>
+    <Card elevation={6} sx={{ borderRadius: 3 }} className="xnamai-hidden-legacy">
       <CardHeader title="💳 Simulador de Uso do Cartão Presente" sx={{ pb: 0 }} />
       <CardContent>
         <Grid container spacing={2}>

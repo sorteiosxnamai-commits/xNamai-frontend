@@ -39,6 +39,140 @@
   transform: translateY(-1px);
 }
 
+/* Blocos legados ocultos (recuperáveis) */
+.xnamai-hidden-legacy {
+  display: none !important;
+}
+
+/* Conteúdo oficial — PDF Sorteio Xnamai */
+.xnamai-official-rules {
+  width: 100%;
+}
+
+.xnamai-official-card {
+  border-radius: 24px !important;
+  border: 1px solid rgba(30, 102, 255, 0.18) !important;
+  background: linear-gradient(180deg, #ffffff 0%, #f6f9ff 100%) !important;
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.06) !important;
+}
+
+.xnamai-official-card__title {
+  margin: 0 0 12px;
+  color: #0b2a5b;
+  font-size: clamp(20px, 3vw, 26px);
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.xnamai-official-card__subtitle {
+  margin: 0 0 14px;
+  color: #1e66ff;
+  font-size: clamp(15px, 2.2vw, 18px);
+  font-weight: 900;
+  line-height: 1.35;
+}
+
+.xnamai-official-card__text,
+.xnamai-official-card__list {
+  margin: 0;
+  color: rgba(11, 27, 51, 0.82);
+  font-size: 15px;
+  line-height: 1.65;
+}
+
+.xnamai-official-card__list {
+  padding-left: 1.25rem;
+}
+
+.xnamai-official-card__list li {
+  margin-bottom: 8px;
+}
+
+.xnamai-official-highlight {
+  color: #1e66ff;
+  font-weight: 900;
+}
+
+.xnamai-official-note {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(30, 102, 255, 0.14);
+  background: rgba(30, 102, 255, 0.06);
+  color: rgba(11, 27, 51, 0.78);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.xnamai-official-table-wrap {
+  overflow-x: auto;
+  margin-top: 12px;
+  border-radius: 16px;
+  border: 1px solid rgba(30, 102, 255, 0.14);
+  background: #ffffff;
+}
+
+.xnamai-official-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 320px;
+}
+
+.xnamai-official-table th,
+.xnamai-official-table td {
+  padding: 14px 16px;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+  text-align: left;
+  vertical-align: top;
+}
+
+.xnamai-official-table th {
+  background: rgba(30, 102, 255, 0.08);
+  color: #0b2a5b;
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.xnamai-official-table tr:last-child td {
+  border-bottom: none;
+}
+
+.xnamai-official-whatsapp-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 8px;
+  padding: 12px 22px;
+  border-radius: 999px;
+  background: #25d366;
+  color: #ffffff !important;
+  font-weight: 900;
+  font-size: 14px;
+  text-decoration: none !important;
+  box-shadow: 0 10px 22px rgba(37, 211, 102, 0.28);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.xnamai-official-whatsapp-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 14px 28px rgba(37, 211, 102, 0.34);
+}
+
+@media (max-width: 768px) {
+  .xnamai-official-card {
+    border-radius: 18px !important;
+  }
+
+  .xnamai-official-table th,
+  .xnamai-official-table td {
+    padding: 12px;
+    font-size: 14px;
+  }
+}
+
 .xnamai-header__navItem--active {
   color: #FFFFFF;
   background: linear-gradient(135deg, rgba(30,102,255,0.42), rgba(30,102,255,0.22));

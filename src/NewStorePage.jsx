@@ -749,7 +749,7 @@ export default function NewStorePage({
                       fontSize: { xs: 31, sm: 36, md: 48 },
                     }}
                   >
-                    Bem-vindo aos Sorteios da{" "}
+                    Bem-vindo ao sorteios da{" "}
                     <Box
                       component="span"
                       sx={{
@@ -781,16 +781,15 @@ export default function NewStorePage({
                       lineHeight: 1.65,
                     }}
                   >
-                    A xNaMai apresenta o sorteio em que você nunca sai perdendo. Ao participar,
-                    você garante uma vaga na disputa por um item premium e ainda transforma parte
-                    do valor da sua participação em um Cartão Presente Digital, válido para
-                    compras no site da xNaMai, exceto em itens promocionais.
+                    A xNaMai apresenta o único sorteio em que você nunca sai perdendo. Ao
+                    participar, você garante uma vaga na disputa por um item premium, e ainda
+                    transforma o valor da sua participação em um Cartão Presente Digital, válido
+                    para compras em todo o site, com exceção dos itens promocionais.
                   </Typography>
 
                   <Typography variant="body2" sx={{ color: "rgba(11,27,51,0.60)", fontSize: 12.8, lineHeight: 1.5 }}>
-                    Sorteio válido até o preenchimento total da tabela. Resultado baseado no
-                    primeiro resultado oficial da Lotomania após todos os números serem
-                    reservados.
+                    Sorteio válido até o preenchimento total da tabela. Baseado no resultado
+                    oficial da Loteria Federal, modalidade Lotomania.
                   </Typography>
                 </Stack>
 
@@ -1101,7 +1100,127 @@ export default function NewStorePage({
             </Stack>
           </Paper>
 
-          {/* Demais seções */}
+          {/* === CONTEÚDO OFICIAL — PDF Sorteio Xnamai === */}
+          <Stack spacing={2.5} className="xnamai-official-rules">
+            <Paper className="xnamai-official-card" variant="outlined" sx={{ p: { xs: 2, md: 3 } }}>
+              <Typography component="h2" className="xnamai-official-card__title">
+                Como funciona seu Cartão Presente Digital
+              </Typography>
+              <Typography className="xnamai-official-card__text" sx={{ mb: 1.5 }}>
+                Cada participação que você faz se transforma em crédito no seu Cartão Presente
+                Digital, acumulando automaticamente o valor investido. A validade do saldo é de
+                3 meses, sendo renovada a cada nova participação.
+              </Typography>
+              <ul className="xnamai-official-card__list">
+                <li>Saldo acumulativo em um único cartão</li>
+                <li>Validade renovada automaticamente</li>
+                <li>Uso exclusivo no site da xNaMai</li>
+                <li>Código pessoal e intransferível</li>
+                <li>Crédito perfeito para planejar a compra do seu próximo pedido</li>
+              </ul>
+              <Box className="xnamai-official-note">
+                <strong>Dica:</strong> É a maneira mais inteligente de participar: enquanto
+                concorre, você acumula crédito retornando uma parte do valor pago no seu número
+                da sorte.
+              </Box>
+            </Paper>
+
+            <Paper className="xnamai-official-card" variant="outlined" sx={{ p: { xs: 2, md: 3 } }}>
+              <Typography component="h2" className="xnamai-official-card__title">
+                Informações do sorteio
+              </Typography>
+              <ul className="xnamai-official-card__list">
+                <li>A vaga só é confirmada após a compensação do pagamento.</li>
+                <li>O sorteio é realizado quando todos os números forem vendidos.</li>
+                <li>O ganhador é o participante com o último número sorteado pela Lotomania.</li>
+                <li>
+                  Para o resultado dos sorteios, será utilizado o primeiro resultado da
+                  Lotomania após todos os números serem reservados.
+                </li>
+                <li>Prazo máximo: 7 dias após abertura da rodada.</li>
+                <li>Envio do prêmio: frete por conta do vencedor.</li>
+                <li>
+                  O Cartão Presente não é cumulativo com o prêmio nem com outras promoções do
+                  site.
+                </li>
+              </ul>
+              <Box className="xnamai-official-note">
+                Caso o seu número esteja entre os 10 primeiros, de 00 a 09, o número da sorte
+                será exibido com dois algarismos, incluindo o zero.
+              </Box>
+              <Box className="xnamai-official-note" sx={{ mt: 1.5 }}>
+                <strong>Transparência total:</strong> o resultado pode ser conferido
+                publicamente no site oficial da Caixa Econômica Federal, na modalidade
+                Lotomania.
+              </Box>
+            </Paper>
+
+            <Paper className="xnamai-official-card" variant="outlined" sx={{ p: { xs: 2, md: 3 } }}>
+              <Typography component="h2" className="xnamai-official-card__title">
+                Regras para utilização dos Cartões Presente
+              </Typography>
+              <ul className="xnamai-official-card__list">
+                <li>Uso exclusivo no site da xNaMai.</li>
+                <li>Não é possível comprar outro cartão-presente com crédito de sorteio.</li>
+                <li>Sem conversão em dinheiro.</li>
+                <li>
+                  O crédito pode ser utilizado em uma única compra, em diversos produtos ou
+                  parcialmente, conforme orientação do atendimento.
+                </li>
+                <li>
+                  Para utilizar o saldo, solicite atendimento pelo canal oficial da xNaMai via
+                  WhatsApp.
+                </li>
+                <li>
+                  Validade de 3 meses, renovável automaticamente a cada nova participação.
+                </li>
+                <li>
+                  A xNaMai não se responsabiliza por perda, extravio ou validade expirada.
+                </li>
+                <li>O cartão não é cumulativo com outros cupons de desconto.</li>
+              </ul>
+              <Link
+                href="https://wa.me/5511945145530"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="xnamai-official-whatsapp-btn"
+              >
+                Solicitar atendimento no WhatsApp
+              </Link>
+            </Paper>
+
+            <Paper className="xnamai-official-card" variant="outlined" sx={{ p: { xs: 2, md: 3 } }}>
+              <Typography component="h2" className="xnamai-official-card__title">
+                Tabela para utilização do Cartão Presente
+              </Typography>
+              <Typography className="xnamai-official-card__text" sx={{ mb: 1 }}>
+                Sempre considerar o valor integral do produto na forma de pagamento escolhida.
+              </Typography>
+              <div className="xnamai-official-table-wrap">
+                <table className="xnamai-official-table">
+                  <thead>
+                    <tr>
+                      <th>Cartão Presente</th>
+                      <th>Condição de uso</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>Até 10% do valor do pedido</td>
+                      <td>Pedido mínimo R$ 800,00</td>
+                    </tr>
+                    <tr>
+                      <td>Observação</td>
+                      <td>O cartão presente não é aplicado em produtos na promoção.</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </Paper>
+          </Stack>
+
+          {/* BLOCO ANTIGO OCULTO TEMPORARIAMENTE — manter para possível reaproveitamento futuro */}
+          <div className="xnamai-hidden-legacy">
           <Paper variant="outlined" sx={{ p: { xs: 2, md: 3 } }}>
             <Stack spacing={1.5}>
 
@@ -1367,107 +1486,6 @@ export default function NewStorePage({
         Compras via Pix devem ter o desconto aplicado <strong>manualmente</strong> pela equipe da loja.
       </Typography>
     </Alert>
-
-    <Divider sx={{ my: 1 }} />
-
-    {/* FAQ */}
-    <Typography variant="h6">❓ Perguntas Frequentes (FAQ)</Typography>
-
-    <Accordion>
-      <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-        <Typography>1. Como funciona o sorteio?</Typography>
-      </AccordionSummary>
-      <AccordionDetails>
-        <Typography variant="body2">
-          Baseado no resultado oficial da Lotomania. O ganhador é quem possui o último número sorteado.
-        </Typography>
-      </AccordionDetails>
-    </Accordion>
-
-    <Accordion>
-      <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-        <Typography>2. Quando o sorteio acontece?</Typography>
-      </AccordionSummary>
-      <AccordionDetails>
-        <Typography variant="body2">Assim que todos os números são vendidos.</Typography>
-      </AccordionDetails>
-    </Accordion>
-
-    <Accordion>
-      <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-        <Typography>3. O que ganho ao participar?</Typography>
-      </AccordionSummary>
-      <AccordionDetails>
-        <Typography variant="body2">
-          Você concorre ao prêmio e ainda recebe o valor investido de volta em créditos no site.
-        </Typography>
-      </AccordionDetails>
-    </Accordion>
-
-    <Accordion>
-      <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-        <Typography>4. Onde posso usar meu cartão presente?</Typography>
-      </AccordionSummary>
-      <AccordionDetails>
-        <Typography variant="body2">
-          Somente no site da xNaMai Sorteios, em qualquer produto disponível no site (respeitando a tabela).
-        </Typography>
-      </AccordionDetails>
-    </Accordion>
-
-    <Accordion>
-      <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-        <Typography>5. Posso transferir meu crédito?</Typography>
-      </AccordionSummary>
-      <AccordionDetails>
-        <Typography variant="body2">
-          Não. O cartão é pessoal, intransferível e sem conversão em dinheiro.
-        </Typography>
-      </AccordionDetails>
-    </Accordion>
-
-    <Accordion>
-      <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-        <Typography>6. O prêmio inclui o frete?</Typography>
-      </AccordionSummary>
-      <AccordionDetails>
-        <Typography variant="body2">Não. O custo de envio é por conta do vencedor.</Typography>
-      </AccordionDetails>
-    </Accordion>
-
-    <Accordion>
-      <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-        <Typography>7. Onde acompanho os resultados e novas rodadas?</Typography>
-      </AccordionSummary>
-      <AccordionDetails>
-        <Typography variant="body2">
-          No grupo oficial da xNaMai Sorteios no WhatsApp.
-        </Typography>
-      </AccordionDetails>
-    </Accordion>
-
-    <Accordion>
-      <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-        <Typography>8. Posso usar somente uma parte do meu saldo acumulado?</Typography>
-      </AccordionSummary>
-      <AccordionDetails>
-        <Typography variant="body2">
-          Sim, você pode desmembrar o seu cartão presente e usar somente uma parte do seu saldo.
-        </Typography>
-      </AccordionDetails>
-    </Accordion>
-
-    <Accordion>
-      <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-        <Typography>9. Posso comprar mais de 1 produto usando meus créditos?</Typography>
-      </AccordionSummary>
-      <AccordionDetails>
-        <Typography variant="body2">
-          Sim, você pode escolher diversos produtos no site para aplicar seu desconto.
-          Basta seguir a tabela de utilização dos cartões presente.
-        </Typography>
-      </AccordionDetails>
-    </Accordion>
   </Stack>
 </Paper>
 
@@ -1486,6 +1504,117 @@ export default function NewStorePage({
                 imageRendering: "auto",
               }}
             />
+          </Paper>
+          </div>
+
+          <Paper className="xnamai-official-card" variant="outlined" sx={{ p: { xs: 2, md: 3 } }}>
+            <Stack spacing={2}>
+              <Typography component="h2" className="xnamai-official-card__title">
+                Perguntas Frequentes (FAQ)
+              </Typography>
+
+              <Accordion>
+                <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                  <Typography>1. Como funciona o sorteio?</Typography>
+                </AccordionSummary>
+                <AccordionDetails>
+                  <Typography variant="body2">
+                    Baseado no resultado oficial da Lotomania. O ganhador é quem possui o último
+                    número sorteado.
+                  </Typography>
+                </AccordionDetails>
+              </Accordion>
+
+              <Accordion>
+                <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                  <Typography>2. Quando o sorteio acontece?</Typography>
+                </AccordionSummary>
+                <AccordionDetails>
+                  <Typography variant="body2">Assim que todos os números são vendidos.</Typography>
+                </AccordionDetails>
+              </Accordion>
+
+              <Accordion>
+                <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                  <Typography>3. O que ganho ao participar?</Typography>
+                </AccordionSummary>
+                <AccordionDetails>
+                  <Typography variant="body2">
+                    Você concorre ao prêmio e ainda recebe o valor investido de volta em créditos no
+                    site.
+                  </Typography>
+                </AccordionDetails>
+              </Accordion>
+
+              <Accordion>
+                <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                  <Typography>4. Onde posso usar meu cartão presente?</Typography>
+                </AccordionSummary>
+                <AccordionDetails>
+                  <Typography variant="body2">
+                    Somente no site da xNaMai Sorteios, em qualquer produto disponível no site
+                    (respeitando a tabela).
+                  </Typography>
+                </AccordionDetails>
+              </Accordion>
+
+              <Accordion>
+                <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                  <Typography>5. Posso transferir meu crédito?</Typography>
+                </AccordionSummary>
+                <AccordionDetails>
+                  <Typography variant="body2">
+                    Não. O cartão é pessoal, intransferível e sem conversão em dinheiro.
+                  </Typography>
+                </AccordionDetails>
+              </Accordion>
+
+              <Accordion>
+                <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                  <Typography>6. O prêmio inclui o frete?</Typography>
+                </AccordionSummary>
+                <AccordionDetails>
+                  <Typography variant="body2">
+                    Não. O custo de envio é por conta do vencedor.
+                  </Typography>
+                </AccordionDetails>
+              </Accordion>
+
+              <Accordion>
+                <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                  <Typography>7. Onde acompanho os resultados e novas rodadas?</Typography>
+                </AccordionSummary>
+                <AccordionDetails>
+                  <Typography variant="body2">
+                    No grupo oficial da xNaMai Sorteios no WhatsApp.
+                  </Typography>
+                </AccordionDetails>
+              </Accordion>
+
+              <Accordion>
+                <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                  <Typography>8. Posso usar somente uma parte do meu saldo acumulado?</Typography>
+                </AccordionSummary>
+                <AccordionDetails>
+                  <Typography variant="body2">
+                    Sim, você pode desmembrar o seu cartão presente e usar somente uma parte do seu
+                    saldo.
+                  </Typography>
+                </AccordionDetails>
+              </Accordion>
+
+              <Accordion>
+                <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                  <Typography>9. Posso comprar mais de 1 produto usando meus créditos?</Typography>
+                </AccordionSummary>
+                <AccordionDetails>
+                  <Typography variant="body2">
+                    Sim, você pode escolher diversos produtos no site para aplicar seu desconto.
+                    Basta seguir a tabela de utilização dos cartões presente.
+                  </Typography>
+                </AccordionDetails>
+              </Accordion>
+            </Stack>
           </Paper>
 
           {/* Convite grupo */}
