@@ -338,6 +338,165 @@
   color: #64748b;
 }
 
+.promocional-field-hint {
+  color: #526179;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.promocional-assignment-panel {
+  display: grid;
+  gap: 16px;
+}
+
+.promocional-assignment-panel__content {
+  display: grid;
+  gap: 14px;
+}
+
+.promocional-my-number-card {
+  display: grid;
+  gap: 12px;
+  padding: 22px;
+  border-radius: 20px;
+  border: 1px solid rgba(37, 99, 235, 0.18);
+  background: linear-gradient(180deg, #ffffff 0%, #f3f8ff 100%);
+}
+
+.promocional-my-number-card__eyebrow {
+  margin: 0;
+  color: #2563eb;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.promocional-my-number-card__value {
+  font-size: clamp(42px, 8vw, 72px);
+  font-weight: 900;
+  color: #071833;
+  letter-spacing: 0.08em;
+  line-height: 1;
+}
+
+.promocional-my-number-card__date {
+  margin: 0;
+  color: #526179;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.promocional-badge {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  border-radius: 999px;
+  padding: 7px 12px;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.promocional-badge--admin {
+  background: rgba(255, 193, 7, 0.22);
+  color: #7c4a00;
+  border: 1px solid rgba(124, 74, 0, 0.18);
+}
+
+.promocional-badge--table {
+  display: block;
+  margin-top: 6px;
+  font-size: 11px;
+}
+
+.promocional-selected-count--mine {
+  background: rgba(37, 99, 235, 0.12);
+  color: #1d4ed8;
+}
+
+.promocional-number--mine,
+.promocional-number.promocional-number--mine {
+  border-color: #2563eb;
+  background: #2563eb;
+  color: #ffffff;
+  box-shadow: 0 12px 24px rgba(37, 99, 235, 0.28);
+}
+
+.promocional-grid-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 18px 0 0;
+}
+
+.promocional-grid-legend__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #526179;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.promocional-grid-legend__item::before {
+  content: "";
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+}
+
+.promocional-grid-legend__item--mine::before {
+  background: #2563eb;
+  border-color: #2563eb;
+}
+
+.promocional-grid-legend__item--reserved::before {
+  background: #fff7ed;
+  border-color: #fdba74;
+}
+
+.promocional-grid-legend__item--available::before {
+  background: #ffffff;
+}
+
+.promocional-assign-panel {
+  margin-bottom: 20px;
+  padding: 24px;
+  border: 1px solid rgba(37, 99, 235, 0.14);
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 16px 36px rgba(15, 23, 42, 0.06);
+}
+
+.promocional-assign-panel h3 {
+  margin: 0;
+  color: #071833;
+  font-size: 20px;
+  font-weight: 900;
+}
+
+.promocional-assign-panel__hint {
+  margin: 8px 0 0;
+  color: #526179;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.promocional-assign-panel__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin: 18px 0;
+}
+
+@media (max-width: 768px) {
+  .promocional-assign-panel__grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .promocional-admin-header {
   margin-bottom: 24px;
   padding: 24px;

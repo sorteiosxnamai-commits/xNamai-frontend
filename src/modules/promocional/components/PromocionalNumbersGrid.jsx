@@ -55,6 +55,7 @@ export default function PromocionalNumbersGrid({
         const status = getNumberStatus(item);
         const isAvailable = status === "available";
         const isSelected = selectedSet.has(String(rawNumber));
+        const isMine = readOnly && isSelected;
         const buttonDisabled = readOnly || !isAvailable || !onToggleNumber;
 
         return (
@@ -65,13 +66,14 @@ export default function PromocionalNumbersGrid({
                 "promocional-number",
                 `promocional-number--${status}`,
                 status,
-                isSelected ? "promocional-number--selected selected" : "",
+                isMine ? "promocional-number--mine" : "",
+                isSelected && !isMine ? "promocional-number--selected selected" : "",
               ]
                 .filter(Boolean)
                 .join(" ")}
               disabled={buttonDisabled}
               onClick={() => onToggleNumber?.(rawNumber, item)}
-              title={status}
+              title={isMine ? "Meu número" : status}
             >
               {displayNumber}
             </button>

@@ -107,6 +107,21 @@ export function getPromotionalNumbers(drawId) {
 
 export const getPromocionalNumbers = getPromotionalNumbers;
 
+export function getMyPromocionalAssignment(drawId) {
+  return getJSON(`/promotional/${encodePathValue(drawId)}/my-assignment`);
+}
+
+export function redeemPromocionalAssignment(drawId) {
+  return apiPost(`/promotional/${encodePathValue(drawId)}/redeem`, {});
+}
+
+export function adminAssignPromocionalNumbers(drawId, payload) {
+  return apiPost(
+    `/promotional/admin/draws/${encodePathValue(drawId)}/assign-numbers`,
+    payload
+  );
+}
+
 export async function checkoutPromocionalReservation(drawId, payload) {
   if (!drawId) {
     throw new Error("Sorteio promocional não encontrado.");

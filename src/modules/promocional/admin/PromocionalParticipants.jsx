@@ -76,6 +76,7 @@ export default function PromocionalParticipants() {
                 <th>Email</th>
                 <th>Telefone</th>
                 <th>Numeros</th>
+                <th>Origem</th>
                 <th>Status</th>
                 <th>Data</th>
               </tr>
@@ -83,9 +84,19 @@ export default function PromocionalParticipants() {
             <tbody>
               {participants.map((participant, index) => (
                 <tr key={participant?.id || participant?._id || index}>
-                  <td>{participant?.name || participant?.nome || "-"}</td>
-                  <td>{participant?.email || "-"}</td>
-                  <td>{participant?.phone || participant?.telefone || "-"}</td>
+                  <td>
+                    {participant?.name ||
+                      participant?.buyer_name ||
+                      participant?.nome ||
+                      "-"}
+                  </td>
+                  <td>{participant?.email || participant?.buyer_email || "-"}</td>
+                  <td>
+                    {participant?.phone ||
+                      participant?.buyer_phone ||
+                      participant?.telefone ||
+                      "-"}
+                  </td>
                   <td>
                     {formatNumbers(
                       participant?.numbers ||
@@ -93,8 +104,15 @@ export default function PromocionalParticipants() {
                         participant?.numeros
                     ) || "-"}
                   </td>
-                  <td>{participant?.status || "-"}</td>
-                  <td>{formatDate(participant?.created_at || participant?.createdAt || participant?.date)}</td>
+                  <td>{participant?.source_label || "Atribuído pelo admin"}</td>
+                  <td>{participant?.status_label || "Atribuído pelo admin"}</td>
+                  <td>
+                    {formatDate(
+                      participant?.created_at ||
+                        participant?.createdAt ||
+                        participant?.date
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>

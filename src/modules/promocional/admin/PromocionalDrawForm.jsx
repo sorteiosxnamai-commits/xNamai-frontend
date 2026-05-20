@@ -58,7 +58,7 @@ function validateForm(form) {
   if (!Number.isFinite(numberStart) || numberStart < 0) return "Numero inicial deve ser maior ou igual a 0.";
   if (!Number.isFinite(numberEnd) || numberEnd > 1000) return "Numero final deve ser menor ou igual a 1000.";
   if (numberEnd <= numberStart) return "Numero final deve ser maior que o numero inicial.";
-  if (!Number.isFinite(priceCents) || priceCents <= 0) return "Valor por numero deve ser maior que 0 para gerar PIX.";
+  if (!Number.isFinite(priceCents) || priceCents < 0) return "Valor de referencia deve ser zero ou maior.";
   if (!Number.isFinite(maxNumbers) || maxNumbers <= 0) return "Maximo por usuario deve ser maior que 0.";
   return "";
 }
@@ -193,13 +193,16 @@ export default function PromocionalDrawForm() {
           </label>
 
           <label className="promocional-field">
-            <span>Valor por numero em centavos</span>
+            <span>Valor de referência em centavos, opcional</span>
             <input
               type="number"
               min="0"
               value={form.price_cents}
               onChange={(event) => updateField("price_cents", event.target.value)}
             />
+            <small className="promocional-field-hint">
+              Este valor é apenas informativo. O sorteio promocional não gera compra nem PIX pelo site.
+            </small>
           </label>
 
           <label className="promocional-field">
