@@ -749,6 +749,11 @@ export default function NewStorePage({
 
   const selectionStatusLabel = `Selecionados: ${selecionados.length} / ${maxSelectable}`;
 
+  const remainingAfterSelection = Math.max(
+    0,
+    Number(slotsLeft || 0) - Number(selecionados.length || 0)
+  );
+
   const continuarDisabled =
     !selecionados.length || selecionados.length > slotsLeft;
 
@@ -931,11 +936,11 @@ export default function NewStorePage({
                     px: 1.05,
                     py: 0.46,
                     borderRadius: 999,
-                    border: "1px solid #94A3B8",
-                    bgcolor: "#E2E8F0",
+                    border: "1px solid #9CA3AF",
+                    bgcolor: "#D1D5DB",
                   }}
                 >
-                  <Typography variant="caption" sx={{ color: "#334155", fontWeight: 900, letterSpacing: 0.3 }}>
+                  <Typography variant="caption" sx={{ color: "#1F2937", fontWeight: 900, letterSpacing: 0.3 }}>
                     INDISPONÍVEL
                   </Typography>
                 </Stack>
@@ -1718,9 +1723,9 @@ export default function NewStorePage({
               <Typography variant="body1" sx={{ mt: 0.5, mb: 1 }}>
                 Total: <strong>R$ {(selecionados.length * unitPrice).toFixed(2)}</strong>
               </Typography>
-              {Number.isFinite(remainingFromServer) && (
+              {Number.isFinite(remainingAfterSelection) && (
                 <Typography variant="caption" sx={{ opacity: 0.75 }}>
-                  Você ainda pode comprar {Math.max(0, remainingFromServer)} número(s) neste sorteio.
+                  Após esta seleção, você ainda poderá comprar {remainingAfterSelection} número(s) neste sorteio.
                 </Typography>
               )}
             </>

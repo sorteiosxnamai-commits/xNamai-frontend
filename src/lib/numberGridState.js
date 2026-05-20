@@ -67,22 +67,23 @@ export function getNumberVisualState({
 
 export const NUMBER_CELL_PALETTE = {
   unavailable: {
-    border: "1px solid #94A3B8",
-    bgcolor: "#E2E8F0",
-    color: "#334155",
+    border: "1px solid #9CA3AF",
+    bgcolor: "#D1D5DB",
+    color: "#1F2937",
     cursor: "not-allowed",
     pointerEvents: "none",
-    boxShadow: "inset 0 0 0 1px rgba(100, 116, 139, 0.22)",
+    boxShadow: "inset 0 0 0 1px rgba(75, 85, 99, 0.22)",
     opacity: 1,
     "&:hover": {
-      bgcolor: "#E2E8F0",
-      borderColor: "#94A3B8",
+      bgcolor: "#D1D5DB",
+      borderColor: "#9CA3AF",
+      color: "#1F2937",
       transform: "none",
-      boxShadow: "inset 0 0 0 1px rgba(100, 116, 139, 0.22)",
+      boxShadow: "inset 0 0 0 1px rgba(75, 85, 99, 0.22)",
     },
-    initialsBg: "#CBD5E1",
-    initialsBorder: "1px solid #94A3B8",
-    initialsColor: "#1E293B",
+    initialsBg: "#6B7280",
+    initialsBorder: "1px solid #4B5563",
+    initialsColor: "#FFFFFF",
   },
   reserved: {
     border: "1px solid #F2C94C",

@@ -46,25 +46,26 @@
 
 /* Célula do grid — número indisponível / vendido */
 .xnamai-number-cell--unavailable {
-  background: #e2e8f0 !important;
-  border: 1px solid #94a3b8 !important;
-  color: #334155 !important;
+  background: #d1d5db !important;
+  border: 1px solid #9ca3af !important;
+  color: #1f2937 !important;
   cursor: not-allowed !important;
   pointer-events: none;
-  box-shadow: inset 0 0 0 1px rgba(100, 116, 139, 0.22);
+  box-shadow: inset 0 0 0 1px rgba(75, 85, 99, 0.22);
   opacity: 1;
 }
 
 .xnamai-number-cell--unavailable:hover {
-  background: #e2e8f0 !important;
-  border-color: #94a3b8 !important;
+  background: #d1d5db !important;
+  border-color: #9ca3af !important;
+  color: #1f2937 !important;
   transform: none !important;
 }
 
 .xnamai-number-cell__initials--unavailable {
-  background: #cbd5e1;
-  border: 1px solid #94a3b8;
-  color: #1e293b;
+  background: #6b7280;
+  border: 1px solid #4b5563;
+  color: #ffffff;
   font-weight: 900;
 }
 
