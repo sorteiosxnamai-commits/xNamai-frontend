@@ -7,6 +7,18 @@ import { SelectionContext } from "./selectionContext";
 import PixModal from "./PixModal";
 import { checkPixStatus, generateMainReservationPix } from "./services/pix";
 import { isPaidStatus } from "./lib/paymentStatus";
+import {
+  getNumberCellSx,
+  getNumberVisualState,
+  getUnavailableInitialsSx,
+  isReservedStatus,
+  isUnavailableStatus,
+} from "./lib/numberGridState";
+import {
+  fetchPublicConfig,
+  resolveCurrentDrawId,
+  resolveMaxNumbersPerUser,
+} from "./services/draws";
 import { useAuth } from "./authContext";
 import { API_CONFIG } from "./config/api";
 
@@ -92,53 +104,6 @@ function pickFirstText(...values) {
     if (cleaned) return cleaned;
   }
   return "";
-}
-
-const SOLD_NUMBER_STATUSES = new Set([
-  "taken",
-  "sold",
-  "paid",
-  "approved",
-  "unavailable",
-  "blocked",
-  "vendido",
-  "pago",
-  "aprovado",
-  "indisponivel",
-  "indisponível",
-]);
-
-const SOLD_PAYMENT_STATUSES = new Set(["paid", "approved", "pago"]);
-
-const RESERVED_NUMBER_STATUSES = new Set([
-  "reserved",
-  "pending",
-  "reservado",
-  "pendente",
-]);
-
-function normalizeStatusToken(value) {
-  return String(value || "")
-    .trim()
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "");
-}
-
-function isSoldNumberStatus(status, paymentStatus) {
-  const st = normalizeStatusToken(status);
-  const pay = normalizeStatusToken(paymentStatus);
-
-  if (SOLD_NUMBER_STATUSES.has(st) || SOLD_PAYMENT_STATUSES.has(pay)) {
-    return true;
-  }
-
-  return st.includes("indispon") || st === "unavailable";
-}
-
-function isReservedNumberStatus(status, paymentStatus) {
-  if (isSoldNumberStatus(status, paymentStatus)) return false;
-  return RESERVED_NUMBER_STATUSES.has(normalizeStatusToken(status));
 }
 
 // Mocks
@@ -279,7 +244,6 @@ export default function NewStorePage({
 
   // Config pública (/api/config) — textos do sorteio vêm daqui (sem fallback antigo hardcoded)
   const [publicConfig, setPublicConfig] = React.useState(null);
-  const [maxSelect, setMaxSelect] = React.useState(5);
 
   const displayPrizeTitle = React.useMemo(() => {
     const c = publicConfig || {};
@@ -345,11 +309,18 @@ export default function NewStorePage({
   // Draw atual (se o backend expuser)
   const [currentDrawId, setCurrentDrawId] = React.useState(null);
 
-  // Limite acumulado do usuário
-  const [limitUsage, setLimitUsage] = React.useState({
-    current: null,
-    max: null,
-  });
+  // Quantidade já comprada/confirmada neste sorteio (API purchase-limit)
+  const [purchasedCount, setPurchasedCount] = React.useState(0);
+
+  const maxSelectable = React.useMemo(
+    () => resolveMaxNumbersPerUser(publicConfig),
+    [publicConfig]
+  );
+
+  const slotsLeft = React.useMemo(
+    () => Math.max(0, maxSelectable - (Number(purchasedCount) || 0)),
+    [maxSelectable, purchasedCount]
+  );
 
   // ===== Carregar preço, textos e (se houver) draw id — sem 404 no console
   React.useEffect(() => {
@@ -357,74 +328,69 @@ export default function NewStorePage({
 
     (async () => {
       try {
-        const res = await fetch(`${API_BASE}/api/config`, {
-          credentials: "include",
-          cache: "no-store",
-        });
-        if (res.ok) {
-          const j = await res.json().catch(() => ({}));
-          if (alive) setPublicConfig(j);
+        const j = await fetchPublicConfig();
+        if (!j || !alive) return;
 
-          // preço
-          const cents =
-            j?.ticket_price_cents ??
-            j?.price_cents ??
-            j?.current?.price_cents ??
-            j?.current_draw?.price_cents;
-          const reais =
-            cents != null && Number.isFinite(Number(cents))
-              ? Number(cents) / 100
-              : Number(j?.ticket_price ?? j?.price);
-          if (alive && Number.isFinite(reais) && reais > 0) setUnitPrice(reais);
+        setPublicConfig(j);
 
-          // draw id (se enviado)
-          const did =
-            j?.current_draw_id ??
-            j?.draw_id ??
-            j?.current?.id ??
-            j?.current_draw?.id;
-          if (alive && did != null) setCurrentDrawId(did);
+        const cents =
+          j?.ticket_price_cents ??
+          j?.price_cents ??
+          j?.current?.price_cents ??
+          j?.current_draw?.price_cents;
+        const reais =
+          cents != null && Number.isFinite(Number(cents))
+            ? Number(cents) / 100
+            : Number(j?.ticket_price ?? j?.price);
+        if (Number.isFinite(reais) && reais > 0) setUnitPrice(reais);
 
-          // teto de seleção dinâmico
-          const maxSel =
-            j?.max_numbers_per_selection ?? j?.max_select ?? j?.selection_limit;
-          if (alive && Number.isFinite(Number(maxSel)) && Number(maxSel) > 0) {
-            setMaxSelect(Number(maxSel));
-          }
-        }
+        const did = resolveCurrentDrawId(j);
+        if (did != null) setCurrentDrawId(did);
       } catch {
-        // fallback silencioso
-      } finally {
-        // também tentamos carregar o uso do limite (add=0)
-        try {
-          const info = await checkUserPurchaseLimit({
-            addCount: 0,
-            drawId: currentDrawId,
-          });
-          if (alive) setLimitUsage({ current: info.current, max: info.max });
-        } catch {}
+        /* fallback silencioso */
       }
     })();
 
     return () => {
       alive = false;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  React.useEffect(() => {
+    if (!isAuthenticated) {
+      setPurchasedCount(0);
+      return;
+    }
+
+    let alive = true;
+
+    (async () => {
+      try {
+        const info = await checkUserPurchaseLimit({
+          addCount: 0,
+          drawId: currentDrawId,
+        });
+        if (!alive) return;
+        const current = Number(info?.current);
+        setPurchasedCount(Number.isFinite(current) && current >= 0 ? current : 0);
+      } catch {
+        if (alive) setPurchasedCount(0);
+      }
+    })();
+
+    return () => {
+      alive = false;
+    };
+  }, [currentDrawId, isAuthenticated]);
 
   // Refetch imediato quando um novo sorteio for criado/aberto (admin)
   React.useEffect(() => {
     const onDrawChanged = async () => {
       try {
-        const res = await fetch(`${API_BASE}/api/config`, {
-          credentials: "include",
-          cache: "no-store",
-        });
-        if (!res.ok) return;
-        const j = await res.json().catch(() => ({}));
+        const j = await fetchPublicConfig();
+        if (!j) return;
         setPublicConfig(j);
-        const did =
-          j?.current_draw_id ?? j?.draw_id ?? j?.current?.id ?? j?.current_draw?.id;
+        const did = resolveCurrentDrawId(j);
         if (did != null) setCurrentDrawId(did);
       } catch {}
     };
@@ -463,7 +429,7 @@ export default function NewStorePage({
         const st = it.status;
         const paySt = it.payment_status ?? it.paymentStatus;
 
-        if (isSoldNumberStatus(st, paySt)) {
+        if (isUnavailableStatus(st, paySt)) {
           indis.push(num);
           const rawInit =
             it.initials ||
@@ -472,7 +438,7 @@ export default function NewStorePage({
             it.owner ||
             it.oi;
           if (rawInit) initials[num] = String(rawInit).slice(0, 3).toUpperCase();
-        } else if (isReservedNumberStatus(st, paySt)) {
+        } else if (isReservedStatus(st, paySt)) {
           reservs.push(num);
         }
       }
@@ -597,10 +563,6 @@ export default function NewStorePage({
     setLimitOpen(true);
   };
 
-  // Quantos ainda pode comprar segundo o servidor
-  const remainingFromServer =
-    (limitUsage.max ?? Infinity) - (limitUsage.current ?? 0);
-
   const handleGeneratePix = React.useCallback(async () => {
     const addCount = selecionados.length || 1;
     const amount = selecionados.length * unitPrice;
@@ -687,21 +649,22 @@ export default function NewStorePage({
     const addCount = selecionados.length || 1;
 
     try {
-      const { blocked, current, max } = await checkUserPurchaseLimit({
+      const { blocked, current } = await checkUserPurchaseLimit({
         addCount,
         drawId: currentDrawId,
       });
 
-      const wouldBe = (current ?? 0) + addCount;
-      const overByFront = Number.isFinite(max) && wouldBe > max;
+      const baseCount = Number.isFinite(Number(current)) ? Number(current) : purchasedCount;
+      const wouldBe = baseCount + addCount;
+      const overByFront = wouldBe > maxSelectable;
 
       if (blocked || overByFront) {
         openLimitModal({
           type: "purchase",
-          current: current ?? limitUsage.current,
-          max: max ?? limitUsage.max ?? 5,
+          current: current ?? purchasedCount,
+          max: maxSelectable,
         });
-        setLimitUsage({ current: current ?? 0, max: max ?? 5 });
+        setPurchasedCount(Number(current) || 0);
         return;
       }
     } catch (e) {
@@ -725,8 +688,14 @@ export default function NewStorePage({
   }, [pixOpen, pixData, pixApproved, handlePixApproved]);
 
   // Seleção com teto (front)
-  const isIndisponivel = (n) => indisponiveisAll.includes(n);
-  const isReservado = (n) => reservadosAll.includes(n);
+  const unavailableSet = React.useMemo(
+    () => new Set(indisponiveisAll),
+    [indisponiveisAll]
+  );
+  const reservedSet = React.useMemo(() => new Set(reservadosAll), [reservadosAll]);
+
+  const isIndisponivel = (n) => unavailableSet.has(n);
+  const isReservado = (n) => reservedSet.has(n);
   const isSelecionado = (n) => selecionados.includes(n);
 
   // Se um número selecionado localmente passou a ser reservado/indisponível
@@ -747,20 +716,20 @@ export default function NewStorePage({
       const already = prev.includes(n);
       if (already) return prev.filter((x) => x !== n);
 
-      if (prev.length >= maxSelect) {
+      if (slotsLeft <= 0) {
         openLimitModal({
-          type: "selection",
-          current: maxSelect,
-          max: maxSelect,
+          type: "purchase",
+          current: purchasedCount,
+          max: maxSelectable,
         });
         return prev;
       }
 
-      if (Number.isFinite(remainingFromServer) && remainingFromServer <= prev.length) {
+      if (prev.length >= slotsLeft) {
         openLimitModal({
-          type: "purchase",
-          current: limitUsage.current ?? 0,
-          max: limitUsage.max ?? 5,
+          type: "selection",
+          current: prev.length,
+          max: maxSelectable,
         });
         return prev;
       }
@@ -770,60 +739,18 @@ export default function NewStorePage({
   };
 
   const getCellSx = (n) => {
-    // Indisponível/vendido sempre prevalece sobre reservado ou seleção local.
-    if (isIndisponivel(n))
-      return {
-        border: "1px solid rgba(15, 23, 42, 0.14)",
-        bgcolor: "rgba(255, 255, 255, 0.72)",
-        color: "rgba(11, 27, 51, 0.42)",
-        cursor: "not-allowed",
-        boxShadow: "inset 0 0 0 1px rgba(15, 23, 42, 0.08)",
-        opacity: 0.88,
-        pointerEvents: "none",
-      };
-
-    // Reservado tem precedência sobre seleção local:
-    // mesmo que o usuário tenha clicado, o backend manda no status final.
-    if (isReservado(n))
-      return {
-        border: "1px solid #F2C94C",
-        bgcolor: "#FFE9A8",
-        color: "#8A5A00",
-        cursor: "not-allowed",
-        boxShadow: "inset 0 0 0 1px rgba(242, 201, 76, 0.35)",
-        "&:hover": {
-          bgcolor: "#FFE08A",
-          borderColor: "#E0B93E",
-          color: "#7A4F00",
-        },
-      };
-
-    if (isSelecionado(n))
-      return {
-        border: "1px solid rgba(30, 102, 255, 0.85)",
-        bgcolor: "#1E66FF",
-        color: "#FFFFFF",
-        boxShadow: "0 10px 20px rgba(30, 102, 255, 0.28)",
-      };
-
-    return {
-      border: "1px solid rgba(30,102,255,0.24)",
-      bgcolor: "#FFFFFF",
-      color: "#1E66FF",
-      "&:hover": {
-        borderColor: "rgba(30, 102, 255, 0.52)",
-        boxShadow: "0 10px 16px rgba(30, 102, 255, 0.18)",
-        transform: "translateY(-1px)",
-      },
-      transition: "border-color 160ms ease, box-shadow 160ms ease, transform 120ms ease",
-      "&:active": { transform: "scale(0.98)" },
-    };
+    const visual = getNumberVisualState({
+      number: n,
+      unavailableNumbers: unavailableSet,
+      reservedNumbers: reservedSet,
+    });
+    return getNumberCellSx(visual, isSelecionado(n));
   };
 
+  const selectionStatusLabel = `Selecionados: ${selecionados.length} / ${maxSelectable}`;
+
   const continuarDisabled =
-    !selecionados.length ||
-    (Number.isFinite(remainingFromServer) &&
-      selecionados.length > Math.max(0, remainingFromServer));
+    !selecionados.length || selecionados.length > slotsLeft;
 
   return (
     <ThemeProvider theme={theme}>
@@ -996,24 +923,28 @@ export default function NewStorePage({
                     RESERVADO
                   </Typography>
                 </Stack>
-                <Stack direction="row" spacing={0.6} alignItems="center" sx={{ px: 1.05, py: 0.46, borderRadius: 999, border: "1px solid rgba(15,23,42,0.22)", bgcolor: "rgba(15,23,42,0.10)" }}>
-                  <Typography variant="caption" sx={{ color: "rgba(11,27,51,0.80)", fontWeight: 900, letterSpacing: 0.3 }}>
+                <Stack
+                  direction="row"
+                  spacing={0.6}
+                  alignItems="center"
+                  sx={{
+                    px: 1.05,
+                    py: 0.46,
+                    borderRadius: 999,
+                    border: "1px solid #94A3B8",
+                    bgcolor: "#E2E8F0",
+                  }}
+                >
+                  <Typography variant="caption" sx={{ color: "#334155", fontWeight: 900, letterSpacing: 0.3 }}>
                     INDISPONÍVEL
                   </Typography>
                 </Stack>
-                <Typography variant="body2" sx={{ ml: 0.5, color: "rgba(11,27,51,0.72)" }}>
-                  {Number.isFinite(limitUsage.max) && Number.isFinite(limitUsage.current)
-                    ? `• Você tem ${Math.max(
-                        0,
-                        (limitUsage.max ?? 0) - (limitUsage.current ?? 0)
-                      )} de ${limitUsage.max} possíveis`
-                    : " "}
+                <Typography
+                  variant="body2"
+                  sx={{ ml: 0.5, color: "rgba(11,27,51,0.82)", fontWeight: 700 }}
+                >
+                  {selectionStatusLabel}
                 </Typography>
-                {!!selecionados.length && (
-                  <Typography variant="body2" sx={{ ml: 1, color: "rgba(11,27,51,0.72)" }}>
-                    • {selecionados.length} selecionado(s) (máx. {maxSelect} por seleção)
-                  </Typography>
-                )}
               </Stack>
 
               <Stack direction="row" spacing={1.1} alignItems="stretch" sx={{ width: { xs: "100%", md: 360 } }}>
@@ -1093,18 +1024,24 @@ export default function NewStorePage({
                     }}
                   >
                     {Array.from({ length: totalGridNumbers }).map((_, idx) => {
-                      const sold = isIndisponivel(idx);
-                      const reservado = isReservado(idx);
+                      const visual = getNumberVisualState({
+                        number: idx,
+                        unavailableNumbers: unavailableSet,
+                        reservedNumbers: reservedSet,
+                      });
+                      const unavailable = visual === "unavailable";
+                      const reservado = visual === "reserved";
                       const initials = soldInitials[idx];
                       return (
                         <Box
                           key={idx}
                           onClick={() => handleClickNumero(idx)}
+                          className={unavailable ? "xnamai-number-cell--unavailable" : undefined}
                           sx={{
                             ...getCellSx(idx),
                             borderRadius: 1.1,
                             userSelect: "none",
-                            cursor: sold || reservado ? "not-allowed" : "pointer",
+                            cursor: unavailable || reservado ? "not-allowed" : "pointer",
                             aspectRatio: "1 / 1",
                             width: "100%",
                             height: { xs: 42, md: 56 },
@@ -1120,21 +1057,11 @@ export default function NewStorePage({
                             <Box component="span" sx={{ fontSize: { xs: 14.5, md: 15.5 }, lineHeight: 1 }}>
                               {pad2(idx)}
                             </Box>
-                            {sold && initials && (
+                            {unavailable && initials && (
                               <Box
                                 component="span"
-                                sx={{
-                                  mt: 0.25,
-                                  px: 0.8,
-                                  py: 0.15,
-                                  borderRadius: 999,
-                                  fontSize: 10,
-                                  fontWeight: 900,
-                                  letterSpacing: 0.6,
-                                  bgcolor: "rgba(11,27,51,0.10)",
-                                  border: "1px solid rgba(15,23,42,0.12)",
-                                  color: "rgba(11,27,51,0.86)",
-                                }}
+                                className="xnamai-number-cell__initials--unavailable"
+                                sx={getUnavailableInitialsSx()}
                               >
                                 {initials}
                               </Box>
@@ -1900,7 +1827,7 @@ export default function NewStorePage({
       <Dialog open={limitOpen} onClose={() => setLimitOpen(false)} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: 3 } }}>
         <DialogTitle sx={{ fontSize: 20, fontWeight: 900, textAlign: "center" }}>
           {limitInfo?.type === "selection"
-            ? `Você pode selecionar no máximo ${maxSelect} números`
+            ? `Você pode selecionar no máximo ${maxSelectable} números`
             : "Número máximo de compras por usuário atingido"}
         </DialogTitle>
         <DialogContent sx={{ textAlign: "center" }}>

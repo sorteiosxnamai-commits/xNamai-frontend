@@ -28,3 +28,5 @@ export async function getDrawNumbers(drawId) {
   const json = await doFetch(`${API_BASE_URL}/api/draws/${drawId}/numbers`);
   return json.numbers || [];
 }
+
+export { isUnavailableStatus, isReservedStatus } from "../lib/numberGridState";
