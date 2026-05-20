@@ -1540,8 +1540,8 @@ export default function NewStorePage({
                 </AccordionSummary>
                 <AccordionDetails>
                   <Typography variant="body2">
-                    Você concorre ao prêmio e ainda recebe o valor investido de volta em créditos no
-                    site.
+                    Você concorre ao prêmio e ainda recebe parte do valor investido de volta em
+                    créditos no site.
                   </Typography>
                 </AccordionDetails>
               </Accordion>
