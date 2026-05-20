@@ -69,7 +69,14 @@ export default function PixModal({ open, onClose, loading, data, onCopy, onRefre
             {inlineMessage}
           </Typography>
         )}
-        {loading && <LinearProgress />}
+        {loading && (
+          <>
+            <LinearProgress />
+            <Typography variant="body2" sx={{ mt: 1.5, fontWeight: 700 }}>
+              Gerando PIX...
+            </Typography>
+          </>
+        )}
         {!loading && data && (
           <Stack spacing={2}>
             <Typography>
@@ -99,7 +106,7 @@ export default function PixModal({ open, onClose, loading, data, onCopy, onRefre
               />
             )}
 
-            <Typography variant="body2">Copia e cola:</Typography>
+            <Typography variant="body2">Copiar código PIX</Typography>
             <TextField
               fullWidth
               size="small"

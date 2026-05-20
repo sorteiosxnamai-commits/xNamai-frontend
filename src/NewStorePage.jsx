@@ -1,5 +1,5 @@
 // src/NewStorePage.jsx
-// Tamanho aproximado: ~1060 linhas (mantido o conte├║do original + iniciais + fix de n├║mero no mobile)
+// Tamanho aproximado: ~1060 linhas (mantido o conteúdo original + iniciais + fix de número no mobile)
 
 import * as React from "react";
 import { useNavigate } from "react-router-dom";
@@ -68,7 +68,7 @@ import {
 } from "@mui/material";
 import LockRoundedIcon from "@mui/icons-material/LockRounded";
 
-// PNG em `public/assets` (CRA ÔÇö respeita PUBLIC_URL em deploy)
+// PNG em `public/assets` (CRA — respeita PUBLIC_URL em deploy)
 const imgTabelaUtilizacao = `${process.env.PUBLIC_URL ?? ""}/assets/tabela-utilizacao-cartao.png`;
 const imgDicaAcumuloUnificada = `${process.env.PUBLIC_URL ?? ""}/assets/dica-acumulo-unificada.png`;
 const imgDicaAcumuloUnificada2x = `${process.env.PUBLIC_URL ?? ""}/assets/dica-acumulo-unificada@2x.png`;
@@ -177,7 +177,7 @@ async function reserveNumbers(numbers, drawId) {
   if (r.status === 409) {
     const c = j?.conflicts || j?.n || [];
     throw new Error(
-      `Alguns n├║meros ficaram indispon├¡veis: ${
+      `Alguns números ficaram indisponíveis: ${
         Array.isArray(c) ? c.join(", ") : c
       }`
     );
@@ -203,19 +203,19 @@ export default function NewStorePage({
 
   // Estados vindos do backend
   const [srvIndisponiveis, setSrvIndisponiveis] = React.useState([]);
-  // N├║meros com reserva ativa no backend (status reserved/pending)
+  // Números com reserva ativa no backend (status reserved/pending)
   const [srvReservados, setSrvReservados] = React.useState([]);
-  // N├║meros confirmados localmente ap├│s PIX aprovado (at├® o /api/numbers refletir sold).
+  // Números confirmados localmente após PIX aprovado (até o /api/numbers refletir sold).
   const [locallySoldNumbers, setLocallySoldNumbers] = React.useState([]);
 
   // Iniciais dos vendidos (n -> "AB")
   const [soldInitials, setSoldInitials] = React.useState({});
 
-  // Pre├ºo din├ómico
+  // Preço dinâmico
   const FALLBACK_PRICE = Number(process.env.REACT_APP_PIX_PRICE) || 55;
   const [unitPrice, setUnitPrice] = React.useState(FALLBACK_PRICE);
 
-  // Config p├║blica (/api/config) ÔÇö textos do sorteio v├¬m daqui (sem fallback antigo hardcoded)
+  // Config pública (/api/config) — textos do sorteio vêm daqui (sem fallback antigo hardcoded)
   const [publicConfig, setPublicConfig] = React.useState(null);
 
   const displayPrizeTitle = React.useMemo(() => {
@@ -258,7 +258,7 @@ export default function NewStorePage({
         c?.promo_description,
         c?.promotional_description,
         dr?.description
-      ) || "Participe do sorteio xNaMai e acompanhe sua participa├º├úo pela sua conta."
+      ) || "Participe do sorteio xNaMai e acompanhe sua participação pela sua conta."
     );
   }, [publicConfig]);
 
@@ -357,7 +357,7 @@ export default function NewStorePage({
   const remainingAfterSelection = Math.max(0, remainingCount - selectedNow);
   const selectionStatusLabel = `Usados: ${usedCount}/${maxSelectable} • Agora: ${selectedNow} • Restam: ${remainingAfterSelection}`;
 
-  // ===== Carregar pre├ºo, textos e (se houver) draw id ÔÇö sem 404 no console
+  // ===== Carregar preço, textos e (se houver) draw id — sem 404 no console
   React.useEffect(() => {
     let alive = true;
 
@@ -412,7 +412,7 @@ export default function NewStorePage({
     return () => window.removeEventListener("ns:draw:changed", onDrawChanged);
   }, []);
 
-  // Polling leve de /api/numbers (sem Content-Type p/ n├úo gerar preflight)
+  // Polling leve de /api/numbers (sem Content-Type p/ não gerar preflight)
   const reloadSrvNumbers = React.useCallback(async () => {
     if (numbersLoadingRef.current) return;
     numbersLoadingRef.current = true;
@@ -526,14 +526,14 @@ export default function NewStorePage({
     [indisponiveis, srvIndisponiveis, locallySoldNumbers]
   );
 
-  // Reservados efetivos = reservados do servidor que ainda N├âO foram marcados
-  // como vendidos/indispon├¡veis (evita conflito visual entre estados).
+  // Reservados efetivos = reservados do servidor que ainda NÃO foram marcados
+  // como vendidos/indisponíveis (evita conflito visual entre estados).
   const reservadosAll = React.useMemo(() => {
     const indisSet = new Set(indisponiveisAll);
     return srvReservados.filter((n) => !indisSet.has(n));
   }, [srvReservados, indisponiveisAll]);
 
-  // modal (confirma├º├úo)
+  // modal (confirmação)
   const [open, setOpen] = React.useState(false);
   const handleAbrirConfirmacao = () => setOpen(true);
   const handleFechar = () => setOpen(false);
@@ -546,8 +546,8 @@ export default function NewStorePage({
   const [pixError, setPixError] = React.useState("");
   const [pixRefreshMsg, setPixRefreshMsg] = React.useState("");
 
-  // Dados j├í existentes do usu├írio logado.
-  // N├úo bloqueia o PIX no frontend.
+  // Dados já existentes do usuário logado.
+  // Não bloqueia o PIX no frontend.
   const currentUser = user || {};
 
   // sucesso PIX
@@ -708,7 +708,7 @@ export default function NewStorePage({
     return () => clearInterval(id);
   }, [pixOpen, pixData, pixApproved, handlePixApproved]);
 
-  // Sele├º├úo com teto (front)
+  // Seleção com teto (front)
   const unavailableSet = React.useMemo(
     () => new Set(indisponiveisAll),
     [indisponiveisAll]
@@ -719,8 +719,8 @@ export default function NewStorePage({
   const isReservado = (n) => reservedSet.has(n);
   const isSelecionado = (n) => selecionados.includes(n);
 
-  // Se um n├║mero selecionado localmente passou a ser reservado/indispon├¡vel
-  // no backend, o servidor prevalece: removemos da sele├º├úo do usu├írio.
+  // Se um número selecionado localmente passou a ser reservado/indisponível
+  // no backend, o servidor prevalece: removemos da seleção do usuário.
   React.useEffect(() => {
     if (!selecionados.length) return;
     const bloqueados = new Set([...indisponiveisAll, ...reservadosAll]);
@@ -784,7 +784,7 @@ export default function NewStorePage({
       {/* Topo */}
       <PublicTopbar />
 
-      {/* Conte├║do */}
+      {/* Conteúdo */}
       <Container maxWidth="lg" sx={{ pt: { xs: 10, md: 11 }, pb: { xs: 3.5, md: 5 } }}>
         <Stack spacing={4}>
           <Box id="inicio" />
@@ -854,14 +854,14 @@ export default function NewStorePage({
                       lineHeight: 1.65,
                     }}
                   >
-                    A xNaMai apresenta o ├║nico sorteio em que voc├¬ nunca sai perdendo. Ao
-                    participar, voc├¬ garante uma vaga na disputa por um item premium, e ainda
-                    transforma o valor da sua participa├º├úo em um Cart├úo Presente Digital, v├ílido
-                    para compras em todo o site, com exce├º├úo dos itens promocionais.
+                    A xNaMai apresenta o único sorteio em que você nunca sai perdendo. Ao
+                    participar, você garante uma vaga na disputa por um item premium, e ainda
+                    transforma o valor da sua participação em um Cartão Presente Digital, válido
+                    para compras em todo o site, com exceção dos itens promocionais.
                   </Typography>
 
                   <Typography variant="body2" sx={{ color: "rgba(11,27,51,0.60)", fontSize: 12.8, lineHeight: 1.5 }}>
-                    Sorteio v├ílido at├® o preenchimento total da tabela. Baseado no resultado
+                    Sorteio válido até o preenchimento total da tabela. Baseado no resultado
                     oficial da Loteria Federal, modalidade Lotomania.
                   </Typography>
                 </Stack>
@@ -882,7 +882,7 @@ export default function NewStorePage({
             }}
           >
             <Box id="sobre" />
-            {/* T├¡tulo do bloco (com ├¡cone ├á esquerda, como na refer├¬ncia) */}
+            {/* Título do bloco (com ícone à esquerda, como na referência) */}
             <Stack
               direction="column"
               spacing={1}
@@ -935,10 +935,10 @@ export default function NewStorePage({
               sx={{ mb: 2.3 }}
             >
               <Stack direction="row" spacing={1} alignItems="center" justifyContent="center" flexWrap="wrap">
-                {/* Legenda com bolinhas (como na refer├¬ncia) */}
+                {/* Legenda com bolinhas (como na referência) */}
                 <Stack direction="row" spacing={0.6} alignItems="center" sx={{ px: 1.05, py: 0.46, borderRadius: 999, bgcolor: "rgba(30,102,255,0.12)", border: "1px solid rgba(30,102,255,0.26)" }}>
                   <Typography variant="caption" sx={{ color: "#1E66FF", fontWeight: 900, letterSpacing: 0.3 }}>
-                    DISPON├ìVEL
+                    DISPONÍVEL
                   </Typography>
                 </Stack>
                 <Stack direction="row" spacing={0.6} alignItems="center" sx={{ px: 1.05, py: 0.46, borderRadius: 999, border: "1px solid #F2C94C", bgcolor: "#FFE9A8" }}>
@@ -959,7 +959,7 @@ export default function NewStorePage({
                   }}
                 >
                   <Typography variant="caption" sx={{ color: "#1F2937", fontWeight: 900, letterSpacing: 0.3 }}>
-                    INDISPON├ìVEL
+                    INDISPONÍVEL
                   </Typography>
                 </Stack>
                 <Typography
@@ -991,7 +991,7 @@ export default function NewStorePage({
                     },
                   }}
                 >
-                  Limpar Sele├º├úo
+                  LIMPAR SELEÇÃO
                 </Button>
                 <Button
                   fullWidth
@@ -1012,7 +1012,7 @@ export default function NewStorePage({
                     },
                   }}
                 >
-                  Continuar
+                  CONTINUAR
                 </Button>
               </Stack>
 
@@ -1099,14 +1099,14 @@ export default function NewStorePage({
 
             <Box sx={{ mt: 2.5, textAlign: "center" }}>
               <Typography variant="subtitle1" sx={{ opacity: 0.95, fontWeight: 800, color: "rgba(11,27,51,0.82)" }}>
-                Resultado baseado no primeiro resultado oficial da Lotomania ap├│s todos os
-                n├║meros serem reservados.
+                Resultado baseado no primeiro resultado oficial da Lotomania após todos os
+                números serem reservados.
               </Typography>
             </Box>
           </Paper>
           {/* === FIM CARTELA === */}
 
-          {/* === BENEF├ìCIOS (barra inferior) === */}
+          {/* === BENEFÍCIOS (barra inferior) === */}
           <Paper
             variant="outlined"
             sx={{
@@ -1148,7 +1148,7 @@ export default function NewStorePage({
                     50% do valor de volta
                   </Typography>
                   <Typography variant="body2" sx={{ color: "rgba(11,27,51,0.62)" }}>
-                    Em cart├úo presente digital
+                    Em cartão presente digital
                   </Typography>
                 </Box>
               </Stack>
@@ -1163,7 +1163,7 @@ export default function NewStorePage({
                 <LockRoundedIcon sx={{ color: "primary.main" }} />
                 <Box>
                   <Typography sx={{ fontWeight: 900, lineHeight: 1.1 }}>
-                    Transpar├¬ncia total
+                    Transparência total
                   </Typography>
                   <Typography variant="body2" sx={{ color: "rgba(11,27,51,0.62)" }}>
                     Resultado via Lotomania (Caixa)
@@ -1173,84 +1173,84 @@ export default function NewStorePage({
             </Stack>
           </Paper>
 
-          {/* === CONTE├ÜDO OFICIAL ÔÇö PDF Sorteio Xnamai === */}
+          {/* === CONTEÚDO OFICIAL — PDF Sorteio Xnamai === */}
           <Stack spacing={2.5} className="xnamai-official-rules">
             <Paper className="xnamai-official-card" variant="outlined" sx={{ p: { xs: 2, md: 3 } }}>
               <Typography component="h2" className="xnamai-official-card__title">
-                Como funciona seu Cart├úo Presente Digital
+                Como funciona seu Cartão Presente Digital
               </Typography>
               <Typography className="xnamai-official-card__text" sx={{ mb: 1.5 }}>
-                Cada participa├º├úo que voc├¬ faz se transforma em cr├®dito no seu Cart├úo Presente
-                Digital, acumulando automaticamente o valor investido. A validade do saldo ├® de
-                3 meses, sendo renovada a cada nova participa├º├úo.
+                Cada participação que você faz se transforma em crédito no seu Cartão Presente
+                Digital, acumulando automaticamente o valor investido. A validade do saldo é de
+                3 meses, sendo renovada a cada nova participação.
               </Typography>
               <ul className="xnamai-official-card__list">
-                <li>Saldo acumulativo em um ├║nico cart├úo</li>
+                <li>Saldo acumulativo em um único cartão</li>
                 <li>Validade renovada automaticamente</li>
                 <li>Uso exclusivo no site da xNaMai</li>
-                <li>C├│digo pessoal e intransfer├¡vel</li>
-                <li>Cr├®dito perfeito para planejar a compra do seu pr├│ximo pedido</li>
+                <li>Código pessoal e intransferível</li>
+                <li>Crédito perfeito para planejar a compra do seu próximo pedido</li>
               </ul>
               <Box className="xnamai-official-note">
-                <strong>Dica:</strong> ├ë a maneira mais inteligente de participar: enquanto
-                concorre, voc├¬ acumula cr├®dito retornando uma parte do valor pago no seu n├║mero
+                <strong>Dica:</strong> É a maneira mais inteligente de participar: enquanto
+                concorre, você acumula crédito retornando uma parte do valor pago no seu número
                 da sorte.
               </Box>
             </Paper>
 
             <Paper className="xnamai-official-card" variant="outlined" sx={{ p: { xs: 2, md: 3 } }}>
               <Typography component="h2" className="xnamai-official-card__title">
-                Informa├º├Áes do sorteio
+                Informações do sorteio
               </Typography>
               <ul className="xnamai-official-card__list">
-                <li>A vaga s├│ ├® confirmada ap├│s a compensa├º├úo do pagamento.</li>
-                <li>O sorteio ├® realizado quando todos os n├║meros forem vendidos.</li>
-                <li>O ganhador ├® o participante com o ├║ltimo n├║mero sorteado pela Lotomania.</li>
+                <li>A vaga só é confirmada após a compensação do pagamento.</li>
+                <li>O sorteio é realizado quando todos os números forem vendidos.</li>
+                <li>O ganhador é o participante com o último número sorteado pela Lotomania.</li>
                 <li>
-                  Para o resultado dos sorteios, ser├í utilizado o primeiro resultado da
-                  Lotomania ap├│s todos os n├║meros serem reservados.
+                  Para o resultado dos sorteios, será utilizado o primeiro resultado da
+                  Lotomania após todos os números serem reservados.
                 </li>
-                <li>Prazo m├íximo: 7 dias ap├│s abertura da rodada.</li>
-                <li>Envio do pr├¬mio: frete por conta do vencedor.</li>
+                <li>Prazo máximo: 7 dias após abertura da rodada.</li>
+                <li>Envio do prêmio: frete por conta do vencedor.</li>
                 <li>
-                  O Cart├úo Presente n├úo ├® cumulativo com o pr├¬mio nem com outras promo├º├Áes do
+                  O Cartão Presente não é cumulativo com o prêmio nem com outras promoções do
                   site.
                 </li>
               </ul>
               <Box className="xnamai-official-note">
-                Caso o seu n├║mero esteja entre os 10 primeiros, de 00 a 09, o n├║mero da sorte
-                ser├í exibido com dois algarismos, incluindo o zero.
+                Caso o seu número esteja entre os 10 primeiros, de 00 a 09, o número da sorte
+                será exibido com dois algarismos, incluindo o zero.
               </Box>
               <Box className="xnamai-official-note" sx={{ mt: 1.5 }}>
-                <strong>Transpar├¬ncia total:</strong> o resultado pode ser conferido
-                publicamente no site oficial da Caixa Econ├┤mica Federal, na modalidade
+                <strong>Transparência total:</strong> o resultado pode ser conferido
+                publicamente no site oficial da Caixa Econômica Federal, na modalidade
                 Lotomania.
               </Box>
             </Paper>
 
             <Paper className="xnamai-official-card" variant="outlined" sx={{ p: { xs: 2, md: 3 } }}>
               <Typography component="h2" className="xnamai-official-card__title">
-                Regras para utiliza├º├úo dos Cart├Áes Presente
+                Regras para utilização dos Cartões Presente
               </Typography>
               <ul className="xnamai-official-card__list">
                 <li>Uso exclusivo no site da xNaMai.</li>
-                <li>N├úo ├® poss├¡vel comprar outro cart├úo-presente com cr├®dito de sorteio.</li>
-                <li>Sem convers├úo em dinheiro.</li>
+                <li>Não é possível comprar outro cartão-presente com crédito de sorteio.</li>
+                <li>Sem conversão em dinheiro.</li>
                 <li>
-                  O cr├®dito pode ser utilizado em uma ├║nica compra, em diversos produtos ou
-                  parcialmente, conforme orienta├º├úo do atendimento.
+                  O crédito pode ser utilizado em uma única compra, em diversos produtos ou
+                  parcialmente, conforme orientação do atendimento.
                 </li>
                 <li>
                   Para utilizar o saldo, solicite atendimento pelo canal oficial da xNaMai via
                   WhatsApp.
                 </li>
                 <li>
-                  Validade de 3 meses, renov├ível automaticamente a cada nova participa├º├úo.
+                  Validade de 3 meses, renovável automaticamente a cada nova participação.
                 </li>
                 <li>
-                  A xNaMai n├úo se responsabiliza por perda, extravio ou validade expirada.
+                  A xNaMai não se responsabiliza por perda, extravio ou validade expirada.
                 </li>
-                <li>O cart├úo n├úo ├® cumulativo com outros cupons de desconto.</li>
+                <li>O cartão não é cumulativo com outros cupons de desconto.</li>
               </ul>
               <Link
                 href="https://wa.me/5511945145530"
@@ -1264,7 +1264,7 @@ export default function NewStorePage({
 
             <Paper className="xnamai-official-card" variant="outlined" sx={{ p: { xs: 2, md: 3 } }}>
               <Typography component="h2" className="xnamai-official-card__title">
-                Tabela para utiliza├º├úo do Cart├úo Presente
+                Tabela para utilização do Cartão Presente
               </Typography>
               <Typography className="xnamai-official-card__text" sx={{ mb: 1 }}>
                 Sempre considerar o valor integral do produto na forma de pagamento escolhida.
@@ -1273,18 +1273,18 @@ export default function NewStorePage({
                 <table className="xnamai-official-table">
                   <thead>
                     <tr>
-                      <th>Cart├úo Presente</th>
-                      <th>Condi├º├úo de uso</th>
+                      <th>Cartão Presente</th>
+                      <th>Condição de uso</th>
                     </tr>
                   </thead>
                   <tbody>
                     <tr>
-                      <td>At├® 10% do valor do pedido</td>
-                      <td>Pedido m├¡nimo R$ 800,00</td>
+                      <td>Até 10% do valor do pedido</td>
+                      <td>Pedido mínimo R$ 800,00</td>
                     </tr>
                     <tr>
-                      <td>Observa├º├úo</td>
-                      <td>O cart├úo presente n├úo ├® aplicado em produtos na promo├º├úo.</td>
+                      <td>Observação</td>
+                      <td>O cartão presente não é aplicado em produtos na promoção.</td>
                     </tr>
                   </tbody>
                 </table>
@@ -1292,7 +1292,7 @@ export default function NewStorePage({
             </Paper>
           </Stack>
 
-          {/* BLOCO ANTIGO OCULTO TEMPORARIAMENTE ÔÇö manter para poss├¡vel reaproveitamento futuro */}
+          {/* BLOCO ANTIGO OCULTO TEMPORARIAMENTE — manter para possível reaproveitamento futuro */}
           <div className="xnamai-hidden-legacy">
           <Paper variant="outlined" sx={{ p: { xs: 2, md: 3 } }}>
             <Stack spacing={1.5}>
@@ -1322,32 +1322,32 @@ export default function NewStorePage({
                   textShadow: "0 0 12px rgba(103,194,58,0.18)",
                 }}
               >
-               Como funciona seu Cart├úo Presente Digital
+               Como funciona seu Cartão Presente Digital
               </Typography>
             </Box>
               <Typography variant="body1">
-                Cada participa├º├úo se transforma em cr├®dito no seu Cart├úo Presente Digital,
-                acumulando automaticamente parte do valor investido. A validade do saldo ├® de 3
-                meses e ├® renovada a cada nova participa├º├úo.
+                Cada participação se transforma em crédito no seu Cartão Presente Digital,
+                acumulando automaticamente parte do valor investido. A validade do saldo é de 3
+                meses e é renovada a cada nova participação.
               </Typography>
               <Typography variant="body1">
-                ÔÇó Saldo acumulativo em um ├║nico cart├úo
+                • Saldo acumulativo em um único cartão
               </Typography>
               <Typography variant="body1">
-                ÔÇó Validade renovada automaticamente a cada nova participa├º├úo
+                • Validade renovada automaticamente a cada nova participação
               </Typography>
               <Typography variant="body1">
-                ÔÇó Uso exclusivo no site da xNaMai
+                • Uso exclusivo no site da xNaMai
               </Typography>
               <Typography variant="body1">
-                ÔÇó C├│digo pessoal e intransfer├¡vel
+                • Código pessoal e intransferível
               </Typography>
               <Typography variant="body1">
-                ÔÇó Cr├®dito ideal para planejar a compra do seu pr├│ximo pedido
+                • Crédito ideal para planejar a compra do seu próximo pedido
               </Typography>
               <Typography variant="body1">
-                <strong>Dica:</strong> ├ë a maneira mais inteligente de participar: enquanto
-                concorre, voc├¬ acumula cr├®dito retornando parte do valor pago no seu n├║mero da
+                <strong>Dica:</strong> É a maneira mais inteligente de participar: enquanto
+                concorre, você acumula crédito retornando parte do valor pago no seu número da
                 sorte.
               </Typography>
   </Stack>
@@ -1374,12 +1374,12 @@ export default function NewStorePage({
                     whiteSpace: "pre-line",
                   }}
                 >
-                  {`imagem ilustrativa do\ncart├úo presente`}
+                  {`imagem ilustrativa do\ncartão presente`}
                 </Typography>
                 <Box
                   component="img"
                   src="/assets/cartao-presente.png"
-                  alt="Cart├úo presente - exemplo"
+                  alt="Cartão presente - exemplo"
                   sx={{
                     width: "100%",
                     display: "block",
@@ -1394,39 +1394,39 @@ export default function NewStorePage({
           <Paper variant="outlined" sx={{ p: { xs: 2, md: 3 } }}>
             <Stack spacing={1.2}>
               <Typography variant="h6" fontWeight={800}>
-                Informa├º├Áes do sorteio
+                Informações do sorteio
               </Typography>
               <Typography variant="body1">
-                ÔÇó A vaga s├│ ├® confirmada ap├│s a compensa├º├úo do pagamento.
+                • A vaga só é confirmada após a compensação do pagamento.
               </Typography>
               <Typography variant="body1">
-                ÔÇó O sorteio ├® realizado quando todos os n├║meros forem vendidos ou reservados
+                • O sorteio é realizado quando todos os números forem vendidos ou reservados
                 conforme as regras da campanha.
               </Typography>
               <Typography variant="body1">
-                ÔÇó O ganhador ser├í definido pelo ├║ltimo n├║mero sorteado no resultado oficial da
+                • O ganhador será definido pelo último número sorteado no resultado oficial da
                 Lotomania.
               </Typography>
               <Typography variant="body1">
-                ÔÇó Exemplo: se a linha final da Lotomania terminar com 82, 84, 85, 88 e 99, o
-                n├║mero considerado ser├í o ├║ltimo: 99.
+                • Exemplo: se a linha final da Lotomania terminar com 82, 84, 85, 88 e 99, o
+                número considerado será o último: 99.
               </Typography>
               <Typography variant="body1">
-                ÔÇó Caso o n├║mero sorteado esteja entre 00 e 09, ser├í considerado com dois
+                • Caso o número sorteado esteja entre 00 e 09, será considerado com dois
                 algarismos, incluindo o zero.
               </Typography>
               <Typography variant="body1">
-                ÔÇó Para o resultado, ser├í utilizado o primeiro resultado da Lotomania ap├│s todos
-                os n├║meros serem reservados.
+                • Para o resultado, será utilizado o primeiro resultado da Lotomania após todos
+                os números serem reservados.
               </Typography>
               <Typography variant="body1">
-                ÔÇó Prazo m├íximo da rodada: 7 dias ap├│s a abertura.
+                • Prazo máximo da rodada: 7 dias após a abertura.
               </Typography>
               <Typography variant="body1">
-                ÔÇó Envio do pr├¬mio: frete por conta do vencedor.
+                • Envio do prêmio: frete por conta do vencedor.
               </Typography>
               <Typography variant="body1">
-                ÔÇó O Cart├úo Presente n├úo ├® cumulativo com o pr├¬mio nem com outras promo├º├Áes do
+                • O Cartão Presente não é cumulativo com o prêmio nem com outras promoções do
                 site.
               </Typography>
             </Stack>
@@ -1435,10 +1435,10 @@ export default function NewStorePage({
           <Paper variant="outlined" sx={{ p: { xs: 2, md: 3 } }}>
             <Stack spacing={1.2}>
               <Typography variant="h6" fontWeight={800}>
-                Transpar├¬ncia total
+                Transparência total
               </Typography>
               <Typography variant="body1">
-                O resultado pode ser conferido publicamente no site oficial da Caixa Econ├┤mica
+                O resultado pode ser conferido publicamente no site oficial da Caixa Econômica
                 Federal, na modalidade Lotomania.
               </Typography>
             </Stack>
@@ -1447,19 +1447,19 @@ export default function NewStorePage({
           <Paper variant="outlined" sx={{ p: { xs: 2, md: 3 } }}>
             <Stack spacing={2}>
               <Typography variant="h5" fontWeight={900}>
-                Regras para utiliza├º├úo dos Cart├Áes Presente
+                Regras para utilização dos Cartões Presente
               </Typography>
               <Stack component="ul" sx={{ pl: 3, m: 0 }} spacing={1}>
                 <Typography component="li">
                   Uso exclusivo no site da xNaMai.
                 </Typography>
                 <Typography component="li">
-                  N├úo ├® poss├¡vel comprar outro cart├úo-presente com cr├®dito de sorteio.
+                  Não é possível comprar outro cartão-presente com crédito de sorteio.
                 </Typography>
-                <Typography component="li">Sem convers├úo em dinheiro.</Typography>
+                <Typography component="li">Sem conversão em dinheiro.</Typography>
                 <Typography component="li">
-                  O cr├®dito pode ser utilizado em uma ├║nica compra, em diversos produtos ou
-                  parcialmente, conforme orienta├º├úo do atendimento.
+                  O crédito pode ser utilizado em uma única compra, em diversos produtos ou
+                  parcialmente, conforme orientação do atendimento.
                 </Typography>
                 <Typography component="li">
                   Para utilizar o saldo, solicite atendimento pelo canal oficial da xNaMai.{" "}
@@ -1472,23 +1472,23 @@ export default function NewStorePage({
                   </Link>
                 </Typography>
                 <Typography component="li">
-                  Validade de 3 meses, renov├ível automaticamente a cada nova participa├º├úo.
+                  Validade de 3 meses, renovável automaticamente a cada nova participação.
                 </Typography>
                 <Typography component="li">
-                  A xNaMai n├úo se responsabiliza por perda, extravio ou validade expirada.
+                  A xNaMai não se responsabiliza por perda, extravio ou validade expirada.
                 </Typography>
                 <Typography component="li">
-                  O cart├úo n├úo ├® cumulativo com outros cupons de desconto.
+                  O cartão não é cumulativo com outros cupons de desconto.
                 </Typography>
               </Stack>
               <Box
                 component="img"
                 src={imgTabelaUtilizacao}
-                alt="Tabela para utiliza├º├úo do cart├úo presente"
+                alt="Tabela para utilização do cartão presente"
                 sx={{ width: "100%", maxWidth: 900, mx: "auto", display: "block", borderRadius: 2, mt: 1 }}
               />
               <Typography align="center" sx={{ mt: 1.5, fontWeight: 700, letterSpacing: 1 }}>
-                Sempre considerar o valor integral do produto na forma de pagamento escolhida (Pix ou cr├®dito).
+                Sempre considerar o valor integral do produto na forma de pagamento escolhida (Pix ou crédito).
               </Typography>
              
             </Stack>
@@ -1504,8 +1504,8 @@ export default function NewStorePage({
 
            <Paper variant="outlined" sx={{ p: { xs: 2, md: 3 }, mt: 2 }}>
   <Stack spacing={2}>
-    {/* Exemplo Pr├ítico */}
-    <Typography variant="h6">ÔîÜ Exemplo Pr├ítico</Typography>
+    {/* Exemplo Prático */}
+    <Typography variant="h6">ÔîÜ Exemplo Prático</Typography>
 
     <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
       <strong>{displayPrizeName}</strong>
@@ -1513,21 +1513,21 @@ export default function NewStorePage({
 
     <Divider />
 
-    {/* Cr├®dito */}
+    {/* Crédito */}
     <Stack spacing={1}>
       <Stack direction="row" alignItems="center" spacing={1}>
         <CreditCardOutlinedIcon fontSize="small" />
-        <Chip size="small" label="Compra no cr├®dito" />
+        <Chip size="small" label="Compra no crédito" />
       </Stack>
       <List dense disablePadding>
         <ListItem disableGutters>
-          <ListItemText primary="Valor no cr├®dito: R$ 6.799,99" />
+          <ListItemText primary="Valor no crédito: R$ 6.799,99" />
         </ListItem>
         <ListItem disableGutters>
-          <ListItemText primary="ÔåÆ Pode usar at├® R$ 800,00 do cart├úo presente" />
+          <ListItemText primary="→ Pode usar até R$ 800,00 do cartão presente" />
         </ListItem>
         <ListItem disableGutters>
-          <ListItemText primary="ÔåÆ Valor final: R$ 5.999,99 (parcelado em at├® 12x sem juros)" />
+          <ListItemText primary="→ Valor final: R$ 5.999,99 (parcelado em até 12x sem juros)" />
         </ListItem>
       </List>
     </Stack>
@@ -1538,17 +1538,17 @@ export default function NewStorePage({
     <Stack spacing={1}>
       <Stack direction="row" alignItems="center" spacing={1}>
         <PixIcon fontSize="small" />
-        <Chip size="small" color="success" label="├Ç vista (Pix)" />
+        <Chip size="small" color="success" label="À vista (Pix)" />
       </Stack>
       <List dense disablePadding>
         <ListItem disableGutters>
-          <ListItemText primary="Valor ├á vista (Pix): R$ 5.779,99" />
+          <ListItemText primary="Valor à vista (Pix): R$ 5.779,99" />
         </ListItem>
         <ListItem disableGutters>
-          <ListItemText primary="ÔåÆ Pode aplicar os mesmos R$ 800,00" />
+          <ListItemText primary="→ Pode aplicar os mesmos R$ 800,00" />
         </ListItem>
         <ListItem disableGutters>
-          <ListItemText primary="ÔåÆ Valor final: R$ 4.979,99" />
+          <ListItemText primary="→ Valor final: R$ 4.979,99" />
         </ListItem>
       </List>
     </Stack>
@@ -1570,7 +1570,7 @@ export default function NewStorePage({
               src={imgDicaAcumuloUnificada}
               srcSet={`${imgDicaAcumuloUnificada} 1x, ${imgDicaAcumuloUnificada2x} 2x, ${imgDicaAcumuloUnificada3x} 3x`}
               sizes="100vw"
-              alt="Dica de ac├║mulo com exemplos de participa├º├úo e renova├º├úo de validade"
+              alt="Dica de acúmulo com exemplos de participação e renovação de validade"
               sx={{
                 width: "100%",
                 display: "block",
@@ -1592,8 +1592,8 @@ export default function NewStorePage({
                 </AccordionSummary>
                 <AccordionDetails>
                   <Typography variant="body2">
-                    Baseado no resultado oficial da Lotomania. O ganhador ├® quem possui o ├║ltimo
-                    n├║mero sorteado.
+                    Baseado no resultado oficial da Lotomania. O ganhador é quem possui o último
+                    número sorteado.
                   </Typography>
                 </AccordionDetails>
               </Accordion>
@@ -1603,7 +1603,7 @@ export default function NewStorePage({
                   <Typography>2. Quando o sorteio acontece?</Typography>
                 </AccordionSummary>
                 <AccordionDetails>
-                  <Typography variant="body2">Assim que todos os n├║meros s├úo vendidos.</Typography>
+                  <Typography variant="body2">Assim que todos os números são vendidos.</Typography>
                 </AccordionDetails>
               </Accordion>
 
@@ -1613,19 +1613,19 @@ export default function NewStorePage({
                 </AccordionSummary>
                 <AccordionDetails>
                   <Typography variant="body2">
-                    Voc├¬ concorre ao pr├¬mio e ainda recebe parte do valor investido de volta em
-                    cr├®ditos no site.
+                    Você concorre ao prêmio e ainda recebe parte do valor investido de volta em
+                    créditos no site.
                   </Typography>
                 </AccordionDetails>
               </Accordion>
 
               <Accordion>
                 <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                  <Typography>4. Onde posso usar meu cart├úo presente?</Typography>
+                  <Typography>4. Onde posso usar meu cartão presente?</Typography>
                 </AccordionSummary>
                 <AccordionDetails>
                   <Typography variant="body2">
-                    Somente no site da xNaMai Sorteios, em qualquer produto dispon├¡vel no site
+                    Somente no site da xNaMai Sorteios, em qualquer produto disponível no site
                     (respeitando a tabela).
                   </Typography>
                 </AccordionDetails>
@@ -1633,22 +1633,22 @@ export default function NewStorePage({
 
               <Accordion>
                 <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                  <Typography>5. Posso transferir meu cr├®dito?</Typography>
+                  <Typography>5. Posso transferir meu crédito?</Typography>
                 </AccordionSummary>
                 <AccordionDetails>
                   <Typography variant="body2">
-                    N├úo. O cart├úo ├® pessoal, intransfer├¡vel e sem convers├úo em dinheiro.
+                    Não. O cartão é pessoal, intransferível e sem conversão em dinheiro.
                   </Typography>
                 </AccordionDetails>
               </Accordion>
 
               <Accordion>
                 <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                  <Typography>6. O pr├¬mio inclui o frete?</Typography>
+                  <Typography>6. O prêmio inclui o frete?</Typography>
                 </AccordionSummary>
                 <AccordionDetails>
                   <Typography variant="body2">
-                    N├úo. O custo de envio ├® por conta do vencedor.
+                    Não. O custo de envio é por conta do vencedor.
                   </Typography>
                 </AccordionDetails>
               </Accordion>
@@ -1670,7 +1670,7 @@ export default function NewStorePage({
                 </AccordionSummary>
                 <AccordionDetails>
                   <Typography variant="body2">
-                    Sim, voc├¬ pode desmembrar o seu cart├úo presente e usar somente uma parte do seu
+                    Sim, você pode desmembrar o seu cartão presente e usar somente uma parte do seu
                     saldo.
                   </Typography>
                 </AccordionDetails>
@@ -1678,12 +1678,12 @@ export default function NewStorePage({
 
               <Accordion>
                 <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                  <Typography>9. Posso comprar mais de 1 produto usando meus cr├®ditos?</Typography>
+                  <Typography>9. Posso comprar mais de 1 produto usando meus créditos?</Typography>
                 </AccordionSummary>
                 <AccordionDetails>
                   <Typography variant="body2">
-                    Sim, voc├¬ pode escolher diversos produtos no site para aplicar seu desconto.
-                    Basta seguir a tabela de utiliza├º├úo dos cart├Áes presente.
+                    Sim, você pode escolher diversos produtos no site para aplicar seu desconto.
+                    Basta seguir a tabela de utilização dos cartões presente.
                   </Typography>
                 </AccordionDetails>
               </Accordion>
@@ -1701,10 +1701,10 @@ export default function NewStorePage({
             }}
           >
             <Typography variant="h4" fontWeight={900} sx={{ mb: 1 }}>
-              Clique no link abaixo e fa├ºa parte do <br /> grupo do sorteio!
+              Clique no link abaixo e faça parte do <br /> grupo do sorteio!
             </Typography>
             <Typography sx={{ opacity: 0.85, mb: 2 }}>
-              L├í voc├¬ acompanha novidades, abertura de novas rodadas e avisos importantes.
+              Lá você acompanha novidades, abertura de novas rodadas e avisos importantes.
             </Typography>
             <Button
               component="a"
@@ -1724,32 +1724,38 @@ export default function NewStorePage({
         </div>
       </div>
 
-      {/* Modal de confirma├º├úo */}
+      {/* Modal de confirmação */}
       <Dialog open={open} onClose={handleFechar} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: 3 } }}>
         <DialogTitle sx={{ fontSize: 22, fontWeight: 800, textAlign: "center" }}>
-          Confirme sua sele├º├úo
+          Confirme sua seleção
         </DialogTitle>
         <DialogContent sx={{ textAlign: "center" }}>
           {selecionados.length ? (
             <>
               <Typography variant="body2" sx={{ opacity: 0.85, mb: 1 }}>
-                Voc├¬ selecionou {selecionados.length} {selecionados.length === 1 ? "n├║mero" : "n├║meros"}:
+                Você selecionou {selecionados.length} {selecionados.length === 1 ? "número" : "números"}:
               </Typography>
               <Typography variant="h6" sx={{ fontWeight: 800, letterSpacing: 1, mb: 1 }}>
                 {selecionados.slice().sort((a, b) => a - b).map(pad2).join(", ")}
               </Typography>
               <Typography variant="body1" sx={{ mt: 0.5, mb: 1 }}>
-                Total: <strong>R$ {(selecionados.length * unitPrice).toFixed(2)}</strong>
+                Total:{" "}
+                <strong>
+                  {(selecionados.length * unitPrice).toLocaleString("pt-BR", {
+                    style: "currency",
+                    currency: "BRL",
+                  })}
+                </strong>
               </Typography>
               {Number.isFinite(remainingAfterSelection) && (
                 <Typography variant="caption" sx={{ opacity: 0.75 }}>
-                  Ap├│s esta sele├º├úo, voc├¬ ainda poder├í comprar {remainingAfterSelection} n├║mero(s) neste sorteio.
+                  Após esta seleção, você ainda poderá comprar {remainingAfterSelection} número(s) neste sorteio.
                 </Typography>
               )}
             </>
           ) : (
             <Typography variant="body2" sx={{ opacity: 0.8 }}>
-              Nenhum n├║mero selecionado.
+              Nenhum número selecionado.
             </Typography>
           )}
         </DialogContent>
@@ -1764,7 +1770,7 @@ export default function NewStorePage({
           }}
         >
           <Button variant="outlined" onClick={handleFechar} sx={{ py: 1.2, fontWeight: 700 }}>
-            SELECIONAR MAIS N├ÜMEROS
+            SELECIONAR MAIS NÚMEROS
           </Button>
           <Button
             variant="outlined"
@@ -1776,7 +1782,7 @@ export default function NewStorePage({
             disabled={!selecionados.length}
             sx={{ py: 1.2, fontWeight: 700 }}
           >
-            LIMPAR SELE├ç├âO
+            LIMPAR SELEÇÃO
           </Button>
           <Button
             variant="contained"
@@ -1830,14 +1836,14 @@ export default function NewStorePage({
       {/* Modal de sucesso do PIX */}
       <Dialog open={pixApproved} onClose={() => setPixApproved(false)} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: 3 } }}>
         <DialogTitle sx={{ fontSize: 22, fontWeight: 900, textAlign: "center" }}>
-          Pagamento confirmado! ­ƒÄë
+          Pagamento confirmado! 🎉
         </DialogTitle>
         <DialogContent sx={{ textAlign: "center" }}>
           <Typography variant="h6" sx={{ fontWeight: 800, mb: 1 }}>
-            Seus n├║meros foram confirmados e agora est├úo indispon├¡veis.
+            Seus números foram confirmados e agora estão indisponíveis.
           </Typography>
           <Typography sx={{ opacity: 0.9 }}>
-            Boa sorte! Voc├¬ pode acompanhar tudo na <strong>├ürea do cliente</strong>.
+            Boa sorte! Você pode acompanhar tudo na <strong>Área do cliente</strong>.
           </Typography>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 3 }}>
@@ -1851,8 +1857,8 @@ export default function NewStorePage({
       <Dialog open={limitOpen} onClose={() => setLimitOpen(false)} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: 3 } }}>
         <DialogTitle sx={{ fontSize: 20, fontWeight: 900, textAlign: "center" }}>
           {limitInfo?.type === "selection"
-            ? `Voc├¬ pode selecionar no m├íximo ${maxSelectable} n├║meros`
-            : "N├║mero m├íximo de compras por usu├írio atingido"}
+            ? `Você pode selecionar no máximo ${maxSelectable} números`
+            : "Número máximo de compras por usuário atingido"}
         </DialogTitle>
         <DialogContent sx={{ textAlign: "center" }}>
           <Typography sx={{ opacity: 0.9 }}>

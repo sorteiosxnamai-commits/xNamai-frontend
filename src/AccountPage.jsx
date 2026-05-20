@@ -1506,7 +1506,7 @@ export default function AccountPage() {
             <Stack spacing={{ xs: 2, md: 2.5 }}>
               <Box sx={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 2, flexWrap: "wrap" }}>
                 <Typography className="xn-sectionTitle" sx={{ fontSize: { xs: 20, md: 26 }, lineHeight: 1.15 }}>
-                  Conta
+                  MINHA CONTA
                 </Typography>
                 <Typography className="xn-muted" sx={{ fontWeight: 700 }}>
                   {headingName}
