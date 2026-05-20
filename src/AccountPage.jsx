@@ -44,6 +44,21 @@ const theme = createTheme({
 
 const pad2 = (n) => String(n).padStart(2, "0");
 
+function formatDrawLabel(row) {
+  const drawNumber =
+    row?.draw_number ?? row?.drawNumber ?? row?.draw_id ?? row?.drawId ?? null;
+  const drawTitle =
+    row?.draw_title ??
+    row?.drawTitle ??
+    row?.sorteio ??
+    row?.title ??
+    "Sorteio Principal";
+  if (drawNumber != null && drawNumber !== "") {
+    return `#${drawNumber} - ${drawTitle}`;
+  }
+  return String(drawTitle);
+}
+
 const XNAMAI_SITE_URL = "https://www.xnamai.com/";
 const ADMIN_EMAIL = "admin@newstore.com.br";
 const TTL_MINUTES = Number(process.env.REACT_APP_RESERVATION_TTL_MINUTES || 15);
@@ -558,7 +573,18 @@ function normalizeUnifiedReservationRows(payload, drawsMap = new Map()) {
       totalCents: Number.isFinite(amountCents) ? amountCents : 0,
       reservation_id: reservationId,
       draw_id: drawId,
-      sorteio: isPromotional ? title : (title || (drawId != null ? String(drawId) : "--")),
+      draw_number:
+        item?.draw_number ??
+        draw?.draw_number ??
+        draw?.number ??
+        drawId,
+      draw_title: title,
+      sorteio: formatDrawLabel({
+        draw_number:
+          item?.draw_number ?? draw?.draw_number ?? draw?.number ?? drawId,
+        draw_title: title,
+        draw_id: drawId,
+      }),
       numeros: numbers,
       numbers_label: numbersLabel,
       dia: item?.day || (whenDate ? whenDate.toLocaleDateString("pt-BR") : "--/--/----"),
@@ -642,9 +668,13 @@ export default function AccountPage() {
 
   const [menuEl, setMenuEl] = React.useState(null);
   const [loading, setLoading] = React.useState(true);
+  const [loadingProfile, setLoadingProfile] = React.useState(false);
+  const [loadingReservations, setLoadingReservations] = React.useState(true);
+  const [loadingCoupon, setLoadingCoupon] = React.useState(true);
   const [user, setUser] = React.useState(ctxUser || null);
   const [rows, setRows] = React.useState([]);
   const [promotionalError, setPromotionalError] = React.useState("");
+  const accountLoadingRef = React.useRef(false);
 
   // ► saldo composto
   const [, setBaseCents] = React.useState(0); // pode incluir safeUi p/ nunca regredir visualmente
@@ -1023,98 +1053,313 @@ export default function AccountPage() {
     try { return JSON.parse(localStorage.getItem("me") || "null"); } catch { return null; }
   }, []);
 
-  // ---- RELOAD BALANCES (sync no backend + valor oficial do cupom) ----
-  const reloadBalances = React.useCallback(async () => {
-    try {
-      try {
-        await syncCouponBalance();
-      } catch (syncErr) {
-        console.warn("[reloadBalances] coupons/sync:", syncErr?.message || syncErr);
-      }
+  const applyCouponFromMine = React.useCallback((mine) => {
+    const currentCents =
+      Number(mine?.cents ?? mine?.coupon_value_cents ?? mine?.value_cents ?? 0) || 0;
+    const code = mine?.code || mine?.coupon_code || null;
 
+    setOfficialCents(Number.isFinite(currentCents) && currentCents >= 0 ? currentCents : 0);
+    if (Number.isFinite(currentCents) && currentCents >= 0) setBaseCents(currentCents);
+    if (code) setCupom(String(code));
+    setPaidCents(0);
+  }, []);
+
+  const loadCoupon = React.useCallback(async () => {
+    setLoadingCoupon(true);
+    try {
       const mine = await fetchJsonLoose("/coupons/mine", {
         headers: { ...authHeaders() },
         credentials: "include",
       });
-
-      let currentCents = 0;
-      let code = null;
-
-      if (mine) {
-        currentCents =
-          Number(mine.cents ?? mine.coupon_value_cents ?? mine.value_cents ?? 0) || 0;
-        code = mine.code || mine.coupon_code || null;
-      }
-
-      setOfficialCents(Number.isFinite(currentCents) && currentCents >= 0 ? currentCents : 0);
-      if (Number.isFinite(currentCents) && currentCents >= 0) setBaseCents(currentCents);
-      if (code) setCupom(String(code));
-      setPaidCents(0);
+      applyCouponFromMine(mine);
     } catch (e) {
-      console.warn("[reloadBalances] erro silencioso:", e?.message || e);
+      console.warn("[loadCoupon]", e?.message || e);
+    } finally {
+      setLoadingCoupon(false);
     }
-  }, []);
+  }, [applyCouponFromMine]);
 
-  const safeLoadAccount = React.useCallback(async () => {
+  const syncAndReloadCoupon = React.useCallback(async () => {
+    setLoadingCoupon(true);
     try {
-      await reloadBalances();
-    } catch (loadError) {
-      console.warn("[AccountPage] safeLoadAccount reloadBalances warn:", loadError?.message || loadError);
+      await syncCouponBalance();
+      const mine = await fetchJsonLoose("/coupons/mine", {
+        headers: { ...authHeaders() },
+        credentials: "include",
+      });
+      applyCouponFromMine(mine);
+    } catch (e) {
+      console.warn("[syncAndReloadCoupon]", e?.message || e);
+    } finally {
+      setLoadingCoupon(false);
     }
+  }, [applyCouponFromMine]);
 
+  const loadProfile = React.useCallback(async () => {
+    setLoadingProfile(true);
+    try {
+      let me = ctxUser || storedMe || null;
+      try {
+        const meResp = await getJSON("/me");
+        me = meResp?.user || meResp || me;
+      } catch {}
+      setUser(me || null);
+      try {
+        if (me) localStorage.setItem("me", JSON.stringify(me));
+      } catch {}
+    } finally {
+      setLoadingProfile(false);
+    }
+  }, [ctxUser, storedMe]);
+
+  const loadPurchaseHistory = React.useCallback(async () => {
+    setPurchaseHistoryLoading(true);
+    setPurchaseHistoryError("");
     try {
       const historyPayload = await getJSON("/me/purchase-history");
       const normalizedHistory = normalizePurchaseHistoryPayload(historyPayload);
       setPurchaseHistory(normalizedHistory.items);
       setLastPurchase(normalizedHistory.lastPurchase);
-    } catch (loadError) {
-      console.warn("[AccountPage] safeLoadAccount history warn:", loadError?.message || loadError);
+    } catch (historyError) {
+      console.error("[PURCHASE_HISTORY_ERROR]", historyError);
+      setPurchaseHistory([]);
+      setLastPurchase(null);
+      setPurchaseHistoryError("Não foi possível carregar o histórico de compras.");
+    } finally {
+      setPurchaseHistoryLoading(false);
     }
+  }, []);
 
+  const loadReservations = React.useCallback(async () => {
+    setLoadingReservations(true);
+    setPromotionalError("");
     try {
-      const { data: pay } = await tryManyJson([
+      const { data: pay, from } = await tryManyJson([
         "/me/reservations",
         "/me/reservations?active=1",
+        "/reservations/me",
+        "/reservations/me?active=1",
+        "/payments/me",
       ]);
 
-      if (pay) {
-        let drawsMap = new Map();
-        try {
-          const draws = await getJSON("/draws");
-          const arr = Array.isArray(draws) ? draws : (draws.draws || draws.items || []);
-          drawsMap = new Map(arr.map((d) => [Number(d.id ?? d.draw_id), (d.status ?? d.result ?? "")]));
-        } catch {}
-
-        const unifiedRows = normalizeUnifiedReservationRows(pay, drawsMap);
-        const mainRows = unifiedRows.filter((row) => row.type !== "promotional");
-        let promotionalRows = unifiedRows.filter((row) => row.type === "promotional");
-
-        try {
-          const promotionalReservations = await getMyPromocionalReservations();
-          const fetchedPromotionalRows = normalizePromocionalParticipationRows(promotionalReservations);
-          const promotionalByKey = new Map();
-
-          [...promotionalRows, ...fetchedPromotionalRows].forEach((row, index) => {
-            const key =
-              row?.reservationId ||
-              row?.reservation_id ||
-              `${row?.drawId || row?.draw_id || "promotional"}-${row?.numbers || row?.numbers_label || index}`;
-            promotionalByKey.set(String(key), row);
+      const drawMetaById = new Map();
+      let drawsMap = new Map();
+      try {
+        const draws = await getJSON("/draws");
+        const arr = Array.isArray(draws) ? draws : (draws.draws || draws.items || []);
+        for (const d of arr) {
+          const id = Number(d.id ?? d.draw_id);
+          drawsMap.set(id, d.status ?? d.result ?? "");
+          drawMetaById.set(id, {
+            number: d.draw_number ?? d.number ?? id,
+            title: d.title ?? d.name ?? d.banner_title ?? "Sorteio Principal",
           });
+        }
+      } catch {}
 
-          promotionalRows = Array.from(promotionalByKey.values());
-        } catch {}
+      let mainRows = [];
+      let unifiedRows = [];
 
-        setRows(
-          [...mainRows, ...promotionalRows].sort(
-            (a, b) => (b.whenMs || 0) - (a.whenMs || 0)
-          )
+      if (pay && from !== "/payments/me") {
+        unifiedRows = normalizeUnifiedReservationRows(pay, drawsMap);
+        mainRows = unifiedRows
+          .filter((row) => row.type !== "promotional")
+          .map((row) => ({
+            ...row,
+            sorteio: formatDrawLabel(row),
+          }));
+      } else if (pay) {
+        const entries = normalizeToEntries(
+          from === "/payments/me" ? pay : null,
+          from !== "/payments/me" ? pay : null
         );
+
+        const now = Date.now();
+        const ttlMs = TTL_MINUTES * 60 * 1000;
+
+        const filtered = entries.filter((e) => {
+          const st = String(e.status || "").toLowerCase();
+          if (["approved", "paid", "pago"].includes(st)) return true;
+          if (e.expires_at) {
+            const expMs = new Date(e.expires_at).getTime();
+            if (!isNaN(expMs)) return expMs > now;
+          }
+          if (e.when) {
+            const whenMs = new Date(e.when).getTime();
+            if (!isNaN(whenMs)) return whenMs + ttlMs > now;
+          }
+          return true;
+        });
+
+        const byKey = new Map();
+        const priority = (st) => {
+          const s = String(st || "").toLowerCase();
+          if (["approved", "paid", "pago"].includes(s)) return 2;
+          if (/(expired|cancel)/.test(s)) return 0;
+          return 1;
+        };
+        for (const e of filtered) {
+          const key = `${Number(e.draw_id)}|${Number(e.number)}`;
+          const cur = byKey.get(key);
+          if (!cur) {
+            byKey.set(key, e);
+            continue;
+          }
+          const pNew = priority(e.status);
+          const pOld = priority(cur.status);
+          if (pNew > pOld) byKey.set(key, e);
+          else if (pNew === pOld) {
+            const tNew = e.when ? new Date(e.when).getTime() : 0;
+            const tOld = cur.when ? new Date(cur.when).getTime() : 0;
+            if (tNew >= tOld) byKey.set(key, e);
+          }
+        }
+        const deduped = Array.from(byKey.values());
+
+        const byDraw = new Map();
+        const isPendingStatus = (s) =>
+          /pending|pendente|await|aguard|active|ativo|reserv/.test(
+            String(s || "").toLowerCase()
+          );
+        const isApprovedStatus = (s) =>
+          /^(approved|paid|pago)$/.test(String(s || "").toLowerCase());
+
+        for (const e of deduped) {
+          const id = Number(e.draw_id);
+          if (!byDraw.has(id)) {
+            byDraw.set(id, {
+              draw_id: id,
+              reservation_id: e.reservation_id || null,
+              numeros: [],
+              when: e.when ? new Date(e.when).getTime() : 0,
+              hasPending: false,
+              hasApproved: false,
+            });
+          }
+          const g = byDraw.get(id);
+          if (!g.reservation_id && e.reservation_id) g.reservation_id = e.reservation_id;
+          g.numeros.push(Number(e.number));
+          g.when = Math.max(g.when, e.when ? new Date(e.when).getTime() : 0);
+          g.hasPending = g.hasPending || isPendingStatus(e.status);
+          g.hasApproved = g.hasApproved || isApprovedStatus(e.status);
+        }
+
+        mainRows = Array.from(byDraw.values()).map((g) => {
+          const meta = drawMetaById.get(Number(g.draw_id)) || {};
+          const drawStatus = drawsMap.get(Number(g.draw_id)) || "aberto";
+          const whenDate = g.when ? new Date(g.when) : null;
+          const pagamento = g.hasPending ? "pending" : g.hasApproved ? "paid" : "pending";
+          const paid = isPaidStatus(pagamento);
+          return {
+            type: "main",
+            source: "normal",
+            typeLabel: "Principal",
+            reservation_id: g.reservation_id,
+            draw_id: g.draw_id,
+            draw_number: meta.number ?? g.draw_id,
+            draw_title: meta.title ?? "Sorteio Principal",
+            sorteio: formatDrawLabel({
+              draw_number: meta.number ?? g.draw_id,
+              draw_title: meta.title ?? "Sorteio Principal",
+            }),
+            numeros: Array.from(new Set(g.numeros)).sort((a, b) => a - b),
+            dia: whenDate ? whenDate.toLocaleDateString("pt-BR") : "--/--/----",
+            pagamento,
+            payment_status: pagamento,
+            paymentStatus: pagamento,
+            resultado: drawStatus || "aberto",
+            whenMs: g.when || 0,
+            canPay: !paid,
+            can_pay: !paid,
+          };
+        });
+      }
+
+      let promotionalRows = unifiedRows.filter((row) => row.type === "promotional");
+      try {
+        const promotionalReservations = await getMyPromocionalReservations();
+        const fetchedPromotionalRows =
+          normalizePromocionalParticipationRows(promotionalReservations);
+        const promotionalByKey = new Map();
+
+        [...promotionalRows, ...fetchedPromotionalRows].forEach((row, index) => {
+          const key =
+            row?.reservationId ||
+            row?.reservation_id ||
+            `${row?.drawId || row?.draw_id || "promotional"}-${row?.numbers || row?.numbers_label || index}`;
+          promotionalByKey.set(String(key), {
+            ...row,
+            sorteio: formatDrawLabel(row),
+          });
+        });
+
+        promotionalRows = Array.from(promotionalByKey.values());
+      } catch (error) {
+        console.error("[PROMOCIONAL_FRONT_ERROR]", error);
+        if (!promotionalRows.length) {
+          setPromotionalError("Não foi possível carregar participações promocionais.");
+        }
+      }
+
+      setRows(
+        [...mainRows, ...promotionalRows].sort((a, b) => (b.whenMs || 0) - (a.whenMs || 0))
+      );
+
+      if (pay) {
+        let lastApprovedAtMs = null;
+        const listForValidity =
+          from === "/payments/me"
+            ? Array.isArray(pay)
+              ? pay
+              : pay.payments || []
+            : [];
+
+        for (const p of listForValidity) {
+          const st = String((p.status ?? p?.status)?.toString() || "").toLowerCase();
+          const ok = st === "approved" || st === "paid" || st === "pago";
+          const t = Date.parse(p.paid_at || p.when || p.updated_at || p.created_at || "");
+          if (ok && !isNaN(t)) lastApprovedAtMs = Math.max(lastApprovedAtMs ?? 0, t);
+        }
+
+        if (lastApprovedAtMs) {
+          const exp = new Date(
+            lastApprovedAtMs + COUPON_VALIDITY_DAYS * 24 * 60 * 60 * 1000
+          );
+          const yy = String(exp.getFullYear()).slice(-2);
+          setValidade(`${pad2(exp.getDate())}/${pad2(exp.getMonth() + 1)}/${yy}`);
+        } else {
+          setValidade("--/--/--");
+        }
       }
     } catch (loadError) {
-      console.warn("[AccountPage] safeLoadAccount reservations warn:", loadError?.message || loadError);
+      console.warn("[loadReservations]", loadError?.message || loadError);
+      setRows([]);
+    } finally {
+      setLoadingReservations(false);
     }
-  }, [reloadBalances]);
+  }, []);
+
+  const safeLoadAccount = React.useCallback(
+    async ({ syncCoupon = false } = {}) => {
+      if (accountLoadingRef.current) return;
+      accountLoadingRef.current = true;
+      setLoading(true);
+
+      try {
+        const tasks = [
+          loadProfile(),
+          loadPurchaseHistory(),
+          loadReservations(),
+          syncCoupon ? syncAndReloadCoupon() : loadCoupon(),
+        ];
+        await Promise.allSettled(tasks);
+      } finally {
+        accountLoadingRef.current = false;
+        setLoading(false);
+      }
+    },
+    [loadProfile, loadPurchaseHistory, loadReservations, loadCoupon, syncAndReloadCoupon]
+  );
 
   async function refreshPix() {
     const paymentId =
@@ -1142,15 +1387,7 @@ export default function AccountPage() {
       if (isPaidStatus(status)) {
         setPixMsg("Pagamento aprovado! Atualizando seus dados...");
 
-        try {
-          await syncCouponBalance();
-        } catch (syncErr) {
-          console.warn("[ACCOUNT_COUPON_SYNC_WARN]", syncErr);
-        }
-
-        if (typeof safeLoadAccount === "function") {
-          await safeLoadAccount();
-        }
+        await safeLoadAccount({ syncCoupon: true });
 
         setTimeout(() => {
           setPixOpen(false);
@@ -1166,242 +1403,15 @@ export default function AccountPage() {
     }
   }
 
-  // efeito principal
   React.useEffect(() => {
-    let alive = true;
-    (async () => {
-      try {
-        // /me
-        let me = ctxUser || storedMe || null;
-        try {
-          const meResp = await getJSON("/me");
-          me = meResp?.user || meResp || me;
-        } catch {}
-        if (alive) {
-          setUser(me || null);
-          try { if (me) localStorage.setItem("me", JSON.stringify(me)); } catch {}
-          // NÃO atualizar baseCents a partir de /me para não sobrescrever o saldo
-        }
+    safeLoadAccount();
+  }, [safeLoadAccount]);
 
-        // pagamentos/linhas p/ tabela + validade
-        const { data: pay, from } = await tryManyJson([
-          "/me/reservations",
-          "/me/reservations?active=1",
-          "/reservations/me",
-          "/reservations/me?active=1",
-          "/payments/me",
-        ]);
-
-        // draws (status)
-        let drawsMap = new Map();
-        try {
-          const draws = await getJSON("/draws");
-          const arr = Array.isArray(draws) ? draws : (draws.draws || draws.items || []);
-          drawsMap = new Map(arr.map(d => [Number(d.id ?? d.draw_id), (d.status ?? d.result ?? "")]));
-        } catch {}
-
-        let deduped = [];
-        let mainRows = [];
-        let unifiedRows = [];
-
-        if (pay && from !== "/payments/me") {
-          unifiedRows = normalizeUnifiedReservationRows(pay, drawsMap);
-          mainRows = unifiedRows.filter((row) => row.type !== "promotional");
-        } else if (pay) {
-          const entries = normalizeToEntries(
-            from === "/payments/me" ? pay : null,
-            from !== "/payments/me" ? pay : null
-          );
-
-          const now = Date.now();
-          const ttlMs = TTL_MINUTES * 60 * 1000;
-
-          const filtered = entries.filter(e => {
-            const st = String(e.status || "").toLowerCase();
-            if (["approved","paid","pago"].includes(st)) return true;
-            if (e.expires_at) {
-              const expMs = new Date(e.expires_at).getTime();
-              if (!isNaN(expMs)) return expMs > now;
-            }
-            if (e.when) {
-              const whenMs = new Date(e.when).getTime();
-              if (!isNaN(whenMs)) return (whenMs + ttlMs) > now;
-            }
-            return true;
-          });
-
-          // DEDUPE por (sorteio, número) preferindo status aprovado
-          const byKey = new Map();
-          const priority = (st) => {
-            const s = String(st || "").toLowerCase();
-            if (["approved","paid","pago"].includes(s)) return 2;
-            if (/(expired|cancel)/.test(s)) return 0;
-            return 1; // pending/active/await…
-          };
-          for (const e of filtered) {
-            const key = `${Number(e.draw_id)}|${Number(e.number)}`;
-            const cur = byKey.get(key);
-            if (!cur) { byKey.set(key, e); continue; }
-            const pNew = priority(e.status), pOld = priority(cur.status);
-            if (pNew > pOld) byKey.set(key, e);
-            else if (pNew === pOld) {
-              const tNew = e.when ? new Date(e.when).getTime() : 0;
-              const tOld = cur.when ? new Date(cur.when).getTime() : 0;
-              if (tNew >= tOld) byKey.set(key, e);
-            }
-          }
-          deduped = Array.from(byKey.values());
-
-          // AGRUPAR por sorteio (approved só se todos aprovados)
-          const byDraw = new Map();
-          const isPendingStatus = (s) => /pending|pendente|await|aguard|active|ativo|reserv/.test(String(s || "").toLowerCase());
-          const isApprovedStatus = (s) => /^(approved|paid|pago)$/.test(String(s || "").toLowerCase());
-
-          for (const e of deduped) {
-            const id = Number(e.draw_id);
-            if (!byDraw.has(id)) {
-              byDraw.set(id, {
-                draw_id: id,
-                reservation_id: e.reservation_id || null,
-                numeros: [],
-                when: e.when ? new Date(e.when).getTime() : 0,
-                hasPending: false,
-                hasApproved: false,
-              });
-            }
-            const g = byDraw.get(id);
-            if (!g.reservation_id && e.reservation_id) g.reservation_id = e.reservation_id;
-            g.numeros.push(Number(e.number));
-            g.when = Math.max(g.when, e.when ? new Date(e.when).getTime() : 0);
-            g.hasPending  = g.hasPending  || isPendingStatus(e.status);
-            g.hasApproved = g.hasApproved || isApprovedStatus(e.status);
-          }
-
-          mainRows = Array.from(byDraw.values()).map(g => {
-            const whenDate = g.when ? new Date(g.when) : null;
-            const pagamento = g.hasPending ? "pending" : (g.hasApproved ? "paid" : "pending");
-            const paid = isPaidStatus(pagamento);
-            return {
-              type: "main",
-              source: "normal",
-              typeLabel: "Principal",
-              reservation_id: g.reservation_id,
-              draw_id: g.draw_id,
-              sorteio: g.draw_id != null ? String(g.draw_id) : "--",
-              numeros: Array.from(new Set(g.numeros)).sort((a,b)=>a-b),
-              dia: whenDate ? whenDate.toLocaleDateString("pt-BR") : "--/--/----",
-              pagamento,
-              payment_status: pagamento,
-              paymentStatus: pagamento,
-              resultado: drawsMap.get(Number(g.draw_id)) || "aberto",
-              whenMs: g.when || 0,
-              canPay: !paid,
-              can_pay: !paid,
-            };
-          });
-        }
-
-        let promotionalRows = unifiedRows.filter((row) => row.type === "promotional");
-        let promotionalLoadError = "";
-        try {
-          const promotionalReservations = await getMyPromocionalReservations();
-          const fetchedPromotionalRows = normalizePromocionalParticipationRows(promotionalReservations);
-          const promotionalByKey = new Map();
-
-          [...promotionalRows, ...fetchedPromotionalRows].forEach((row, index) => {
-            const key =
-              row?.reservationId ||
-              row?.reservation_id ||
-              `${row?.drawId || row?.draw_id || "promotional"}-${row?.numbers || row?.numbers_label || index}`;
-            promotionalByKey.set(String(key), row);
-          });
-
-          promotionalRows = Array.from(promotionalByKey.values());
-        } catch (error) {
-          console.error("[PROMOCIONAL_FRONT_ERROR]", error);
-          promotionalLoadError = promotionalRows.length
-            ? ""
-            : "Não foi possível carregar participações promocionais.";
-        }
-
-        if (alive) {
-          setPromotionalError(promotionalLoadError);
-          setRows(
-            [...mainRows, ...promotionalRows].sort(
-              (a, b) => (b.whenMs || 0) - (a.whenMs || 0)
-            )
-          );
-        }
-
-        if (pay) {
-          // validade (último approved)
-          let lastApprovedAtMs = null;
-          const listForValidity = from === "/payments/me"
-            ? (Array.isArray(pay) ? pay : (pay.payments || []))
-            : deduped;
-
-          for (const p of listForValidity) {
-            const st = String((p.status ?? p?.status)?.toString() || "").toLowerCase();
-            const ok = st === "approved" || st === "paid" || st === "pago";
-            const t = Date.parse(p.paid_at || p.when || p.updated_at || p.created_at || "");
-            if (ok && !isNaN(t)) lastApprovedAtMs = Math.max(lastApprovedAtMs ?? 0, t);
-          }
-
-          if (lastApprovedAtMs) {
-            const exp = new Date(lastApprovedAtMs + COUPON_VALIDITY_DAYS * 24 * 60 * 60 * 1000);
-            const yy = String(exp.getFullYear()).slice(-2);
-            setValidade(`${pad2(exp.getDate())}/${pad2(exp.getMonth()+1)}/${yy}`);
-          } else {
-            setValidade("--/--/--");
-          }
-        }
-
-        await reloadBalances();
-
-        try {
-          setPurchaseHistoryLoading(true);
-          setPurchaseHistoryError("");
-
-          const historyPayload = await getJSON("/me/purchase-history");
-          const normalizedHistory = normalizePurchaseHistoryPayload(historyPayload);
-
-          if (alive) {
-            setPurchaseHistory(normalizedHistory.items);
-            setLastPurchase(normalizedHistory.lastPurchase);
-          }
-        } catch (historyError) {
-          console.error("[PURCHASE_HISTORY_ERROR]", historyError);
-
-          if (alive) {
-            setPurchaseHistory([]);
-            setLastPurchase(null);
-            setPurchaseHistoryError("Não foi possível carregar o histórico de compras.");
-          }
-        } finally {
-          if (alive) {
-            setPurchaseHistoryLoading(false);
-          }
-        }
-      } finally {
-        setLoading(false);
-      }
-    })();
-
-    const onFocus = () => reloadBalances();
-    window.addEventListener("focus", onFocus);
-    return () => {
-      alive = false;
-      window.removeEventListener("focus", onFocus);
-    };
-  }, [ctxUser, storedMe, reloadBalances]);
-
-  // quando PIX vira approved, atualiza saldo
   React.useEffect(() => {
-    const st = String(pixData?.status || "").toLowerCase();
-    if (st === "approved" || st === "paid" || st === "pago") {
-      reloadBalances();
-    }
-  }, [pixData?.status, reloadBalances]);
+    const onReload = () => safeLoadAccount();
+    window.addEventListener("xnamai:pix-approved", onReload);
+    return () => window.removeEventListener("xnamai:pix-approved", onReload);
+  }, [safeLoadAccount]);
 
   // carregar config (banner_title e max_numbers_per_selection)
   React.useEffect(() => {
@@ -1674,7 +1684,13 @@ export default function AccountPage() {
                 </Box>
 
                 <Chip
-                  label={purchaseHistory.length ? `${purchaseHistory.length} compra(s)` : "Sem compras pagas"}
+                  label={
+                    purchaseHistoryLoading
+                      ? "Carregando..."
+                      : purchaseHistory.length
+                        ? `${purchaseHistory.length} compra(s)`
+                        : "Sem compras pagas"
+                  }
                   sx={{
                     bgcolor: "rgba(37,109,255,0.10)",
                     color: "#16325c",
@@ -1717,8 +1733,11 @@ export default function AccountPage() {
               )}
 
               {purchaseHistoryLoading ? (
-                <Box sx={{ px: 0.5, py: 0.5 }}>
+                <Box sx={{ px: 0.5, py: 1 }}>
                   <LinearProgress />
+                  <Typography className="xn-muted" sx={{ mt: 1, fontWeight: 700 }}>
+                    Carregando histórico...
+                  </Typography>
                 </Box>
               ) : purchaseHistory.length === 0 ? (
                 <Box className="xn-emptyState">
@@ -1763,7 +1782,7 @@ export default function AccountPage() {
                           </TableCell>
 
                           <TableCell sx={{ fontWeight: 800 }}>
-                            {item.draw_title || "--"}
+                            {formatDrawLabel(item)}
                           </TableCell>
 
                           <TableCell sx={{ fontWeight: 800 }}>
@@ -1810,8 +1829,13 @@ export default function AccountPage() {
                     </Typography>
                   </Box>
 
-                  {loading ? (
-                    <Box sx={{ px: 0.5, py: 0.5 }}><LinearProgress /></Box>
+                  {loadingReservations ? (
+                    <Box sx={{ px: 0.5, py: 1 }}>
+                      <LinearProgress />
+                      <Typography className="xn-muted" sx={{ mt: 1, fontWeight: 700 }}>
+                        Carregando participações...
+                      </Typography>
+                    </Box>
                   ) : (
                     <TableContainer sx={{ width: "100%", overflowX: "auto" }}>
                       {promotionalError && (
@@ -1831,7 +1855,7 @@ export default function AccountPage() {
                           </TableRow>
                         </TableHead>
                         <TableBody>
-                          {rows.length === 0 && (
+                          {!loadingReservations && rows.length === 0 && (
                             <TableRow>
                               <TableCell colSpan={6}>
                                 <Box className="xn-emptyState">
@@ -1885,7 +1909,7 @@ export default function AccountPage() {
                           sx={{ cursor: clickable ? "pointer" : "default" }}
                         >
                           <TableCell sx={{ width: 100, fontWeight: 700 }}>
-                            {isPromotionalRow ? String(row.title || "Promocional") : String(row.sorteio || "--")}
+                            {formatDrawLabel(row)}
                           </TableCell>
                           <TableCell sx={{ minWidth: 160, fontWeight: 700 }}>
                             {isPromotionalRow
@@ -1934,12 +1958,13 @@ export default function AccountPage() {
 
                   <Box className="xn-actionsRow" sx={{ pt: 1 }}>
                     <Button
-                      component="a"
-                      href={XNAMAI_SITE_URL}
-                      target="_blank"
-                      rel="noopener noreferrer"
                       variant="outlined"
                       className="xn-btnSoft"
+                      disabled={loadingCoupon}
+                      onClick={async () => {
+                        await syncAndReloadCoupon();
+                        window.open(XNAMAI_SITE_URL, "_blank", "noopener,noreferrer");
+                      }}
                       sx={{
                         borderColor: "rgba(37,109,255,0.26)",
                         color: "#16325c",
@@ -1947,7 +1972,7 @@ export default function AccountPage() {
                         "&:hover": { borderColor: "rgba(37,109,255,0.46)", bgcolor: "rgba(37,109,255,0.06)" },
                       }}
                     >
-                      RESGATAR CUPOM
+                      {loadingCoupon ? "ATUALIZANDO..." : "RESGATAR CUPOM"}
                     </Button>
                     <Button
                       variant="text"
