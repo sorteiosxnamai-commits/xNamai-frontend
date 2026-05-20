@@ -3,15 +3,25 @@ import { Link, useParams } from "react-router-dom";
 import { getJSON } from "../../../lib/api";
 import {
   adminAssignPromocionalNumbers,
+  adminGetPromocionalAllowances,
   adminGetPromocionalDraw,
   adminGetPromocionalNumbers,
   adminUpdatePromocionalNumberStatus,
+  adminUpsertPromocionalAllowance,
 } from "../services/promocionalApi";
 import {
   formatPromocionalNumber,
   isPromocionalNumberAvailable,
   normalizePromocionalNumberStatus,
 } from "../utils/promocionalNumbers";
+
+const EMPTY_ALLOWANCE_FORM = {
+  user_id: "",
+  allowed_quantity: "1",
+  buyer_name: "",
+  buyer_email: "",
+  buyer_phone: "",
+};
 
 const EMPTY_ASSIGN_FORM = {
   user_id: "",
@@ -33,13 +43,25 @@ function asUsersList(payload) {
   return payload?.users || payload?.items || payload?.data || [];
 }
 
+function asAllowancesList(payload) {
+  if (Array.isArray(payload)) return payload;
+  return payload?.allowances || payload?.items || payload?.data || [];
+}
+
 function getNumberStatusLabel(status, source) {
   const normalized = normalizePromocionalNumberStatus(status);
-  if (source === "admin") {
+  const src = String(source || "").toLowerCase();
+
+  if (src === "user" || src === "user_choice" || src === "claimed") {
+    return normalized === "sold" ? "Ocupado" : "Escolhido pelo usuário";
+  }
+
+  if (src === "admin") {
     if (normalized === "reserved") return "Reservado";
     if (normalized === "sold") return "Ocupado";
     return "Atribuído pelo admin";
   }
+
   if (normalized === "available") return "Disponível";
   if (normalized === "reserved") return "Reservado";
   if (normalized === "sold") return "Ocupado";
@@ -49,9 +71,32 @@ function getNumberStatusLabel(status, source) {
 
 function getOriginLabel(item) {
   const source = String(item?.source ?? item?.origin ?? "").toLowerCase();
+
+  if (source === "user" || source === "user_choice" || source === "claimed") {
+    return "Escolhido pelo usuário";
+  }
+
+  if (source === "allowance" || source === "promotional_allowance") {
+    return "Liberação promocional";
+  }
+
   if (source === "admin") return "Atribuído pelo admin";
   if (item?.source_label) return item.source_label;
   return source ? source : "-";
+}
+
+function getAllowanceStatusLabel(item) {
+  if (item?.status_label) return item.status_label;
+  const remaining = Number(item?.remaining_quantity ?? item?.remainingQuantity ?? 0);
+  const allowed = Number(item?.allowed_quantity ?? item?.allowedQuantity ?? 0);
+  if (allowed <= 0) return "Inativo";
+  if (remaining <= 0) return "Concluído";
+  return "Ativo";
+}
+
+function formatNumbersList(value) {
+  const numbers = Array.isArray(value) ? value : value ? String(value).split(",") : [];
+  return numbers.map((item) => formatPromocionalNumber(item)).join(", ") || "-";
 }
 
 function isNumberUnavailable(status) {
@@ -78,8 +123,11 @@ export default function PromocionalNumbersManager() {
   const { id: drawId } = useParams();
   const [draw, setDraw] = React.useState(null);
   const [numbers, setNumbers] = React.useState([]);
+  const [allowances, setAllowances] = React.useState([]);
   const [users, setUsers] = React.useState([]);
+  const [allowanceForm, setAllowanceForm] = React.useState(EMPTY_ALLOWANCE_FORM);
   const [assignForm, setAssignForm] = React.useState(EMPTY_ASSIGN_FORM);
+  const [savingAllowance, setSavingAllowance] = React.useState(false);
   const [assigning, setAssigning] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
   const [updatingId, setUpdatingId] = React.useState(null);
@@ -93,17 +141,20 @@ export default function PromocionalNumbersManager() {
       setError("");
       setMessage("");
 
-      const [drawPayload, result] = await Promise.all([
+      const [drawPayload, numbersResult, allowancesPayload] = await Promise.all([
         adminGetPromocionalDraw(drawId),
         adminGetPromocionalNumbers(drawId),
+        adminGetPromocionalAllowances(drawId).catch(() => []),
       ]);
 
       setDraw(drawPayload?.draw || drawPayload?.data || drawPayload);
-      setNumbers(Array.isArray(result) ? result : []);
+      setNumbers(Array.isArray(numbersResult) ? numbersResult : []);
+      setAllowances(asAllowancesList(allowancesPayload));
     } catch (err) {
       console.error("[PROMOCIONAL_ADMIN_NUMBERS_ERROR]", err);
       setError(err?.message || "Erro ao carregar números promocionais.");
       setNumbers([]);
+      setAllowances([]);
     } finally {
       setLoading(false);
     }
@@ -145,11 +196,38 @@ export default function PromocionalNumbersManager() {
     [sortedNumbers]
   );
 
+  function updateAllowanceField(field, value) {
+    setAllowanceForm((current) => ({ ...current, [field]: value }));
+  }
+
   function updateAssignField(field, value) {
     setAssignForm((current) => ({ ...current, [field]: value }));
   }
 
-  function handleUserSelect(userId) {
+  function handleAllowanceUserSelect(userId) {
+    const selected = users.find(
+      (item) => String(item.id ?? item.user_id ?? item._id) === String(userId)
+    );
+
+    if (!selected) {
+      updateAllowanceField("user_id", userId);
+      return;
+    }
+
+    setAllowanceForm((current) => ({
+      ...current,
+      user_id: String(selected.id ?? selected.user_id ?? selected._id ?? userId),
+      buyer_name: selected.name || selected.nome || selected.full_name || current.buyer_name,
+      buyer_email: selected.email || current.buyer_email,
+      buyer_phone:
+        selected.phone ||
+        selected.telefone ||
+        selected.whatsapp ||
+        current.buyer_phone,
+    }));
+  }
+
+  function handleAssignUserSelect(userId) {
     const selected = users.find(
       (item) => String(item.id ?? item.user_id ?? item._id) === String(userId)
     );
@@ -170,6 +248,46 @@ export default function PromocionalNumbersManager() {
         selected.whatsapp ||
         current.buyer_phone,
     }));
+  }
+
+  async function handleUpsertAllowance(event) {
+    event.preventDefault();
+
+    const userId = Number.parseInt(allowanceForm.user_id, 10);
+    const allowedQuantity = Number.parseInt(allowanceForm.allowed_quantity, 10);
+
+    if (!Number.isFinite(userId)) {
+      setError("Selecione um usuário válido.");
+      return;
+    }
+
+    if (!Number.isFinite(allowedQuantity) || allowedQuantity <= 0) {
+      setError("Informe uma quantidade liberada maior que zero.");
+      return;
+    }
+
+    try {
+      setSavingAllowance(true);
+      setError("");
+      setMessage("");
+
+      await adminUpsertPromocionalAllowance(drawId, {
+        user_id: userId,
+        allowed_quantity: allowedQuantity,
+        buyer_name: allowanceForm.buyer_name.trim(),
+        buyer_email: allowanceForm.buyer_email.trim(),
+        buyer_phone: allowanceForm.buyer_phone.trim(),
+      });
+
+      setMessage("Quantidade liberada com sucesso.");
+      setAllowanceForm(EMPTY_ALLOWANCE_FORM);
+      await loadNumbers();
+    } catch (err) {
+      console.error("[PROMOCIONAL_ALLOWANCE_ERROR]", err);
+      setError(err?.message || "Erro ao liberar quantidade promocional.");
+    } finally {
+      setSavingAllowance(false);
+    }
   }
 
   async function handleAssignNumber(event) {
@@ -259,7 +377,9 @@ export default function PromocionalNumbersManager() {
       <div className="promocional-admin-toolbar promocional-numbers-admin__toolbar">
         <div>
           <h2>Números promocionais</h2>
-          <p>{draw?.title || draw?.name || "Atribua e gerencie números da campanha de resgate."}</p>
+          <p>
+            {draw?.title || draw?.name || "Libere cotas e acompanhe os números escolhidos."}
+          </p>
         </div>
         <button
           type="button"
@@ -267,25 +387,22 @@ export default function PromocionalNumbersManager() {
           onClick={() => loadNumbers()}
           disabled={loading || !drawId}
         >
-          {loading ? "Atualizando…" : "Atualizar tabela"}
+          {loading ? "Atualizando…" : "Atualizar dados"}
         </button>
       </div>
 
-      <form
-        className="promocional-assign-panel"
-        onSubmit={handleAssignNumber}
-      >
-        <h3>Atribuir número promocional</h3>
+      <form className="promocional-assign-panel" onSubmit={handleUpsertAllowance}>
+        <h3>Liberar números para usuário</h3>
         <p className="promocional-assign-panel__hint">
-          Cada usuário pode receber no máximo 1 número por sorteio promocional.
+          O participante escolherá os números na campanha, até a quantidade liberada.
         </p>
 
         <div className="promocional-assign-panel__grid">
           <label className="promocional-field">
             <span>Usuário</span>
             <select
-              value={assignForm.user_id}
-              onChange={(event) => handleUserSelect(event.target.value)}
+              value={allowanceForm.user_id}
+              onChange={(event) => handleAllowanceUserSelect(event.target.value)}
               required
             >
               <option value="">Selecione um usuário</option>
@@ -302,29 +419,21 @@ export default function PromocionalNumbersManager() {
           </label>
 
           <label className="promocional-field">
-            <span>Número</span>
-            <select
-              value={assignForm.number}
-              onChange={(event) => updateAssignField("number", event.target.value)}
+            <span>Quantidade de números liberados</span>
+            <input
+              type="number"
+              min="1"
+              value={allowanceForm.allowed_quantity}
+              onChange={(event) => updateAllowanceField("allowed_quantity", event.target.value)}
               required
-            >
-              <option value="">Selecione um número disponível</option>
-              {availableNumbers.map((item) => {
-                const raw = getNumberValue(item);
-                return (
-                  <option key={String(raw)} value={String(raw)}>
-                    {formatPromocionalNumber(raw)}
-                  </option>
-                );
-              })}
-            </select>
+            />
           </label>
 
           <label className="promocional-field">
             <span>Nome</span>
             <input
-              value={assignForm.buyer_name}
-              onChange={(event) => updateAssignField("buyer_name", event.target.value)}
+              value={allowanceForm.buyer_name}
+              onChange={(event) => updateAllowanceField("buyer_name", event.target.value)}
               placeholder="Nome do participante"
             />
           </label>
@@ -333,8 +442,8 @@ export default function PromocionalNumbersManager() {
             <span>E-mail</span>
             <input
               type="email"
-              value={assignForm.buyer_email}
-              onChange={(event) => updateAssignField("buyer_email", event.target.value)}
+              value={allowanceForm.buyer_email}
+              onChange={(event) => updateAllowanceField("buyer_email", event.target.value)}
               placeholder="email@exemplo.com"
             />
           </label>
@@ -342,8 +451,8 @@ export default function PromocionalNumbersManager() {
           <label className="promocional-field">
             <span>Telefone</span>
             <input
-              value={assignForm.buyer_phone}
-              onChange={(event) => updateAssignField("buyer_phone", event.target.value)}
+              value={allowanceForm.buyer_phone}
+              onChange={(event) => updateAllowanceField("buyer_phone", event.target.value)}
               placeholder="(11) 99999-9999"
             />
           </label>
@@ -352,14 +461,138 @@ export default function PromocionalNumbersManager() {
         <button
           type="submit"
           className="promocional-primary-button"
-          disabled={assigning || !drawId}
+          disabled={savingAllowance || !drawId}
         >
-          {assigning ? "Atribuindo..." : "Atribuir número"}
+          {savingAllowance ? "Liberando..." : "Liberar quantidade"}
         </button>
       </form>
 
       {error && <p className="promocional-error">{error}</p>}
       {message && <p className="promocional-success">{message}</p>}
+
+      <div className="promocional-table-wrap promocional-allowances-table">
+        <h3>Liberações promocionais</h3>
+        <table className="promocional-table">
+          <thead>
+            <tr>
+              <th>Usuário</th>
+              <th>E-mail</th>
+              <th>Liberados</th>
+              <th>Escolhidos</th>
+              <th>Restantes</th>
+              <th>Números escolhidos</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? (
+              <tr>
+                <td colSpan={7}>Carregando liberações…</td>
+              </tr>
+            ) : allowances.length === 0 ? (
+              <tr>
+                <td colSpan={7}>Nenhuma liberação registrada.</td>
+              </tr>
+            ) : (
+              allowances.map((item, index) => (
+                <tr key={item?.id || item?.user_id || index}>
+                  <td>{item?.buyer_name || item?.name || item?.user_name || "-"}</td>
+                  <td>{item?.buyer_email || item?.email || "-"}</td>
+                  <td>{item?.allowed_quantity ?? item?.allowedQuantity ?? 0}</td>
+                  <td>{item?.claimed_quantity ?? item?.claimedQuantity ?? 0}</td>
+                  <td>{item?.remaining_quantity ?? item?.remainingQuantity ?? 0}</td>
+                  <td>
+                    {formatNumbersList(
+                      item?.numbers || item?.claimed_numbers || item?.selected_numbers
+                    )}
+                  </td>
+                  <td>{getAllowanceStatusLabel(item)}</td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* BLOCO ANTIGO DE ATRIBUIÇÃO DIRETA OCULTO — regra atual é liberação de quantidade */}
+      <div className="xnamai-hidden-legacy">
+        <form className="promocional-assign-panel" onSubmit={handleAssignNumber}>
+          <h3>Atribuir número promocional</h3>
+          <p className="promocional-assign-panel__hint">
+            Cada usuário pode receber no máximo 1 número por sorteio promocional.
+          </p>
+
+          <div className="promocional-assign-panel__grid">
+            <label className="promocional-field">
+              <span>Usuário</span>
+              <select
+                value={assignForm.user_id}
+                onChange={(event) => handleAssignUserSelect(event.target.value)}
+                required
+              >
+                <option value="">Selecione um usuário</option>
+                {users.map((item) => {
+                  const userId = item.id ?? item.user_id ?? item._id;
+                  const label = `${item.name || item.nome || item.email || "Usuário"} (${item.email || userId})`;
+                  return (
+                    <option key={String(userId)} value={String(userId)}>
+                      {label}
+                    </option>
+                  );
+                })}
+              </select>
+            </label>
+
+            <label className="promocional-field">
+              <span>Número</span>
+              <select
+                value={assignForm.number}
+                onChange={(event) => updateAssignField("number", event.target.value)}
+                required
+              >
+                <option value="">Selecione um número disponível</option>
+                {availableNumbers.map((item) => {
+                  const raw = getNumberValue(item);
+                  return (
+                    <option key={String(raw)} value={String(raw)}>
+                      {formatPromocionalNumber(raw)}
+                    </option>
+                  );
+                })}
+              </select>
+            </label>
+
+            <label className="promocional-field">
+              <span>Nome</span>
+              <input
+                value={assignForm.buyer_name}
+                onChange={(event) => updateAssignField("buyer_name", event.target.value)}
+              />
+            </label>
+
+            <label className="promocional-field">
+              <span>E-mail</span>
+              <input
+                type="email"
+                value={assignForm.buyer_email}
+                onChange={(event) => updateAssignField("buyer_email", event.target.value)}
+              />
+            </label>
+
+            <label className="promocional-field">
+              <span>Telefone</span>
+              <input
+                value={assignForm.buyer_phone}
+                onChange={(event) => updateAssignField("buyer_phone", event.target.value)}
+              />
+            </label>
+          </div>
+
+          <button type="submit" className="promocional-primary-button" disabled={assigning}>
+            {assigning ? "Atribuindo..." : "Atribuir número"}
+          </button>
+        </form>
+      </div>
 
       {!drawId && <p className="promocional-info">Sorteio não informado.</p>}
 
@@ -369,6 +602,7 @@ export default function PromocionalNumbersManager() {
 
       {drawId && (loading || sortedNumbers.length > 0) && (
         <div className="promocional-table-wrap promocional-numbers-admin__table-wrap">
+          <h3>Grade de números</h3>
           <table className="promocional-table promocional-numbers-admin__table">
             <thead>
               <tr>
@@ -419,11 +653,6 @@ export default function PromocionalNumbersManager() {
                         >
                           {getNumberStatusLabel(rawStatus, source)}
                         </span>
-                        {source === "admin" && (
-                          <span className="promocional-badge promocional-badge--admin promocional-badge--table">
-                            Sem pagamento
-                          </span>
-                        )}
                       </td>
                       <td>{buyerName}</td>
                       <td>{buyerEmail}</td>

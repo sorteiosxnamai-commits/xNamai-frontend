@@ -4,10 +4,10 @@ import { useAuth } from "../../../authContext";
 import PublicTopbar from "../../../components/PublicTopbar";
 import PromocionalNumbersGrid from "../components/PromocionalNumbersGrid";
 import {
-  getMyPromocionalAssignment,
+  claimPromocionalNumbers,
+  getMyPromocionalAllowance,
   getPromocionalDraw,
   getPromocionalNumbers,
-  redeemPromocionalAssignment,
 } from "../services/promocionalApi";
 import { formatPromocionalNumber } from "../utils/promocionalNumbers";
 
@@ -27,55 +27,77 @@ function buildNumbersFromRange(draw) {
   return Array.from({ length: end - start + 1 }, (_, index) => ({
     number: start + index,
     status: "available",
+    is_available: true,
+    is_occupied: false,
   }));
 }
 
-function normalizeAssignment(payload) {
+function normalizeAllowance(payload) {
   const data =
-    payload?.assignment ||
-    payload?.data?.assignment ||
-    (payload?.number != null || payload?.n != null ? payload : null) ||
+    payload?.allowance ||
+    payload?.data?.allowance ||
+    (payload?.allowed_quantity != null || payload?.allowedQuantity != null
+      ? payload
+      : null) ||
     payload?.data ||
     null;
 
   if (!data) return null;
 
-  const rawNumber =
-    data.number ??
-    data.n ??
-    (Array.isArray(data.numbers) && data.numbers.length ? data.numbers[0] : null);
+  const allowedQuantity = Number(
+    data.allowed_quantity ?? data.allowedQuantity ?? 0
+  );
+  const claimedQuantity = Number(
+    data.claimed_quantity ?? data.claimedQuantity ?? 0
+  );
+  const remainingQuantity = Number(
+    data.remaining_quantity ??
+      data.remainingQuantity ??
+      Math.max(0, allowedQuantity - claimedQuantity)
+  );
 
-  const parsed = Number.parseInt(rawNumber, 10);
-  if (!Number.isFinite(parsed)) return null;
+  const numbers = Array.isArray(data.numbers)
+    ? data.numbers
+    : Array.isArray(data.claimed_numbers)
+      ? data.claimed_numbers
+      : [];
 
   return {
-    number: parsed,
-    status_label: data.status_label || data.source_label || "Atribuído pelo admin",
-    source_label: data.source_label || "Atribuído pelo admin",
-    assigned_at:
-      data.assigned_at ||
-      data.assignedAt ||
-      data.created_at ||
-      data.createdAt ||
-      data.redeemed_at ||
-      data.redeemedAt ||
-      null,
+    allowed_quantity: allowedQuantity,
+    claimed_quantity: claimedQuantity,
+    remaining_quantity: remainingQuantity,
+    numbers,
+    status: data.status || (allowedQuantity > 0 ? "active" : "inactive"),
   };
 }
 
-function formatAssignmentDate(value) {
-  if (!value) return null;
-  try {
-    return new Date(value).toLocaleString("pt-BR", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  } catch {
-    return null;
+function mapPromocionalError(err, fallback) {
+  if (err?.status >= 500) {
+    return "Não foi possível carregar os dados promocionais agora. Tente novamente em instantes.";
   }
+
+  if (err?.code === "promotional_allowance_limit_exceeded") {
+    return "Você não pode escolher mais números do que a quantidade liberada pelo administrador.";
+  }
+
+  if (err?.code === "promotional_number_unavailable") {
+    return "Um ou mais números selecionados já estão ocupados.";
+  }
+
+  if (
+    err?.status === 404 ||
+    err?.code === "promotional_allowance_not_found" ||
+    err?.code === "promotional_no_allowance"
+  ) {
+    return "Você ainda não possui números liberados para este sorteio promocional.";
+  }
+
+  return (
+    err?.response?.data?.message ||
+    err?.data?.message ||
+    err?.message ||
+    fallback
+  );
 }
 
 export default function PromocionalDrawPage() {
@@ -85,15 +107,27 @@ export default function PromocionalDrawPage() {
 
   const [draw, setDraw] = React.useState(null);
   const [numbers, setNumbers] = React.useState([]);
-  const [assignment, setAssignment] = React.useState(null);
-  const [assignmentLoaded, setAssignmentLoaded] = React.useState(false);
+  const [allowance, setAllowance] = React.useState(null);
+  const [allowanceLoaded, setAllowanceLoaded] = React.useState(false);
+  const [selectedNumbers, setSelectedNumbers] = React.useState([]);
   const [loading, setLoading] = React.useState(true);
-  const [redeeming, setRedeeming] = React.useState(false);
+  const [claiming, setClaiming] = React.useState(false);
   const [message, setMessage] = React.useState("");
   const [error, setError] = React.useState("");
 
-  const myNumber = assignment?.number ?? null;
-  const highlightedNumbers = myNumber != null ? [myNumber] : [];
+  const remainingQuantity = Number(allowance?.remaining_quantity ?? 0);
+  const effectiveRemaining = Math.max(0, remainingQuantity - selectedNumbers.length);
+  const myNumbers = React.useMemo(
+    () => (Array.isArray(allowance?.numbers) ? allowance.numbers : []),
+    [allowance]
+  );
+  const hasAllowance = Number(allowance?.allowed_quantity ?? 0) > 0;
+  const canChoose =
+    Boolean(user) &&
+    hasAllowance &&
+    (effectiveRemaining > 0 || selectedNumbers.length > 0) &&
+    !claiming &&
+    !loading;
 
   function saveReturnRouteAndGoLogin() {
     const currentUrl = window.location.pathname + window.location.search;
@@ -101,106 +135,149 @@ export default function PromocionalDrawPage() {
     navigate(`/login?redirect=${encodeURIComponent(currentUrl)}`);
   }
 
-  const loadDraw = React.useCallback(async () => {
+  const loadNumbers = React.useCallback(async () => {
+    const numbersPayload = await getPromocionalNumbers(id);
+    const loadedNumbers = asList(numbersPayload);
+    setNumbers(loadedNumbers.length ? loadedNumbers : buildNumbersFromRange(draw));
+  }, [draw, id]);
+
+  const loadAllowance = React.useCallback(async () => {
+    if (!user || !id) {
+      setAllowance(null);
+      setAllowanceLoaded(true);
+      return;
+    }
+
+    try {
+      const payload = await getMyPromocionalAllowance(id);
+      setAllowance(normalizeAllowance(payload));
+    } catch (err) {
+      if (
+        err?.status === 404 ||
+        err?.code === "promotional_allowance_not_found" ||
+        err?.code === "promotional_no_allowance"
+      ) {
+        setAllowance(null);
+      } else if (err?.status !== 401) {
+        setError(mapPromocionalError(err, "Não foi possível carregar sua cota promocional."));
+      }
+    } finally {
+      setAllowanceLoaded(true);
+    }
+  }, [id, user]);
+
+  const loadPage = React.useCallback(async () => {
     try {
       setLoading(true);
       setError("");
 
-      const [drawPayload, numbersPayload] = await Promise.all([
-        getPromocionalDraw(id),
-        getPromocionalNumbers(id),
-      ]);
-
+      const drawPayload = await getPromocionalDraw(id);
       const drawData = drawPayload?.draw || drawPayload?.data || drawPayload;
-      const loadedNumbers = asList(numbersPayload);
-
       setDraw(drawData);
+
+      const numbersPayload = await getPromocionalNumbers(id);
+      const loadedNumbers = asList(numbersPayload);
       setNumbers(loadedNumbers.length ? loadedNumbers : buildNumbersFromRange(drawData));
+
+      if (user) {
+        setAllowanceLoaded(false);
+        try {
+          const allowancePayload = await getMyPromocionalAllowance(id);
+          setAllowance(normalizeAllowance(allowancePayload));
+        } catch (err) {
+          if (
+            err?.status === 404 ||
+            err?.code === "promotional_allowance_not_found" ||
+            err?.code === "promotional_no_allowance"
+          ) {
+            setAllowance(null);
+          } else if (err?.status !== 401) {
+            setError(mapPromocionalError(err, "Não foi possível carregar sua cota promocional."));
+          }
+        } finally {
+          setAllowanceLoaded(true);
+        }
+      } else {
+        setAllowance(null);
+        setAllowanceLoaded(true);
+      }
     } catch (err) {
-      setError(err?.message || "Não foi possível carregar este sorteio promocional.");
+      setError(mapPromocionalError(err, "Não foi possível carregar este sorteio promocional."));
     } finally {
       setLoading(false);
-    }
-  }, [id]);
-
-  const loadAssignment = React.useCallback(async () => {
-    if (!user || !id) {
-      setAssignment(null);
-      setAssignmentLoaded(true);
-      return;
-    }
-
-    try {
-      setError("");
-      const payload = await getMyPromocionalAssignment(id);
-      setAssignment(normalizeAssignment(payload));
-    } catch (err) {
-      if (err?.status === 404 || err?.code === "promotional_assignment_not_found") {
-        setAssignment(null);
-      } else if (err?.status !== 401) {
-        setError(err?.message || "Não foi possível carregar seu número promocional.");
-      }
-    } finally {
-      setAssignmentLoaded(true);
     }
   }, [id, user]);
 
   React.useEffect(() => {
-    loadDraw();
-  }, [loadDraw]);
+    if (authLoading) return;
+    loadPage();
+  }, [authLoading, loadPage]);
 
   React.useEffect(() => {
-    if (authLoading) return;
-    setAssignmentLoaded(false);
-    loadAssignment();
-  }, [authLoading, loadAssignment]);
+    if (authLoading || !user) return;
+    loadAllowance();
+  }, [authLoading, loadAllowance, user]);
 
-  async function handleRefreshAssignment() {
-    if (authLoading) return;
+  function handleToggleNumber(rawNumber) {
+    if (!canChoose) return;
 
+    const key = String(Number.parseInt(rawNumber, 10));
+    if (!Number.isFinite(Number(key))) return;
+
+    setSelectedNumbers((current) => {
+      const exists = current.some((n) => String(n) === key);
+      if (exists) {
+        setError("");
+        return current.filter((n) => String(n) !== key);
+      }
+
+      const slotsLeft = Math.max(0, remainingQuantity - current.length);
+      if (slotsLeft <= 0) {
+        setError(
+          `Você só pode escolher mais ${Math.max(0, remainingQuantity - current.length)} número(s).`
+        );
+        return current;
+      }
+
+      setError("");
+      return [...current, Number(key)];
+    });
+  }
+
+  async function handleConfirmSelection() {
     if (!user) {
-      setMessage("");
-      setError("Entre ou crie uma conta para visualizar seu número promocional.");
       saveReturnRouteAndGoLogin();
       return;
     }
 
+    if (!selectedNumbers.length) return;
+
     try {
-      setRedeeming(true);
+      setClaiming(true);
       setError("");
       setMessage("");
 
-      const payload = await redeemPromocionalAssignment(id);
-      const next = normalizeAssignment(payload);
+      await claimPromocionalNumbers(id, selectedNumbers);
 
-      if (next) {
-        setAssignment(next);
-        setMessage("Seu número promocional foi atualizado.");
-      } else {
-        await loadAssignment();
-        setMessage("Consulta realizada. Nenhum número atribuído ainda.");
-      }
+      setSelectedNumbers([]);
+      setMessage("Números promocionais escolhidos com sucesso.");
 
-      await loadDraw();
+      await Promise.all([loadNumbers(), loadAllowance()]);
     } catch (err) {
       if (err?.status === 401) {
         saveReturnRouteAndGoLogin();
         return;
       }
-
-      const apiMessage =
-        err?.response?.data?.message ||
-        err?.data?.message ||
-        err?.message ||
-        "Não foi possível atualizar seu número promocional.";
-
-      setError(apiMessage);
+      setError(mapPromocionalError(err, "Não foi possível confirmar os números selecionados."));
     } finally {
-      setRedeeming(false);
+      setClaiming(false);
     }
   }
 
-  const assignedDateLabel = formatAssignmentDate(assignment?.assigned_at);
+  const myNumbersLabel =
+    myNumbers.length > 0
+      ? myNumbers.map((n) => formatPromocionalNumber(n)).join(", ")
+      : "Nenhum ainda";
 
   return (
     <>
@@ -213,14 +290,11 @@ export default function PromocionalDrawPage() {
           <>
             <section className="promocional-hero promocional-hero--compact">
               <p className="promocional-eyebrow">xNaMai Promocional</p>
-              <h1>Sorteio promocional</h1>
+              <h1>{draw.title || draw.name || "Sorteio promocional"}</h1>
               <p>
-                Este sorteio é uma campanha de resgate. Os números são atribuídos pelo
-                administrador após a participação fora do site.
+                Esta é uma campanha promocional. Os números só podem ser escolhidos por
+                usuários que receberam liberação do administrador.
               </p>
-              {draw.title && draw.title !== "Sorteio promocional" && (
-                <strong className="promocional-prize">{draw.title}</strong>
-              )}
               {draw.description && <p>{draw.description}</p>}
               {(draw.prize || draw.award) && (
                 <strong className="promocional-prize">
@@ -229,61 +303,58 @@ export default function PromocionalDrawPage() {
               )}
             </section>
 
-            <section className="promocional-panel promocional-assignment-panel">
+            <section className="promocional-panel promocional-allowance-card">
               {!authLoading && !user && (
                 <div className="promocional-assignment-panel__content">
                   <p className="promocional-info">
-                    Entre ou crie uma conta para visualizar seu número promocional.
+                    Entre ou crie uma conta para verificar se você possui números liberados.
                   </p>
                   <button
                     type="button"
                     className="promocional-primary-button"
                     onClick={saveReturnRouteAndGoLogin}
                   >
-                    Entrar para ver meu número
+                    Entrar para escolher meus números
                   </button>
                 </div>
               )}
 
-              {!authLoading && user && assignmentLoaded && !myNumber && (
+              {!authLoading && user && allowanceLoaded && !hasAllowance && (
                 <div className="promocional-assignment-panel__content">
                   <p className="promocional-info">
-                    Você ainda não possui número atribuído neste sorteio promocional. Caso já
-                    tenha participado da promoção, aguarde a atribuição pelo administrador.
+                    Você ainda não possui números liberados para este sorteio promocional. Caso
+                    tenha participado da promoção, aguarde a liberação pelo administrador.
                   </p>
-                  <button
-                    type="button"
-                    className="promocional-secondary-button"
-                    onClick={handleRefreshAssignment}
-                    disabled={redeeming}
-                  >
-                    {redeeming ? "Atualizando..." : "Atualizar meu número"}
-                  </button>
                 </div>
               )}
 
-              {!authLoading && user && myNumber != null && (
-                <div className="promocional-my-number-card">
-                  <p className="promocional-my-number-card__eyebrow">Seu número promocional</p>
-                  <div className="promocional-my-number-card__value">
-                    {formatPromocionalNumber(myNumber)}
+              {!authLoading && user && hasAllowance && (
+                <div className="promocional-allowance-card__body">
+                  <div className="promocional-quota-pills">
+                    <span className="promocional-quota-pill">
+                      Números liberados: <strong>{allowance.allowed_quantity}</strong>
+                    </span>
+                    <span className="promocional-quota-pill">
+                      Números já escolhidos: <strong>{allowance.claimed_quantity}</strong>
+                    </span>
+                    <span className="promocional-quota-pill promocional-quota-pill--highlight">
+                      Restantes para escolher: <strong>{allowance.remaining_quantity}</strong>
+                    </span>
                   </div>
-                  <span className="promocional-badge promocional-badge--admin">
-                    {assignment?.status_label || "Atribuído pelo admin"}
-                  </span>
-                  {assignedDateLabel && (
-                    <p className="promocional-my-number-card__date">
-                      Atribuído em {assignedDateLabel}
+
+                  <p className="promocional-info">
+                    Meus números: <strong>{myNumbersLabel}</strong>
+                  </p>
+
+                  {remainingQuantity > 0 ? (
+                    <p className="promocional-success">
+                      Você pode escolher mais {effectiveRemaining} número(s).
+                    </p>
+                  ) : (
+                    <p className="promocional-info">
+                      Você já escolheu todos os números liberados para esta campanha.
                     </p>
                   )}
-                  <button
-                    type="button"
-                    className="promocional-primary-button promocional-primary-button--wide"
-                    onClick={handleRefreshAssignment}
-                    disabled={redeeming}
-                  >
-                    {redeeming ? "Atualizando..." : "Atualizar meu número"}
-                  </button>
                 </div>
               )}
             </section>
@@ -291,15 +362,15 @@ export default function PromocionalDrawPage() {
             <section className="promocional-panel">
               <div className="promocional-panel-heading">
                 <div>
-                  <h2>Visualize sua participação</h2>
+                  <h2>Escolha seus números promocionais</h2>
                   <p>
-                    Os números promocionais são definidos pelo administrador. Você só pode
-                    visualizar o número atribuído à sua conta.
+                    Selecione na grade abaixo e confirme. Não há compra, reserva com PIX ou
+                    checkout nesta campanha.
                   </p>
                 </div>
-                {myNumber != null && (
-                  <span className="promocional-selected-count promocional-selected-count--mine">
-                    Meu número: {formatPromocionalNumber(myNumber)}
+                {selectedNumbers.length > 0 && (
+                  <span className="promocional-selected-count">
+                    {selectedNumbers.length} selecionado(s)
                   </span>
                 )}
               </div>
@@ -309,13 +380,19 @@ export default function PromocionalDrawPage() {
 
               <PromocionalNumbersGrid
                 numbers={numbers}
-                selectedNumbers={highlightedNumbers}
-                readOnly
+                selectedNumbers={selectedNumbers}
+                myNumbers={myNumbers}
+                onToggleNumber={handleToggleNumber}
+                canChoose={canChoose}
+                remainingQuantity={effectiveRemaining}
               />
 
               <p className="promocional-grid-legend">
                 <span className="promocional-grid-legend__item promocional-grid-legend__item--mine">
                   Meu número
+                </span>
+                <span className="promocional-grid-legend__item promocional-grid-legend__item--selected">
+                  Selecionado agora
                 </span>
                 <span className="promocional-grid-legend__item promocional-grid-legend__item--reserved">
                   Ocupado
@@ -324,6 +401,15 @@ export default function PromocionalDrawPage() {
                   Disponível
                 </span>
               </p>
+
+              <button
+                type="button"
+                className="promocional-primary-button promocional-primary-button--wide"
+                onClick={handleConfirmSelection}
+                disabled={claiming || !selectedNumbers.length || !user}
+              >
+                {claiming ? "Confirmando..." : "Confirmar números selecionados"}
+              </button>
             </section>
           </>
         )}

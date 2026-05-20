@@ -1,7 +1,7 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import PublicTopbar from "../../../components/PublicTopbar";
-import PromocionalDrawCard from "../components/PromocionalDrawCard";
+import PromocionalStatusBadge from "../components/PromocionalStatusBadge";
 import { getPromocionalDraws } from "../services/promocionalApi";
 
 function asList(payload) {
@@ -53,7 +53,10 @@ export default function PromocionalHome() {
         <section className="promocional-hero">
           <p className="promocional-eyebrow">xNaMai Promocional</p>
           <h1>Sorteios promocionais</h1>
-          <p>Campanhas promocionais separadas do sorteio principal do xNaMai.</p>
+          <p>
+            Campanhas promocionais em que o administrador libera uma quantidade de números
+            para cada participante escolher.
+          </p>
         </section>
 
         {loading && <p className="promocional-info">Carregando sorteios promocionais...</p>}
@@ -66,12 +69,31 @@ export default function PromocionalHome() {
         <section className="promocional-list">
           {draws.map((draw) => {
             const id = getDrawId(draw);
+            const title = draw?.title || draw?.name || "Sorteio promocional";
+            const description = draw?.description || "";
+            const prize = draw?.prize || draw?.award || "";
+
             return (
-              <PromocionalDrawCard
-                key={String(id)}
-                draw={draw}
-                onParticipate={() => navigate(`/promocional/${id}`)}
-              />
+              <article key={String(id)} className="promocional-card">
+                <div className="promocional-card-top">
+                  <div>
+                    <p className="promocional-eyebrow">Campanha promocional</p>
+                    <h3 className="promocional-card-title">{title}</h3>
+                  </div>
+                  <PromocionalStatusBadge status={draw?.status || "active"} />
+                </div>
+
+                {description && <p className="promocional-card-description">{description}</p>}
+                {prize && <p className="promocional-card-prize">Prêmio: {prize}</p>}
+
+                <button
+                  type="button"
+                  className="promocional-primary-button"
+                  onClick={() => navigate(`/promocional/${id}`)}
+                >
+                  Ver campanha
+                </button>
+              </article>
             );
           })}
         </section>

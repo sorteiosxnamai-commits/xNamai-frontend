@@ -714,3 +714,96 @@
   background: #fff1f2 !important;
   color: #be123c !important;
 }
+
+.xnamai-hidden-legacy {
+  display: none !important;
+}
+
+.promocional-allowance-card {
+  border: 1px solid rgba(37, 99, 235, 0.18);
+  background: linear-gradient(180deg, #ffffff 0%, #f3f8ff 100%);
+}
+
+.promocional-allowance-card__body {
+  display: grid;
+  gap: 14px;
+}
+
+.promocional-quota-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.promocional-quota-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 999px;
+  padding: 8px 14px;
+  background: #eef4ff;
+  color: #2563eb;
+  font-size: 13px;
+  font-weight: 800;
+  border: 1px solid rgba(37, 99, 235, 0.16);
+}
+
+.promocional-quota-pill--highlight {
+  background: rgba(37, 99, 235, 0.12);
+  color: #1d4ed8;
+  border-color: rgba(37, 99, 235, 0.28);
+}
+
+.promocional-number--selected,
+.promocional-number.promocional-number--selected {
+  border-color: #2563eb !important;
+  background: rgba(37, 99, 235, 0.14) !important;
+  color: #1d4ed8 !important;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.22);
+}
+
+.promocional-number--mine,
+.promocional-number.promocional-number--mine {
+  border-color: #2563eb !important;
+  background: #2563eb !important;
+  color: #ffffff !important;
+  box-shadow: 0 10px 22px rgba(37, 99, 235, 0.28);
+}
+
+.promocional-number--occupied,
+.promocional-number.promocional-number--occupied {
+  background: #fff7ed !important;
+  color: #c2410c !important;
+  border-color: #fdba74 !important;
+  cursor: not-allowed !important;
+}
+
+.promocional-number--disabled,
+.promocional-number.promocional-number--disabled {
+  background: #f1f5f9 !important;
+  color: #94a3b8 !important;
+  border-color: rgba(15, 23, 42, 0.1) !important;
+  cursor: not-allowed !important;
+  opacity: 0.85;
+}
+
+.promocional-allowances-table {
+  margin: 20px 0;
+  padding: 20px;
+  border-radius: 20px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  background: #ffffff;
+}
+
+.promocional-allowances-table h3,
+.promocional-numbers-admin__table-wrap h3 {
+  margin: 0 0 14px;
+  color: #071833;
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.promocional-grid-legend__item--selected::before {
+  background: rgba(37, 99, 235, 0.18);
+  border-color: #2563eb;
+}

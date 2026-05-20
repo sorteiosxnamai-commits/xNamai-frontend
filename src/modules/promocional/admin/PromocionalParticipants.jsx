@@ -57,7 +57,7 @@ export default function PromocionalParticipants() {
       <div className="promocional-admin-toolbar">
         <div>
           <h2>Participantes</h2>
-          <p>Participantes e numeros vinculados a este sorteio promocional.</p>
+          <p>Participantes, liberações e números escolhidos neste sorteio promocional.</p>
         </div>
       </div>
 
@@ -75,7 +75,10 @@ export default function PromocionalParticipants() {
                 <th>Nome</th>
                 <th>Email</th>
                 <th>Telefone</th>
-                <th>Numeros</th>
+                <th>Liberados</th>
+                <th>Escolhidos</th>
+                <th>Restantes</th>
+                <th>Números</th>
                 <th>Origem</th>
                 <th>Status</th>
                 <th>Data</th>
@@ -98,14 +101,37 @@ export default function PromocionalParticipants() {
                       "-"}
                   </td>
                   <td>
+                    {participant?.allowed_quantity ??
+                      participant?.allowedQuantity ??
+                      "-"}
+                  </td>
+                  <td>
+                    {participant?.claimed_quantity ??
+                      participant?.claimedQuantity ??
+                      "-"}
+                  </td>
+                  <td>
+                    {participant?.remaining_quantity ??
+                      participant?.remainingQuantity ??
+                      "-"}
+                  </td>
+                  <td>
                     {formatNumbers(
                       participant?.numbers ||
                         participant?.selected_numbers ||
+                        participant?.claimed_numbers ||
                         participant?.numeros
                     ) || "-"}
                   </td>
-                  <td>{participant?.source_label || "Atribuído pelo admin"}</td>
-                  <td>{participant?.status_label || "Atribuído pelo admin"}</td>
+                  <td>
+                    {participant?.source_label || "Liberação promocional"}
+                  </td>
+                  <td>
+                    {participant?.status_label ||
+                      (Number(participant?.remaining_quantity ?? participant?.remainingQuantity ?? 0) > 0
+                        ? "Ativo"
+                        : "Concluído")}
+                  </td>
                   <td>
                     {formatDate(
                       participant?.created_at ||

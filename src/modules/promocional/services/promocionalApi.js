@@ -107,6 +107,28 @@ export function getPromotionalNumbers(drawId) {
 
 export const getPromocionalNumbers = getPromotionalNumbers;
 
+export function getMyPromocionalAllowance(drawId) {
+  return getJSON(`/promotional/${encodePathValue(drawId)}/my-allowance`);
+}
+
+export function claimPromocionalNumbers(drawId, numbers) {
+  const selectedNumbers = Array.isArray(numbers) ? numbers : [];
+  return apiPost(`/promotional/${encodePathValue(drawId)}/claim-numbers`, {
+    numbers: selectedNumbers,
+  });
+}
+
+export function adminGetPromocionalAllowances(drawId) {
+  return getJSON(`/promotional/admin/draws/${encodePathValue(drawId)}/allowances`);
+}
+
+export function adminUpsertPromocionalAllowance(drawId, payload) {
+  return apiPost(
+    `/promotional/admin/draws/${encodePathValue(drawId)}/allowances`,
+    payload
+  );
+}
+
 export function getMyPromocionalAssignment(drawId) {
   return getJSON(`/promotional/${encodePathValue(drawId)}/my-assignment`);
 }
