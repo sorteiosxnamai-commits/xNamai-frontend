@@ -5,9 +5,10 @@ import * as React from "react";
 import { useNavigate } from "react-router-dom";
 import { SelectionContext } from "./selectionContext";
 import PixModal from "./PixModal";
-import { createPixPayment, checkPixStatus } from "./services/pix";
+import { checkPixStatus } from "./services/pix";
 import { useAuth } from "./authContext";
 import { API_CONFIG } from "./config/api";
+import { patchJSON, getJSON } from "./lib/api";
 
 import {
    List, ListItem, ListItemText,
@@ -91,6 +92,19 @@ function pickFirstText(...values) {
     if (cleaned) return cleaned;
   }
   return "";
+}
+
+function onlyDigits(value) {
+  return String(value || "").replace(/\D/g, "");
+}
+
+function getMissingPayerFields(user) {
+  const missing = [];
+
+  if (onlyDigits(user?.cpf).length !== 11) missing.push("cpf");
+  if (onlyDigits(user?.phone).length < 10) missing.push("phone");
+
+  return missing;
 }
 
 // Mocks
@@ -499,6 +513,44 @@ export default function NewStorePage({
   const [pixData, setPixData] = React.useState(null);
   const [pixAmount, setPixAmount] = React.useState(0);
 
+  // Dados do pagador (Mercado Pago)
+  const [profileUser, setProfileUser] = React.useState(null);
+  const [payerDataOpen, setPayerDataOpen] = React.useState(false);
+  const [pendingPixAction, setPendingPixAction] = React.useState(null);
+  const [payerForm, setPayerForm] = React.useState({
+    cpf: "",
+    phone: "",
+    zip_code: "",
+    street: "",
+    street_number: "",
+    neighborhood: "",
+    city: "",
+    state: "",
+  });
+  const [payerSaving, setPayerSaving] = React.useState(false);
+
+  const currentUser = profileUser || user;
+
+  const openPayerDataModal = React.useCallback(
+    (onContinue) => {
+      setPayerForm({
+        cpf: currentUser?.cpf || "",
+        phone: currentUser?.phone || "",
+        zip_code: currentUser?.zip_code || "",
+        street: currentUser?.street || "",
+        street_number: currentUser?.street_number || "",
+        neighborhood: currentUser?.neighborhood || "",
+        city: currentUser?.city || "",
+        state: currentUser?.state || "",
+      });
+      setPendingPixAction(() => onContinue);
+      setPayerDataOpen(true);
+    },
+    [currentUser]
+  );
+
+  const handleGeneratePixRef = React.useRef(null);
+
   // sucesso PIX
   const [pixApproved, setPixApproved] = React.useState(false);
   const handlePixApproved = React.useCallback(() => {
@@ -522,6 +574,175 @@ export default function NewStorePage({
   // Quantos ainda pode comprar segundo o servidor
   const remainingFromServer =
     (limitUsage.max ?? Infinity) - (limitUsage.current ?? 0);
+
+  const createMainPixPayment = React.useCallback(async (payload) => {
+    const token =
+      getAuthToken() ||
+      localStorage.getItem("token") ||
+      localStorage.getItem("authToken") ||
+      localStorage.getItem("xnamai_token") ||
+      "";
+
+    const response = await fetch(`${API_BASE}/api/payments/pix`, {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const json = await response.json().catch(() => ({}));
+
+    if (!response.ok || json?.ok === false) {
+      const err = new Error(
+        json?.message ||
+          "Não foi possível gerar o PIX. Verifique seus dados e tente novamente."
+      );
+
+      err.code = json?.code || json?.error || null;
+      err.status = response.status;
+      err.payload = json;
+
+      throw err;
+    }
+
+    return {
+      ...json,
+      paymentId: json.paymentId || json.id,
+      qr_code: json.qr_code || json.copy_paste_code,
+      copy_paste_code: json.copy_paste_code || json.qr_code,
+      qr_code_base64: json.qr_code_base64,
+    };
+  }, []);
+
+  const handleGeneratePix = React.useCallback(async () => {
+    const missingPayerFields = getMissingPayerFields(currentUser);
+
+    if (missingPayerFields.length) {
+      openPayerDataModal(() => handleGeneratePixRef.current?.());
+      return;
+    }
+
+    const addCount = selecionados.length || 1;
+    const amount = selecionados.length * unitPrice;
+
+    setPixAmount(amount);
+    setPixOpen(true);
+    setPixLoading(true);
+    setPixApproved(false);
+
+    try {
+      const { reservationId } = await reserveNumbers(selecionados, currentDrawId);
+
+      await reloadSrvNumbers();
+
+      const pixPayload = {
+        orderId: String(Date.now()),
+        amount,
+        numbers: selecionados,
+        reservationId,
+        reservation_id: reservationId,
+      };
+
+      const data = await createMainPixPayment(pixPayload);
+      setPixData(data);
+
+      setLimitUsage((old) => ({
+        current:
+          Number.isFinite(old.current) ? (old.current ?? 0) + addCount : old.current,
+        max: old.max,
+      }));
+    } catch (err) {
+      await reloadSrvNumbers();
+      console.error("[MAIN_PIX_ERROR]", err);
+
+      if (err?.code === "missing_required_payer_data") {
+        setPixOpen(false);
+        setPixLoading(false);
+        openPayerDataModal(() => handleGeneratePixRef.current?.());
+        return;
+      }
+
+      if (err?.code === "mercado_pago_payment_rejected") {
+        setPixOpen(false);
+        alert(
+          "Pagamento recusado pelo provedor. Confira seus dados cadastrais e tente novamente."
+        );
+        return;
+      }
+
+      alert(
+        err?.message ||
+          "Não foi possível gerar o PIX. Tente novamente em instantes."
+      );
+      setPixOpen(false);
+    } finally {
+      setPixLoading(false);
+    }
+  }, [
+    currentUser,
+    selecionados,
+    unitPrice,
+    currentDrawId,
+    openPayerDataModal,
+    reloadSrvNumbers,
+    createMainPixPayment,
+  ]);
+
+  React.useEffect(() => {
+    handleGeneratePixRef.current = handleGeneratePix;
+  }, [handleGeneratePix]);
+
+  const handleSavePayerData = React.useCallback(async () => {
+    const cpfDigits = onlyDigits(payerForm.cpf);
+    const phoneDigits = onlyDigits(payerForm.phone);
+
+    if (cpfDigits.length !== 11) {
+      alert("Informe um CPF válido.");
+      return;
+    }
+
+    if (phoneDigits.length < 10) {
+      alert("Informe um telefone válido.");
+      return;
+    }
+
+    setPayerSaving(true);
+    try {
+      const data = await patchJSON("/me/profile", payerForm);
+
+      if (data?.ok === false) {
+        alert(data?.message || "Não foi possível salvar seus dados.");
+        return;
+      }
+
+      const updated =
+        data?.user || data?.profile || { ...currentUser, ...payerForm };
+      setProfileUser(updated);
+
+      try {
+        const me = await getJSON("/me");
+        if (me?.user || me?.id || me?.email) {
+          setProfileUser(me?.user || me);
+        }
+      } catch {
+        // mantém updated do PATCH
+      }
+
+      setPayerDataOpen(false);
+
+      if (typeof pendingPixAction === "function") {
+        await pendingPixAction();
+      }
+      setPendingPixAction(null);
+    } catch (e) {
+      alert(e?.message || "Não foi possível salvar seus dados.");
+    } finally {
+      setPayerSaving(false);
+    }
+  }, [payerForm, currentUser, pendingPixAction]);
 
   const handleIrPagamento = async () => {
     setOpen(false);
@@ -555,40 +776,7 @@ export default function NewStorePage({
       console.warn("[limit-check] falhou, seguindo fluxo]:", e);
     }
 
-    const amount = selecionados.length * unitPrice;
-    setPixAmount(amount);
-    setPixOpen(true);
-    setPixLoading(true);
-    setPixApproved(false);
-
-    try {
-      const { reservationId } = await reserveNumbers(selecionados, currentDrawId);
-
-      // Atualiza a grade imediatamente após reservar.
-      // Assim os números ficam amarelos sem depender do polling ou do refresh.
-      await reloadSrvNumbers();
-
-      const data = await createPixPayment({
-        orderId: String(Date.now()),
-        amount,
-        numbers: selecionados,
-        reservationId,
-      });
-      setPixData(data);
-
-      setLimitUsage((old) => ({
-        current:
-          Number.isFinite(old.current) ? (old.current ?? 0) + addCount : old.current,
-        max: old.max,
-      }));
-    } catch (e) {
-      await reloadSrvNumbers();
-
-      alert(e.message || "Falha ao gerar PIX");
-      setPixOpen(false);
-    } finally {
-      setPixLoading(false);
-    }
+    await handleGeneratePix();
   };
 
   // Polling de status PIX
@@ -1771,6 +1959,136 @@ export default function NewStorePage({
           </Button>
         </DialogActions>
       </Dialog>
+
+      {payerDataOpen && (
+        <div className="xnamai-modal-backdrop" role="presentation">
+          <div className="xnamai-payer-modal" role="dialog" aria-modal="true" aria-labelledby="payer-modal-title">
+            <h2 id="payer-modal-title">Complete seus dados para gerar o PIX</h2>
+
+            <p>
+              Para aumentar a segurança da compra e evitar recusas no pagamento,
+              precisamos confirmar seus dados antes de gerar o PIX.
+            </p>
+
+            <div className="xnamai-payer-grid">
+              <label>
+                CPF
+                <input
+                  value={payerForm.cpf}
+                  onChange={(e) =>
+                    setPayerForm((prev) => ({ ...prev, cpf: e.target.value }))
+                  }
+                  placeholder="000.000.000-00"
+                />
+              </label>
+
+              <label>
+                Telefone
+                <input
+                  value={payerForm.phone}
+                  onChange={(e) =>
+                    setPayerForm((prev) => ({ ...prev, phone: e.target.value }))
+                  }
+                  placeholder="(00) 00000-0000"
+                />
+              </label>
+
+              <label>
+                CEP
+                <input
+                  value={payerForm.zip_code}
+                  onChange={(e) =>
+                    setPayerForm((prev) => ({ ...prev, zip_code: e.target.value }))
+                  }
+                  placeholder="00000-000"
+                />
+              </label>
+
+              <label>
+                Rua
+                <input
+                  value={payerForm.street}
+                  onChange={(e) =>
+                    setPayerForm((prev) => ({ ...prev, street: e.target.value }))
+                  }
+                />
+              </label>
+
+              <label>
+                Número
+                <input
+                  value={payerForm.street_number}
+                  onChange={(e) =>
+                    setPayerForm((prev) => ({
+                      ...prev,
+                      street_number: e.target.value,
+                    }))
+                  }
+                />
+              </label>
+
+              <label>
+                Bairro
+                <input
+                  value={payerForm.neighborhood}
+                  onChange={(e) =>
+                    setPayerForm((prev) => ({
+                      ...prev,
+                      neighborhood: e.target.value,
+                    }))
+                  }
+                />
+              </label>
+
+              <label>
+                Cidade
+                <input
+                  value={payerForm.city}
+                  onChange={(e) =>
+                    setPayerForm((prev) => ({ ...prev, city: e.target.value }))
+                  }
+                />
+              </label>
+
+              <label>
+                Estado
+                <input
+                  value={payerForm.state}
+                  maxLength={2}
+                  onChange={(e) =>
+                    setPayerForm((prev) => ({
+                      ...prev,
+                      state: e.target.value.toUpperCase(),
+                    }))
+                  }
+                  placeholder="SP"
+                />
+              </label>
+            </div>
+
+            <div className="xnamai-payer-actions">
+              <button
+                type="button"
+                onClick={() => {
+                  setPayerDataOpen(false);
+                  setPendingPixAction(null);
+                }}
+                disabled={payerSaving}
+              >
+                Cancelar
+              </button>
+
+              <button
+                type="button"
+                onClick={handleSavePayerData}
+                disabled={payerSaving}
+              >
+                {payerSaving ? "Salvando…" : "Salvar e continuar"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal: limite atingido */}
       <Dialog open={limitOpen} onClose={() => setLimitOpen(false)} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: 3 } }}>

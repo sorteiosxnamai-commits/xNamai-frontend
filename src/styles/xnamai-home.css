@@ -224,3 +224,89 @@
   }
 }
 
+.xnamai-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(3, 10, 25, 0.58);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+}
+
+.xnamai-payer-modal {
+  width: min(720px, 100%);
+  max-height: 92vh;
+  overflow: auto;
+  background: #ffffff;
+  border-radius: 24px;
+  padding: 24px;
+  box-shadow: 0 24px 80px rgba(3, 10, 25, 0.28);
+}
+
+.xnamai-payer-modal h2 {
+  margin: 0 0 8px;
+  color: #0b1b33;
+  font-size: 24px;
+  font-weight: 900;
+}
+
+.xnamai-payer-modal p {
+  margin: 0 0 20px;
+  color: #5d6b82;
+  line-height: 1.5;
+}
+
+.xnamai-payer-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.xnamai-payer-grid label {
+  display: grid;
+  gap: 6px;
+  color: #23324a;
+  font-weight: 800;
+  font-size: 13px;
+}
+
+.xnamai-payer-grid input {
+  border: 1px solid rgba(20, 58, 120, 0.18);
+  border-radius: 14px;
+  padding: 12px 14px;
+  outline: none;
+}
+
+.xnamai-payer-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 22px;
+}
+
+.xnamai-payer-actions button {
+  border: 0;
+  border-radius: 999px;
+  padding: 12px 18px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.xnamai-payer-actions button:first-child {
+  background: #eef3fb;
+  color: #0b1b33;
+}
+
+.xnamai-payer-actions button:last-child {
+  background: linear-gradient(135deg, #1e63ff, #0b58ff);
+  color: #ffffff;
+}
+
+@media (max-width: 720px) {
+  .xnamai-payer-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
