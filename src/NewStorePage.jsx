@@ -467,11 +467,15 @@ export default function NewStorePage({
       reloadSrvNumbers();
     };
     window.addEventListener("ns:numbers:reload", onReload);
+    window.addEventListener("xnamai:numbers-refresh", onReload);
+    window.addEventListener("xnamai:pix-approved", onReload);
 
     return () => {
       alive = false;
       clearInterval(id);
       window.removeEventListener("ns:numbers:reload", onReload);
+      window.removeEventListener("xnamai:numbers-refresh", onReload);
+      window.removeEventListener("xnamai:pix-approved", onReload);
     };
   }, [reloadSrvNumbers]);
 
@@ -505,11 +509,23 @@ export default function NewStorePage({
 
   // sucesso PIX
   const [pixApproved, setPixApproved] = React.useState(false);
-  const handlePixApproved = React.useCallback(() => {
-    setPixApproved(true);
-    setPixOpen(false);
-    setPixLoading(false);
-  }, []);
+  const handlePixApproved = React.useCallback(async () => {
+    try {
+      setPixApproved(true);
+      setPixOpen(false);
+      setPixLoading(false);
+      setSelecionados([]);
+
+      if (typeof reloadSrvNumbers === "function") {
+        await reloadSrvNumbers();
+      }
+
+      window.dispatchEvent(new Event("xnamai:pix-approved"));
+      window.dispatchEvent(new Event("xnamai:numbers-refresh"));
+    } catch (err) {
+      console.warn("[NEWSTORE_PIX_APPROVED_REFRESH_WARN]", err);
+    }
+  }, [reloadSrvNumbers, setSelecionados]);
 
   // === Modal de limite ===
   const [limitOpen, setLimitOpen] = React.useState(false);
@@ -1848,7 +1864,7 @@ export default function NewStorePage({
         </DialogTitle>
         <DialogContent sx={{ textAlign: "center" }}>
           <Typography variant="h6" sx={{ fontWeight: 800, mb: 1 }}>
-            Seus números foram reservados.
+            Seus números foram confirmados e agora estão indisponíveis.
           </Typography>
           <Typography sx={{ opacity: 0.9 }}>
             Boa sorte! Você pode acompanhar tudo na <strong>Área do cliente</strong>.

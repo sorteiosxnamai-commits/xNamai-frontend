@@ -15,7 +15,7 @@ import {
 import ArrowBackIosNewRoundedIcon from "@mui/icons-material/ArrowBackIosNewRounded";
 import AccountCircleRoundedIcon from "@mui/icons-material/AccountCircleRounded";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
-import { apiJoin, authHeaders, getJSON } from "./lib/api";
+import { apiJoin, authHeaders, getJSON, postJSON } from "./lib/api";
 
 // ▼ PIX
 import PixModal from "./PixModal";
@@ -42,6 +42,12 @@ const theme = createTheme({
 });
 
 const pad2 = (n) => String(n).padStart(2, "0");
+
+function isPaidStatus(status) {
+  const s = String(status || "").trim().toLowerCase();
+  return s === "approved" || s === "paid" || s === "pago";
+}
+
 const XNAMAI_SITE_URL = "https://www.xnamai.com/";
 const ADMIN_EMAIL = "admin@newstore.com.br";
 const TTL_MINUTES = Number(process.env.REACT_APP_RESERVATION_TTL_MINUTES || 15);
@@ -919,19 +925,6 @@ export default function AccountPage() {
     }
   }
 
-  async function refreshPix() {
-    try {
-      const txid = pixData?.txid || pixData?.id || pixData?.e2eid || pixData?.paymentId;
-      if (!txid) return;
-      const r = await checkPixStatus(txid);
-      setPixData(prev => ({ ...(prev || {}), ...(r || {}) }));
-      if (r?.status) setPixMsg(`Status: ${r.status}`);
-      if (typeof r?.amount_cents === "number") setPixAmount(r.amount_cents / 100);
-    } catch (e) {
-      console.error("[AccountPage] checkPixStatus error:", e);
-    }
-  }
-
   function copyPix() {
     const key = pixData?.copy || pixData?.copy_paste || pixData?.copy_paste_code || pixData?.emv || pixData?.qr_code || "";
     if (key) navigator.clipboard.writeText(key).catch(() => {});
@@ -1067,6 +1060,117 @@ export default function AccountPage() {
       console.warn("[reloadBalances] erro silencioso:", e?.message || e);
     }
   }, [ctxUser?.id]);
+
+  const safeLoadAccount = React.useCallback(async () => {
+    try {
+      await reloadBalances();
+    } catch (loadError) {
+      console.warn("[AccountPage] safeLoadAccount reloadBalances warn:", loadError?.message || loadError);
+    }
+
+    try {
+      const historyPayload = await getJSON("/me/purchase-history");
+      const normalizedHistory = normalizePurchaseHistoryPayload(historyPayload);
+      setPurchaseHistory(normalizedHistory.items);
+      setLastPurchase(normalizedHistory.lastPurchase);
+    } catch (loadError) {
+      console.warn("[AccountPage] safeLoadAccount history warn:", loadError?.message || loadError);
+    }
+
+    try {
+      const { data: pay } = await tryManyJson([
+        "/me/reservations",
+        "/me/reservations?active=1",
+      ]);
+
+      if (pay) {
+        let drawsMap = new Map();
+        try {
+          const draws = await getJSON("/draws");
+          const arr = Array.isArray(draws) ? draws : (draws.draws || draws.items || []);
+          drawsMap = new Map(arr.map((d) => [Number(d.id ?? d.draw_id), (d.status ?? d.result ?? "")]));
+        } catch {}
+
+        const unifiedRows = normalizeUnifiedReservationRows(pay, drawsMap);
+        const mainRows = unifiedRows.filter((row) => row.type !== "promotional");
+        let promotionalRows = unifiedRows.filter((row) => row.type === "promotional");
+
+        try {
+          const promotionalReservations = await getMyPromocionalReservations();
+          const fetchedPromotionalRows = normalizePromocionalParticipationRows(promotionalReservations);
+          const promotionalByKey = new Map();
+
+          [...promotionalRows, ...fetchedPromotionalRows].forEach((row, index) => {
+            const key =
+              row?.reservationId ||
+              row?.reservation_id ||
+              `${row?.drawId || row?.draw_id || "promotional"}-${row?.numbers || row?.numbers_label || index}`;
+            promotionalByKey.set(String(key), row);
+          });
+
+          promotionalRows = Array.from(promotionalByKey.values());
+        } catch {}
+
+        setRows(
+          [...mainRows, ...promotionalRows].sort(
+            (a, b) => (b.whenMs || 0) - (a.whenMs || 0)
+          )
+        );
+      }
+    } catch (loadError) {
+      console.warn("[AccountPage] safeLoadAccount reservations warn:", loadError?.message || loadError);
+    }
+  }, [reloadBalances]);
+
+  async function refreshPix() {
+    const paymentId =
+      pixData?.id || pixData?.paymentId || pixData?.payment_id || pixData?.txid;
+    if (!paymentId) return;
+
+    try {
+      const next = await checkPixStatus(paymentId);
+
+      setPixData((prev) => ({
+        ...(prev || {}),
+        ...(next || {}),
+      }));
+
+      const status = next?.status || next?.payment_status;
+
+      if (next?.status) {
+        setPixMsg(`Status: ${next.status}`);
+      }
+
+      if (typeof next?.amount_cents === "number") {
+        setPixAmount(next.amount_cents / 100);
+      }
+
+      if (isPaidStatus(status)) {
+        setPixMsg("Pagamento aprovado! Atualizando seus dados...");
+
+        try {
+          await postJSON("/coupons/sync", {});
+        } catch (syncErr) {
+          console.warn("[ACCOUNT_COUPON_SYNC_WARN]", syncErr);
+        }
+
+        if (typeof safeLoadAccount === "function") {
+          await safeLoadAccount();
+        }
+
+        setTimeout(() => {
+          setPixOpen(false);
+          setPixData(null);
+          setPixAmount(null);
+        }, 700);
+      }
+
+      return next;
+    } catch (err) {
+      console.error("[ACCOUNT_PIX_REFRESH_ERROR]", err);
+      alert(err?.message || "Não foi possível verificar o pagamento.");
+    }
+  }
 
   // efeito principal
   React.useEffect(() => {
