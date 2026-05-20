@@ -94,6 +94,53 @@ function pickFirstText(...values) {
   return "";
 }
 
+const SOLD_NUMBER_STATUSES = new Set([
+  "taken",
+  "sold",
+  "paid",
+  "approved",
+  "unavailable",
+  "blocked",
+  "vendido",
+  "pago",
+  "aprovado",
+  "indisponivel",
+  "indisponível",
+]);
+
+const SOLD_PAYMENT_STATUSES = new Set(["paid", "approved", "pago"]);
+
+const RESERVED_NUMBER_STATUSES = new Set([
+  "reserved",
+  "pending",
+  "reservado",
+  "pendente",
+]);
+
+function normalizeStatusToken(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
+function isSoldNumberStatus(status, paymentStatus) {
+  const st = normalizeStatusToken(status);
+  const pay = normalizeStatusToken(paymentStatus);
+
+  if (SOLD_NUMBER_STATUSES.has(st) || SOLD_PAYMENT_STATUSES.has(pay)) {
+    return true;
+  }
+
+  return st.includes("indispon") || st === "unavailable";
+}
+
+function isReservedNumberStatus(status, paymentStatus) {
+  if (isSoldNumberStatus(status, paymentStatus)) return false;
+  return RESERVED_NUMBER_STATUSES.has(normalizeStatusToken(status));
+}
+
 // Mocks
 const MOCK_INDISPONIVEIS = [];
 
@@ -220,6 +267,8 @@ export default function NewStorePage({
   const [srvIndisponiveis, setSrvIndisponiveis] = React.useState([]);
   // Números com reserva ativa no backend (status reserved/pending)
   const [srvReservados, setSrvReservados] = React.useState([]);
+  // Números confirmados localmente após PIX aprovado (até o /api/numbers refletir sold).
+  const [locallySoldNumbers, setLocallySoldNumbers] = React.useState([]);
 
   // Iniciais dos vendidos (n -> "AB")
   const [soldInitials, setSoldInitials] = React.useState({});
@@ -407,29 +456,14 @@ export default function NewStorePage({
       const reservs = [];
       const initials = {};
 
-      const SOLD_STATUSES = new Set([
-        "taken",
-        "sold",
-        "paid",
-        "approved",
-        "unavailable",
-        "blocked",
-        "vendido",
-        "pago",
-        "indisponivel",
-        "indisponível",
-      ]);
-      const RESERVED_STATUSES = new Set([
-        "reserved",
-        "pending",
-        "reservado",
-        "pendente",
-      ]);
-
       for (const it of j?.numbers || []) {
-        const st = String(it.status || "").toLowerCase();
-        const num = Number(it.n);
-        if (SOLD_STATUSES.has(st)) {
+        const num = Number(it.n ?? it.number);
+        if (!Number.isInteger(num)) continue;
+
+        const st = it.status;
+        const paySt = it.payment_status ?? it.paymentStatus;
+
+        if (isSoldNumberStatus(st, paySt)) {
           indis.push(num);
           const rawInit =
             it.initials ||
@@ -438,14 +472,19 @@ export default function NewStorePage({
             it.owner ||
             it.oi;
           if (rawInit) initials[num] = String(rawInit).slice(0, 3).toUpperCase();
-        } else if (RESERVED_STATUSES.has(st)) {
+        } else if (isReservedNumberStatus(st, paySt)) {
           reservs.push(num);
         }
       }
 
-      setSrvIndisponiveis(Array.from(new Set(indis)));
-      setSrvReservados(Array.from(new Set(reservs)));
+      const indisSet = new Set(indis);
+
+      setSrvIndisponiveis(Array.from(indisSet));
+      setSrvReservados(
+        Array.from(new Set(reservs)).filter((n) => !indisSet.has(n))
+      );
       setSoldInitials(initials);
+      setLocallySoldNumbers((prev) => prev.filter((n) => !indisSet.has(n)));
     } catch {
       /* silencioso */
     }
@@ -482,8 +521,14 @@ export default function NewStorePage({
 
   const indisponiveisAll = React.useMemo(
     () =>
-      Array.from(new Set([...(indisponiveis || []), ...srvIndisponiveis])),
-    [indisponiveis, srvIndisponiveis]
+      Array.from(
+        new Set([
+          ...(indisponiveis || []),
+          ...srvIndisponiveis,
+          ...locallySoldNumbers,
+        ])
+      ),
+    [indisponiveis, srvIndisponiveis, locallySoldNumbers]
   );
 
   // Reservados efetivos = reservados do servidor que ainda NÃO foram marcados
@@ -512,13 +557,25 @@ export default function NewStorePage({
   const [pixApproved, setPixApproved] = React.useState(false);
   const handlePixApproved = React.useCallback(async () => {
     try {
+      const paidNow = [...selecionados];
+
       setPixApproved(true);
       setPixOpen(false);
       setPixLoading(false);
       setSelecionados([]);
 
+      if (paidNow.length) {
+        setLocallySoldNumbers((prev) =>
+          Array.from(new Set([...prev, ...paidNow]))
+        );
+      }
+
       if (typeof reloadSrvNumbers === "function") {
         await reloadSrvNumbers();
+        // Reconsulta após o backend assentar sold (webhook/status).
+        setTimeout(() => {
+          reloadSrvNumbers();
+        }, 1200);
       }
 
       window.dispatchEvent(new Event("xnamai:pix-approved"));
@@ -526,7 +583,7 @@ export default function NewStorePage({
     } catch (err) {
       console.warn("[NEWSTORE_PIX_APPROVED_REFRESH_WARN]", err);
     }
-  }, [reloadSrvNumbers, setSelecionados]);
+  }, [reloadSrvNumbers, setSelecionados, selecionados]);
 
   // === Modal de limite ===
   const [limitOpen, setLimitOpen] = React.useState(false);
@@ -708,14 +765,16 @@ export default function NewStorePage({
   };
 
   const getCellSx = (n) => {
+    // Indisponível/vendido sempre prevalece sobre reservado ou seleção local.
     if (isIndisponivel(n))
       return {
         border: "1px solid rgba(15, 23, 42, 0.14)",
-        bgcolor: "rgba(15, 23, 42, 0.30)",
-        color: "rgba(255,255,255,0.94)",
+        bgcolor: "rgba(255, 255, 255, 0.72)",
+        color: "rgba(11, 27, 51, 0.42)",
         cursor: "not-allowed",
-        boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.08)",
-        opacity: 0.9,
+        boxShadow: "inset 0 0 0 1px rgba(15, 23, 42, 0.08)",
+        opacity: 0.88,
+        pointerEvents: "none",
       };
 
     // Reservado tem precedência sobre seleção local:
