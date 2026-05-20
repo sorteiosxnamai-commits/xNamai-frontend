@@ -5,7 +5,8 @@ import * as React from "react";
 import { useNavigate } from "react-router-dom";
 import { SelectionContext } from "./selectionContext";
 import PixModal from "./PixModal";
-import { checkPixStatus } from "./services/pix";
+import { checkPixStatus, generateMainReservationPix } from "./services/pix";
+import { isPaidStatus } from "./lib/paymentStatus";
 import { useAuth } from "./authContext";
 import { API_CONFIG } from "./config/api";
 
@@ -543,48 +544,6 @@ export default function NewStorePage({
   const remainingFromServer =
     (limitUsage.max ?? Infinity) - (limitUsage.current ?? 0);
 
-  const createMainPixPayment = React.useCallback(async (payload) => {
-    const token =
-      getAuthToken() ||
-      localStorage.getItem("token") ||
-      localStorage.getItem("authToken") ||
-      localStorage.getItem("xnamai_token") ||
-      "";
-
-    const response = await fetch(`${API_BASE}/api/payments/pix`, {
-      method: "POST",
-      credentials: "include",
-      headers: {
-        "Content-Type": "application/json",
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
-      body: JSON.stringify(payload),
-    });
-
-    const json = await response.json().catch(() => ({}));
-
-    if (!response.ok || json?.ok === false) {
-      const err = new Error(
-        json?.message ||
-          "Não foi possível gerar o PIX. Verifique seus dados e tente novamente."
-      );
-
-      err.code = json?.code || json?.error || null;
-      err.status = response.status;
-      err.payload = json;
-
-      throw err;
-    }
-
-    return {
-      ...json,
-      paymentId: json.paymentId || json.id,
-      qr_code: json.qr_code || json.copy_paste_code,
-      copy_paste_code: json.copy_paste_code || json.qr_code,
-      qr_code_base64: json.qr_code_base64,
-    };
-  }, []);
-
   const handleGeneratePix = React.useCallback(async () => {
     const addCount = selecionados.length || 1;
     const amount = selecionados.length * unitPrice;
@@ -595,36 +554,32 @@ export default function NewStorePage({
     setPixApproved(false);
 
     try {
-      const { reservationId } = await reserveNumbers(selecionados, currentDrawId);
+      const reserveResult = await reserveNumbers(selecionados, currentDrawId);
+      const reservationId =
+        reserveResult?.reservationId ||
+        reserveResult?.reservation_id ||
+        reserveResult?.reservation_group_id ||
+        reserveResult?.id;
+
+      if (!reservationId) {
+        throw new Error("Reserva não retornou ID para gerar PIX.");
+      }
 
       await reloadSrvNumbers();
 
-      const pixPayload = {
-        orderId: String(Date.now()),
-        amount,
-        numbers: selecionados,
-        reservationId,
-        reservation_id: reservationId,
+      const json = await generateMainReservationPix(reservationId);
 
-        // Dados já disponíveis no usuário logado.
-        // O backend usa isso apenas como apoio; a fonte principal deve ser o banco.
-        payer: {
-          id: currentUser?.id || null,
-          name: currentUser?.name || currentUser?.full_name || "",
-          email: currentUser?.email || "",
-          cpf: currentUser?.cpf || "",
-          phone: currentUser?.phone || "",
-          zip_code: currentUser?.zip_code || "",
-          street: currentUser?.street || "",
-          street_number: currentUser?.street_number || "",
-          neighborhood: currentUser?.neighborhood || "",
-          city: currentUser?.city || "",
-          state: currentUser?.state || "",
-        },
-      };
+      setPixData({
+        ...json,
+        paymentId: json.paymentId || json.payment_id || json.id,
+        payment_id: json.payment_id || json.paymentId || json.id,
+        reservation_id: json.reservation_id || reservationId,
+      });
 
-      const data = await createMainPixPayment(pixPayload);
-      setPixData(data);
+      const cents = Number(json.amount_cents ?? json.amountCents);
+      if (Number.isFinite(cents) && cents > 0) {
+        setPixAmount(cents / 100);
+      }
 
       setLimitUsage((old) => ({
         current:
@@ -656,9 +611,7 @@ export default function NewStorePage({
     selecionados,
     unitPrice,
     currentDrawId,
-    currentUser,
     reloadSrvNumbers,
-    createMainPixPayment,
   ]);
 
   const handleIrPagamento = async () => {
@@ -702,7 +655,8 @@ export default function NewStorePage({
     const id = setInterval(async () => {
       try {
         const st = await checkPixStatus(pixData.paymentId);
-        if (st?.status === "approved") handlePixApproved();
+        const payStatus = st?.status || st?.payment_status;
+        if (isPaidStatus(payStatus)) handlePixApproved();
       } catch {}
     }, 3500);
     return () => clearInterval(id);
@@ -1846,7 +1800,8 @@ export default function NewStorePage({
           }
           try {
             const st = await checkPixStatus(pixData.paymentId);
-            if (st.status === "approved") {
+            const payStatus = st?.status || st?.payment_status;
+            if (isPaidStatus(payStatus)) {
               handlePixApproved();
             } else {
               alert(`Status: ${st.status || "pendente"}`);

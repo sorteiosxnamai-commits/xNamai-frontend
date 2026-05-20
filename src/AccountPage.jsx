@@ -16,6 +16,7 @@ import ArrowBackIosNewRoundedIcon from "@mui/icons-material/ArrowBackIosNewRound
 import AccountCircleRoundedIcon from "@mui/icons-material/AccountCircleRounded";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import { apiJoin, authHeaders, getJSON, postJSON } from "./lib/api";
+import { isPaidStatus } from "./lib/paymentStatus";
 
 // ▼ PIX
 import PixModal from "./PixModal";
@@ -42,11 +43,6 @@ const theme = createTheme({
 });
 
 const pad2 = (n) => String(n).padStart(2, "0");
-
-function isPaidStatus(status) {
-  const s = String(status || "").trim().toLowerCase();
-  return s === "approved" || s === "paid" || s === "pago";
-}
 
 const XNAMAI_SITE_URL = "https://www.xnamai.com/";
 const ADMIN_EMAIL = "admin@newstore.com.br";
@@ -91,7 +87,22 @@ function normalizePurchaseHistoryPayload(payload) {
 // chips
 const PayChip = ({ status }) => {
   const st = String(status || "").toLowerCase();
-  if (["approved","paid","pago"].includes(st)) {
+  if (["expired", "expirado", "expirada"].includes(st)) {
+    return (
+      <Chip
+        label="EXPIRADO"
+        sx={{
+          bgcolor: "rgba(15,23,42,0.08)",
+          color: "#334155",
+          fontWeight: 900,
+          borderRadius: 999,
+          px: 1.5,
+          border: "1px solid rgba(15,23,42,0.14)",
+        }}
+      />
+    );
+  }
+  if (isPaidStatus(st)) {
     return (
       <Chip
         label="PAGO"
@@ -466,8 +477,12 @@ function normalizeUnifiedReservationRows(payload, drawsMap = new Map()) {
       draw?.id ??
       draw?._id;
     const reservationId =
+      item?.reservation_group_id ??
+      item?.reservationGroupId ??
       item?.reservation_id ??
       item?.reservationId ??
+      reservation?.reservation_group_id ??
+      reservation?.reservationGroupId ??
       reservation?.reservation_id ??
       reservation?.reservationId ??
       reservation?.id ??
@@ -519,6 +534,13 @@ function normalizeUnifiedReservationRows(payload, drawsMap = new Map()) {
         payment?.amountCents ??
         0
     );
+    const expired = isReservationExpired(item) || isReservationExpired(reservation);
+    const paid =
+      isPaidStatus(paymentStatus) || isPaidStatus(status);
+    const paymentStatusNorm = paid ? "paid" : String(paymentStatus || "pending").toLowerCase();
+    const pendingPayment = ["pending", "reserved", "waiting", "created"].includes(
+      String(paymentStatus || "pending").toLowerCase()
+    );
 
     return {
       id: item?.id || item?._id || `${isPromotional ? "promotional" : "normal"}-${index}`,
@@ -531,8 +553,8 @@ function normalizeUnifiedReservationRows(payload, drawsMap = new Map()) {
       title,
       numbers: numbersLabel,
       date: whenValue || null,
-      paymentStatus,
-      status: /^(paid|approved|pago|sold)$/i.test(String(paymentStatus || "")) ? "paid" : status,
+      paymentStatus: paymentStatusNorm,
+      status: paid ? "paid" : status,
       totalCents: Number.isFinite(amountCents) ? amountCents : 0,
       reservation_id: reservationId,
       draw_id: drawId,
@@ -540,22 +562,33 @@ function normalizeUnifiedReservationRows(payload, drawsMap = new Map()) {
       numeros: numbers,
       numbers_label: numbersLabel,
       dia: item?.day || (whenDate ? whenDate.toLocaleDateString("pt-BR") : "--/--/----"),
-      payment_status: paymentStatus,
-      pagamento: paymentStatus,
+      payment_status: paymentStatusNorm,
+      pagamento: paymentStatusNorm,
+      expires_at:
+        item?.expires_at ||
+        item?.reserved_until ||
+        item?.expire_at ||
+        reservation?.expires_at ||
+        reservation?.reserved_until ||
+        null,
       resultado: isPromotional
-        ? (/^(paid|approved|pago|sold)$/i.test(String(paymentStatus || "")) ? "paid" : status)
+        ? (paid ? "paid" : status)
         : (drawsMap.get(Number(drawId)) || status || "aberto"),
       whenMs,
       amount_cents: Number.isFinite(amountCents) ? amountCents : 0,
       payment_id: item?.payment_id || item?.paymentId || payment?.id || payment?.payment_id || null,
       can_pay: isPromotional
-        ? ["pending", "waiting", "created"].includes(String(paymentStatus || "pending").toLowerCase()) &&
-          ["reserved", "pending", "active"].includes(String(status || "reserved").toLowerCase())
-        : !/^(paid|approved|pago)$/i.test(String(paymentStatus || "")),
+        ? pendingPayment &&
+          ["reserved", "pending", "active"].includes(String(status || "reserved").toLowerCase()) &&
+          !expired &&
+          !paid
+        : pendingPayment && !expired && !paid,
       canPay: isPromotional
-        ? ["pending", "waiting", "created"].includes(String(paymentStatus || "pending").toLowerCase()) &&
-          ["reserved", "pending", "active"].includes(String(status || "reserved").toLowerCase())
-        : !/^(paid|approved|pago)$/i.test(String(paymentStatus || "")),
+        ? pendingPayment &&
+          ["reserved", "pending", "active"].includes(String(status || "reserved").toLowerCase()) &&
+          !expired &&
+          !paid
+        : pendingPayment && !expired && !paid,
       raw: item,
     };
   });
@@ -584,18 +617,22 @@ function asTime(v) {
   return Number.isFinite(t) ? t : 0;
 }
 
-// ⚠️ Incremento de cupom: usar apenas endpoints de sync/incremento.
-// Nada de fallback para rotas "update" (elas fazem SET e causam sobrescrita).
-async function postIncrementCoupon({ addCents, lastPaymentSyncAt }) {
-  const payload = {
-    add_cents: Number(addCents) || 0,
-    last_payment_sync_at: lastPaymentSyncAt,
-  };
-  // Somente os endpoints de incremento
-  return await tryManyPost(
-    ["/coupons/sync", "/me/coupons/sync"],
-    payload
+function reservationExpiresMs(item) {
+  return (
+    asTime(item?.expires_at) ||
+    asTime(item?.reserved_until) ||
+    asTime(item?.expire_at) ||
+    0
   );
+}
+
+function isReservationExpired(item) {
+  const exp = reservationExpiresMs(item);
+  return exp > 0 && exp < Date.now();
+}
+
+async function syncCouponBalance() {
+  return await tryManyPost(["/coupons/sync", "/me/coupons/sync"], {});
 }
 
 export default function AccountPage() {
@@ -693,6 +730,8 @@ export default function AccountPage() {
           const d = Number(x?.draw_id ?? x?.sorteio_id);
           if (d !== Number(drawId)) continue;
 
+          if (isReservationExpired(x)) continue;
+
           const raw = String(x?.status || "").toLowerCase();
           const isActive = /(active|reserved|pending|await|aguard)/.test(raw) && !/(expired|cancel)/.test(raw);
           if (!isActive) continue;
@@ -707,7 +746,16 @@ export default function AccountPage() {
           const when = asTime(x?.updated_at) || asTime(x?.created_at) || asTime(x?.reserved_until) || 0;
           for (const n of candidates) {
             if (!best || when > best.when) {
-              best = { id: x.id ?? x.reservation_id ?? x.reservationId, number: n, when };
+              best = {
+                id:
+                  x.reservation_group_id ||
+                  x.reservationGroupId ||
+                  x.reservation_id ||
+                  x.id ||
+                  x.reservationId,
+                number: n,
+                when,
+              };
             }
           }
         }
@@ -806,9 +854,15 @@ export default function AccountPage() {
 
       const drawId = Number(row?.draw_id ?? row?.sorteio ?? row?.draw ?? row?.id);
 
-      if (row?.reservation_id) {
+      const rowReservationId =
+        row?.reservation_group_id ||
+        row?.reservationGroupId ||
+        row?.reservation_id ||
+        row?.reservationId;
+
+      if (rowReservationId) {
         try {
-          const created = await generateMainReservationPix(row.reservation_id);
+          const created = await generateMainReservationPix(rowReservationId);
           console.log("[PIX_SUCCESS]", created);
           const pix = normalizePixData(created);
           setPixData(pix);
@@ -851,43 +905,34 @@ export default function AccountPage() {
         return;
       }
 
-      // Função local para pedir PIX (com revalidação caso a reserva esteja inativa)
-      const requestPix = async (reservationId) => {
-        const r = await fetch(apiJoin("/payments/pix"), {
-          method: "POST",
-          headers: { "Content-Type": "application/json", ...authHeaders() },
-          credentials: "include",
-          cache: "no-store",
-          body: JSON.stringify({ reservationId, reservation_id: reservationId }),
-        });
-
-        // Se a API disser que a reserva não está ativa, tenta novamente com a última ativa
-        if (!r.ok && r.status === 400) {
-          let msg = "";
-          try { const j = await r.json(); msg = String(j?.error || j?.message || ""); } catch {}
-          if (/reservation[_\s-]?not[_\s-]?active|expired|inativa|expirada/i.test(msg)) {
-            const fresh = await findLatestActiveReservation(drawId, hintNumbers);
-            if (fresh && fresh.reservationId !== reservationId) {
-              selectedNumber = Number(fresh.number); // atualiza o nº
-              return await requestPix(fresh.reservationId);
-            }
+      let created = null;
+      try {
+        created = await generateMainReservationPix(latest.reservationId);
+      } catch (pixErr) {
+        const msg = String(pixErr?.message || "");
+        if (/reservation[_\s-]?not[_\s-]?active|expired|inativa|expirada/i.test(msg)) {
+          const fresh = await findLatestActiveReservation(drawId, hintNumbers);
+          if (fresh && fresh.reservationId !== latest.reservationId) {
+            selectedNumber = Number(fresh.number);
+            created = await generateMainReservationPix(fresh.reservationId);
+          } else {
             setPixMsg("Falha ao gerar PIX: sua reserva não está ativa. Volte ao sorteio para reservar novamente.");
-            return null;
+            return;
           }
+        } else {
+          throw pixErr;
         }
-        if (!r.ok) {
-          if (r.status === 404) setPixMsg("Falha ao gerar PIX (rota não encontrada no servidor).");
-          else setPixMsg(`Falha ao gerar PIX (HTTP ${r.status}).`);
-          return null;
-        }
-        return await r.json().catch(() => ({}));
-      };
+      }
 
-      const created = await requestPix(latest.reservationId);
       if (!created) return;
 
       console.log("[PIX_SUCCESS]", created);
-      setPixData(normalizePixData(created));
+      setPixData(
+        normalizePixData({
+          ...created,
+          reservation_id: created.reservation_id || latest.reservationId,
+        })
+      );
 
       // Descobre o valor (centavos)
       let amountCents =
@@ -943,6 +988,11 @@ export default function AccountPage() {
       ...source,
       paymentId: source.paymentId || source.payment_id || source.id || payload?.paymentId || payload?.id,
       payment_id: source.payment_id || source.paymentId || source.id || payload?.payment_id || payload?.paymentId || payload?.id,
+      reservation_id:
+        source.reservation_id ||
+        source.reservationId ||
+        payload?.reservation_id ||
+        payload?.reservationId,
       qr_code:
         source.qr_code ||
         source.pix_qr_code ||
@@ -976,90 +1026,34 @@ export default function AccountPage() {
   // ---- RELOAD BALANCES (composição base + compras aprovadas) ----
   const reloadBalances = React.useCallback(async () => {
     try {
-      // 1) Cupom atual (valor oficial do servidor)
+      try {
+        await syncCouponBalance();
+      } catch (syncErr) {
+        console.warn("[reloadBalances] coupons/sync:", syncErr?.message || syncErr);
+      }
+
       const mine = await fetchJsonLoose("/coupons/mine", {
-        headers: { ...authHeaders() }, credentials: "include",
+        headers: { ...authHeaders() },
+        credentials: "include",
       });
 
       let currentCents = 0;
       let code = null;
 
       if (mine) {
-        currentCents = Number(mine.cents ?? mine.coupon_value_cents ?? mine.value_cents ?? 0) || 0;
+        currentCents =
+          Number(mine.cents ?? mine.coupon_value_cents ?? mine.value_cents ?? 0) || 0;
         code = mine.code || mine.coupon_code || null;
       }
 
-      // atualiza o valor OFICIAL exibido
       setOfficialCents(Number.isFinite(currentCents) && currentCents >= 0 ? currentCents : 0);
-
       if (Number.isFinite(currentCents) && currentCents >= 0) setBaseCents(currentCents);
       if (code) setCupom(String(code));
-
-      // carimbo de sincronização
-      let lastSyncMs =
-        asTime(mine?.last_payment_sync_at) ||
-        asTime(mine?.coupon_updated_at) ||
-        asTime(mine?.updated_at);
-
-      const uid = (mine?.id || ctxUser?.id || "").toString();
-      const lsKey = uid ? `ns_coupon_last_sync_${uid}` : null;
-      if (!lastSyncMs && lsKey) {
-        lastSyncMs = Number(localStorage.getItem(lsKey) || 0) || 0;
-      }
-
-      // 2) Delta de pagamentos aprovados após o carimbo
-      let deltaCents = 0;
-      try {
-        const r = await fetch(apiJoin("/payments/me?_=" + Date.now()), {
-          headers: { ...authHeaders(), "Content-Type": "application/json" },
-          credentials: "include",
-        });
-        if (r.ok) {
-          const j = await r.json().catch(() => ({}));
-          const list = Array.isArray(j) ? j : (j.payments || j.items || []);
-          for (const p of (list || [])) {
-            const status = String(p?.status || "").toLowerCase();
-            if (status !== "approved" && status !== "paid" && status !== "pago") continue;
-            const whenMs = asTime(p?.paid_at) || asTime(p?.updated_at) || asTime(p?.created_at);
-            if (!whenMs) continue;
-            if (lastSyncMs && whenMs <= lastSyncMs) continue;
-            deltaCents += Number(p?.amount_cents || 0);
-          }
-        }
-      } catch {}
-
-      // 3) Incremento no backend (sem sobrescrever total) e REFRESH do valor oficial
-      if (deltaCents > 0) {
-        const nowIso = new Date().toISOString();
-        try {
-          await postIncrementCoupon({
-            addCents: deltaCents,
-            lastPaymentSyncAt: nowIso,
-          });
-          // Recarrega o valor oficial após sincronizar
-          const updated = await fetchJsonLoose("/coupons/mine", {
-            headers: { ...authHeaders() }, credentials: "include",
-          });
-          const centsAfter = Number(updated?.cents ?? updated?.coupon_value_cents ?? updated?.value_cents ?? currentCents) || currentCents;
-
-          // valor oficial pós-sync
-          setOfficialCents(centsAfter);
-
-          // Nunca diminuir na UI por conta de replicação/latência (safeUi só para base interna)
-          const safeUi = Math.max(centsAfter, currentCents + deltaCents);
-          setBaseCents(safeUi);
-
-          if (lsKey) localStorage.setItem(lsKey, String(Date.parse(nowIso)));
-        } catch (e) {
-          console.warn("[coupon.increment] falhou ao persistir incremento:", e?.message || e);
-        }
-      }
-
-      setPaidCents(0); // não somar pagamentos diretamente na UI
+      setPaidCents(0);
     } catch (e) {
       console.warn("[reloadBalances] erro silencioso:", e?.message || e);
     }
-  }, [ctxUser?.id]);
+  }, []);
 
   const safeLoadAccount = React.useCallback(async () => {
     try {
@@ -1285,7 +1279,8 @@ export default function AccountPage() {
 
           mainRows = Array.from(byDraw.values()).map(g => {
             const whenDate = g.when ? new Date(g.when) : null;
-            const pagamento = g.hasPending ? "pending" : (g.hasApproved ? "approved" : "pending");
+            const pagamento = g.hasPending ? "pending" : (g.hasApproved ? "paid" : "pending");
+            const paid = isPaidStatus(pagamento);
             return {
               type: "main",
               source: "normal",
@@ -1296,9 +1291,12 @@ export default function AccountPage() {
               numeros: Array.from(new Set(g.numeros)).sort((a,b)=>a-b),
               dia: whenDate ? whenDate.toLocaleDateString("pt-BR") : "--/--/----",
               pagamento,
+              payment_status: pagamento,
+              paymentStatus: pagamento,
               resultado: drawsMap.get(Number(g.draw_id)) || "aberto",
               whenMs: g.when || 0,
-              canPay: true,
+              canPay: !paid,
+              can_pay: !paid,
             };
           });
         }
@@ -1851,24 +1849,24 @@ export default function AccountPage() {
                         row?.reservation_id ||
                         row?.id ||
                         `${row?.type || "main"}-${row?.drawId || row?.draw_id || row?.sorteio}`;
-                      const paymentStatus = String(row.paymentStatus ?? row.payment_status ?? row.pagamento ?? "").toLowerCase();
+                      const paymentStatus = String(
+                        row.paymentStatus ?? row.payment_status ?? row.pagamento ?? ""
+                      ).toLowerCase();
+                      const reservationStatus = String(
+                        row.status ?? row.resultado ?? "reserved"
+                      ).toLowerCase();
                       const isPromotionalRow =
                         row.type === "promotional" ||
                         row.source === "promotional" ||
                         row.is_promotional === true;
-                      const reservationStatus = String(row.status ?? row.resultado ?? "reserved").toLowerCase();
+                      const isPaid =
+                        isPaidStatus(paymentStatus) || isPaidStatus(reservationStatus);
+                      const isExpired = isReservationExpired(row);
                       const canGeneratePix =
-                        row.can_pay === true ||
-                        row.canPay === true ||
-                        (
-                          !["pago", "paid", "approved", "sold"].includes(paymentStatus) &&
-                          ["reservado", "reserved", "pending", "pendente", "active", "ativo", "waiting", "created"].includes(
-                            reservationStatus || paymentStatus
-                          )
-                        );
+                        !isPaid &&
+                        !isExpired &&
+                        (row.can_pay === true || row.canPay === true);
                       const clickable = !isPromotionalRow && canGeneratePix;
-
-                      const isPaid   = /^(approved|paid|pago)$/i.test(String(row.paymentStatus ?? row.pagamento ?? ""));
                       const isClosed = /(closed|fechado|sorteado)/i.test(String(row.resultado || ""));
                       const isOpen   = /(open|aberto)/i.test(String(row.resultado || ""));
 
@@ -1895,7 +1893,17 @@ export default function AccountPage() {
                               : row.numbers_label || (Array.isArray(row.numeros) ? row.numeros.map(pad2).join(", ") : (row.numero != null ? pad2(row.numero) : "--"))}
                           </TableCell>
                           <TableCell sx={{ width: 140 }}>{row.dia}</TableCell>
-                          <TableCell><PayChip status={row.pagamento} /></TableCell>
+                          <TableCell>
+                            <PayChip
+                              status={
+                                isPaid
+                                  ? "paid"
+                                  : isExpired
+                                    ? "expired"
+                                    : row.pagamento
+                              }
+                            />
+                          </TableCell>
                           <TableCell>
                             {isPromotionalRow ? (
                               <PlainStatusChip status={row.resultado} />

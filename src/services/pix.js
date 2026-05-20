@@ -112,16 +112,21 @@ export async function generateMainReservationPix(reservationId) {
         continue;
       }
 
+      const status = json.status || json.payment_status || "pending";
+
       return {
         ...json,
         paymentId: json.paymentId || json.payment_id || json.id,
         payment_id: json.payment_id || json.paymentId || json.id,
+        reservation_id: json.reservation_id || reservationId,
+        status,
+        payment_status: json.payment_status || json.status || status,
         qr_code: json.qr_code || json.copy_paste_code,
         copy_paste_code: json.copy_paste_code || json.qr_code,
         qr_code_base64: json.qr_code_base64,
-        amount_cents: json.amount_cents ?? json.amountCents,
+        ticket_url: json.ticket_url,
         amount: json.amount,
-        status: json.status || json.payment_status || "pending",
+        amount_cents: json.amount_cents ?? json.amountCents,
       };
     } catch (err) {
       lastError = err;
