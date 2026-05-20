@@ -615,8 +615,8 @@ export default function NewStorePage({
       const reservationId =
         reserveResult?.reservationId ||
         reserveResult?.reservation_id ||
-        reserveResult?.reservation_group_id ||
-        reserveResult?.id;
+        reserveResult?.id ||
+        reserveResult?.reservation_group_id;
 
       if (!reservationId) {
         throw new Error("Reserva não retornou ID para gerar PIX.");
@@ -631,6 +631,11 @@ export default function NewStorePage({
         paymentId: json.paymentId || json.payment_id || json.id,
         payment_id: json.payment_id || json.paymentId || json.id,
         reservation_id: json.reservation_id || reservationId,
+        qr_code: json.qr_code,
+        qr_code_base64: json.qr_code_base64,
+        copy_paste_code: json.copy_paste_code,
+        ticket_url: json.ticket_url,
+        amount_cents: json.amount_cents ?? json.amountCents,
       });
 
       const cents = Number(json.amount_cents ?? json.amountCents);

@@ -1,31 +1,28 @@
-const API_BASE = (
-  process.env.REACT_APP_API_BASE_URL ||
-  process.env.REACT_APP_API_BASE ||
-  "http://localhost:4000"
-).replace(/\/+$/, "");
+import { apiJoin, authHeaders as apiAuthHeaders } from "../lib/api";
 
-function getToken() {
-  try {
-    return (
-      localStorage.getItem("ns_auth_token") ||
-      localStorage.getItem("authToken") ||
-      localStorage.getItem("token") ||
-      sessionStorage.getItem("ns_auth_token") ||
-      sessionStorage.getItem("authToken") ||
-      sessionStorage.getItem("token") ||
-      ""
-    ).replace(/^Bearer\s+/i, "");
-  } catch {
-    return "";
-  }
-}
-
-function authHeaders() {
-  const token = getToken();
-
+function requestHeaders() {
   return {
     "Content-Type": "application/json",
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...apiAuthHeaders(),
+  };
+}
+
+function normalizePixPaymentResponse(json, reservationId) {
+  const status = json.status || json.payment_status || "pending";
+
+  return {
+    ...json,
+    paymentId: json.paymentId || json.payment_id || json.id,
+    payment_id: json.payment_id || json.paymentId || json.id,
+    reservation_id: json.reservation_id || reservationId,
+    status,
+    payment_status: json.payment_status || json.status || status,
+    qr_code: json.qr_code || json.copy_paste_code,
+    copy_paste_code: json.copy_paste_code || json.qr_code,
+    qr_code_base64: json.qr_code_base64,
+    ticket_url: json.ticket_url,
+    amount: json.amount,
+    amount_cents: json.amount_cents ?? json.amountCents,
   };
 }
 
@@ -41,10 +38,10 @@ export async function createPixPayment(payload = {}) {
     Number(payload.amount_cents) ||
     Math.round(amount * 100);
 
-  const res = await fetch(`${API_BASE}/api/mercadopago/pix`, {
+  const res = await fetch(apiJoin("/mercadopago/pix"), {
     method: "POST",
     credentials: "include",
-    headers: authHeaders(),
+    headers: requestHeaders(),
     body: JSON.stringify({
       ...payload,
       amount,
@@ -82,11 +79,11 @@ export async function generateMainReservationPix(reservationId) {
 
   const attempts = [
     {
-      url: `${API_BASE}/api/reservations/${cleanId}/pix`,
+      url: apiJoin(`/reservations/${cleanId}/pix`),
       body: null,
     },
     {
-      url: `${API_BASE}/api/payments/pix`,
+      url: apiJoin("/payments/pix"),
       body: {
         reservationId,
         reservation_id: reservationId,
@@ -101,7 +98,7 @@ export async function generateMainReservationPix(reservationId) {
       const res = await fetch(attempt.url, {
         method: "POST",
         credentials: "include",
-        headers: authHeaders(),
+        headers: requestHeaders(),
         body: attempt.body ? JSON.stringify(attempt.body) : undefined,
       });
 
@@ -112,22 +109,7 @@ export async function generateMainReservationPix(reservationId) {
         continue;
       }
 
-      const status = json.status || json.payment_status || "pending";
-
-      return {
-        ...json,
-        paymentId: json.paymentId || json.payment_id || json.id,
-        payment_id: json.payment_id || json.paymentId || json.id,
-        reservation_id: json.reservation_id || reservationId,
-        status,
-        payment_status: json.payment_status || json.status || status,
-        qr_code: json.qr_code || json.copy_paste_code,
-        copy_paste_code: json.copy_paste_code || json.qr_code,
-        qr_code_base64: json.qr_code_base64,
-        ticket_url: json.ticket_url,
-        amount: json.amount,
-        amount_cents: json.amount_cents ?? json.amountCents,
-      };
+      return normalizePixPaymentResponse(json, reservationId);
     } catch (err) {
       lastError = err;
     }
@@ -143,9 +125,10 @@ export async function checkPixStatus(paymentId) {
 
   const cleanId = encodeURIComponent(String(paymentId));
 
+  // Principal: /api/payments/:id/status. Mercado Pago só como fallback visual.
   const attempts = [
-    `${API_BASE}/api/payments/${cleanId}/status`,
-    `${API_BASE}/api/mercadopago/payment/${cleanId}`,
+    apiJoin(`/payments/${cleanId}/status`),
+    apiJoin(`/mercadopago/payment/${cleanId}`),
   ];
 
   let lastError = null;
@@ -155,7 +138,7 @@ export async function checkPixStatus(paymentId) {
       const res = await fetch(url, {
         method: "GET",
         credentials: "include",
-        headers: authHeaders(),
+        headers: requestHeaders(),
       });
 
       const json = await res.json().catch(() => ({}));
@@ -165,7 +148,13 @@ export async function checkPixStatus(paymentId) {
         continue;
       }
 
-      return json;
+      const status = json.status || json.payment_status || json.state;
+
+      return {
+        ...json,
+        status,
+        payment_status: json.payment_status || json.status || status,
+      };
     } catch (err) {
       lastError = err;
     }

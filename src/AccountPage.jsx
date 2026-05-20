@@ -1023,7 +1023,7 @@ export default function AccountPage() {
     try { return JSON.parse(localStorage.getItem("me") || "null"); } catch { return null; }
   }, []);
 
-  // ---- RELOAD BALANCES (composição base + compras aprovadas) ----
+  // ---- RELOAD BALANCES (sync no backend + valor oficial do cupom) ----
   const reloadBalances = React.useCallback(async () => {
     try {
       try {
@@ -1143,7 +1143,7 @@ export default function AccountPage() {
         setPixMsg("Pagamento aprovado! Atualizando seus dados...");
 
         try {
-          await postJSON("/coupons/sync", {});
+          await syncCouponBalance();
         } catch (syncErr) {
           console.warn("[ACCOUNT_COUPON_SYNC_WARN]", syncErr);
         }
