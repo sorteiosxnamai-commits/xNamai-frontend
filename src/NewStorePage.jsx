@@ -279,6 +279,26 @@ export default function NewStorePage({
     );
   }, [publicConfig, displayPrizeTitle]);
 
+  const cashbackPercentLabel = React.useMemo(() => {
+    const c = publicConfig || {};
+    const draw = c?.current_draw || c?.currentDraw || c?.current || {};
+
+    const raw =
+      draw?.cashback_percent ??
+      draw?.cashbackPercent ??
+      c?.cashback_percent ??
+      c?.cashbackPercent;
+
+    const value = Number(raw);
+
+    if (!Number.isFinite(value)) {
+      return "50%";
+    }
+
+    const safeValue = Math.min(100, Math.max(0, Math.round(value)));
+    return `${safeValue}%`;
+  }, [publicConfig]);
+
   // Draw atual (se o backend expuser)
   const [currentDrawId, setCurrentDrawId] = React.useState(null);
 
@@ -842,7 +862,7 @@ export default function NewStorePage({
                       lineHeight: 1.35,
                     }}
                   >
-                    Participe, concorra e ainda receba 50% do valor de volta
+                    {`Participe, concorra e ainda receba ${cashbackPercentLabel} do valor de volta`}
                   </Typography>
 
                   <Typography
@@ -1145,7 +1165,7 @@ export default function NewStorePage({
                 <ReplayRoundedIcon sx={{ color: "primary.main" }} />
                 <Box>
                   <Typography sx={{ fontWeight: 900, lineHeight: 1.1 }}>
-                    50% do valor de volta
+                    {`${cashbackPercentLabel} do valor de volta`}
                   </Typography>
                   <Typography variant="body2" sx={{ color: "rgba(11,27,51,0.62)" }}>
                     Em cartão presente digital
