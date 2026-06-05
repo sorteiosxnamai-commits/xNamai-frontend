@@ -2,7 +2,7 @@
 import * as React from "react";
 import {
   Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-  TextField, Button
+  TextField, Button, MenuItem
 } from "@mui/material";
 import { API_CONFIG } from "./config/api";
 import "./styles/xnamai-admin.css";
@@ -55,11 +55,50 @@ const fmtDate = (v) => {
   const d = new Date(v);
   return Number.isNaN(d.getTime()) ? "-" : d.toLocaleDateString("pt-BR");
 };
+const normalizeUsers = (payload) => {
+  const list = Array.isArray(payload)
+    ? payload
+    : Array.isArray(payload?.users)
+      ? payload.users
+      : Array.isArray(payload?.data)
+        ? payload.data
+        : Array.isArray(payload?.rows)
+          ? payload.rows
+          : [];
+
+  return list
+    .map((u) => ({
+      id: u?.id ?? u?.user_id ?? u?.userId,
+      name: String(u?.name ?? u?.nome ?? "").trim(),
+      email: String(u?.email ?? "").trim(),
+    }))
+    .filter((u) => u.id != null && String(u.id).trim() !== "")
+    .map((u) => ({ ...u, id: String(u.id) }));
+};
+const userOptionLabel = (user) => {
+  if (user?.name && user?.email) return user.name + " - " + user.email;
+  return user?.name || user?.email || "Usuário";
+};
 
 export default function AdminVencedores() {
+  const [users, setUsers] = React.useState([]);
   const [rows, setRows] = React.useState([]);
   const [loading, setLoading] = React.useState(true);
   const [savingId, setSavingId] = React.useState(null);
+
+  React.useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const payload = await getJSON("/api/admin/users");
+        if (alive) setUsers(normalizeUsers(payload));
+      } catch (e) {
+        console.error("[AdminVencedores] users fetch error:", e);
+        if (alive) setUsers([]);
+      }
+    })();
+    return () => { alive = false; };
+  }, []);
 
   React.useEffect(() => {
     let alive = true;
@@ -71,7 +110,7 @@ export default function AdminVencedores() {
         const lines = list.map((w) => ({
           key: `${w.draw_id}-${w.realized_at}`,
           drawId: w.draw_id,
-          winnerUserId: editableValue(w.winner_user_id ?? w.winnerUserId),
+          winnerUserId: String(editableValue(w.winner_user_id ?? w.winnerUserId)),
           nome: editableValue(w.winner_name ?? w.winnerName ?? w.nome),
           numero: w.draw_id,
           numeroVencedor: editableValue(w.winner_number ?? w.winnerNumber ?? w.numeroVencedor),
@@ -114,7 +153,7 @@ export default function AdminVencedores() {
           r.drawId === row.drawId
             ? {
                 ...r,
-                winnerUserId: editableValue((resp.winner_user_id ?? resp.winnerUserId) ?? row.winnerUserId),
+                winnerUserId: String(editableValue((resp.winner_user_id ?? resp.winnerUserId) ?? row.winnerUserId)),
                 nome: editableValue((resp.winner_name ?? resp.winnerName ?? resp.nome) ?? row.nome),
                 numeroVencedor: editableValue((resp.winner_number ?? resp.winnerNumber ?? resp.numeroVencedor) ?? row.numeroVencedor),
                 productName: resp.product_name || "",
@@ -125,7 +164,7 @@ export default function AdminVencedores() {
       );
     } catch (e) {
       console.error("[AdminVencedores] save error:", e);
-      alert("Não foi possível salvar os dados do produto.");
+      alert("Não foi possível salvar os dados do vencedor.");
     } finally {
       setSavingId(null);
     }
@@ -167,12 +206,20 @@ export default function AdminVencedores() {
                     <TableRow key={w.key} hover>
                       <TableCell sx={{ minWidth: 220 }}>
                         <TextField
+                          select
                           size="small"
-                          placeholder="ID do usuário"
-                          value={w.winnerUserId}
+                          value={w.winnerUserId || ""}
                           onChange={(e) => updateField(w.key, "winnerUserId", e.target.value)}
                           fullWidth
-                        />
+                        >
+                          <MenuItem value="">Selecionar usuário</MenuItem>
+                          {w.winnerUserId && !users.some((user) => user.id === String(w.winnerUserId)) && (
+                            <MenuItem value={String(w.winnerUserId)}>{w.nome || "Usuário"}</MenuItem>
+                          )}
+                          {users.map((user) => (
+                            <MenuItem key={user.id} value={user.id}>{userOptionLabel(user)}</MenuItem>
+                          ))}
+                        </TextField>
                       </TableCell>
                       <TableCell sx={{ fontWeight: 900, color: "primary.main" }}>{pad3(w.numero)}</TableCell>
                       <TableCell sx={{ minWidth: 120 }}>
