@@ -55,8 +55,8 @@ const fmtDate = (v) => {
   const d = new Date(v);
   return Number.isNaN(d.getTime()) ? "-" : d.toLocaleDateString("pt-BR");
 };
-const normalizeUsers = (payload) => {
-  const list = Array.isArray(payload)
+const getUsersList = (payload) => (
+  Array.isArray(payload)
     ? payload
     : Array.isArray(payload?.users)
       ? payload.users
@@ -64,20 +64,49 @@ const normalizeUsers = (payload) => {
         ? payload.data
         : Array.isArray(payload?.rows)
           ? payload.rows
-          : [];
-
-  return list
+          : Array.isArray(payload?.items)
+            ? payload.items
+            : []
+);
+const getUserSortLabel = (user) =>
+  String(user.name || user.email || user.id || "").trim().toLowerCase();
+const normalizeUsers = (payload) => {
+  const seen = new Set();
+  const users = getUsersList(payload)
     .map((u) => ({
       id: u?.id ?? u?.user_id ?? u?.userId,
-      name: String(u?.name ?? u?.nome ?? "").trim(),
-      email: String(u?.email ?? "").trim(),
+      name: String(u?.name ?? u?.full_name ?? u?.fullName ?? u?.nome ?? u?.display_name ?? u?.displayName ?? "").trim(),
+      email: String(u?.email ?? u?.user_email ?? u?.userEmail ?? u?.buyer_email ?? u?.buyerEmail ?? "").trim(),
     }))
     .filter((u) => u.id != null && String(u.id).trim() !== "")
-    .map((u) => ({ ...u, id: String(u.id) }));
+    .map((u) => ({ ...u, id: String(u.id) }))
+    .filter((u) => {
+      if (seen.has(u.id)) return false;
+      seen.add(u.id);
+      return true;
+    });
+
+  users.sort((a, b) =>
+    getUserSortLabel(a).localeCompare(getUserSortLabel(b), "pt-BR", { sensitivity: "base" })
+  );
+
+  return users;
 };
-const userOptionLabel = (user) => {
-  if (user?.name && user?.email) return user.name + " - " + user.email;
-  return user?.name || user?.email || "Usuário";
+const hasUsersPagination = (payload) => (
+  payload &&
+  !Array.isArray(payload) &&
+  ["total", "page", "limit", "next_page", "nextPage", "nextPageToken"].some((key) => payload[key] != null)
+);
+const isLocalDev = () => (
+  typeof window !== "undefined" &&
+  ["localhost", "127.0.0.1", ""].includes(window.location.hostname)
+);
+const formatUserOption = (user) => {
+  const parts = [`#${user?.id}`];
+  if (user?.name) parts.push(user.name);
+  if (user?.email) parts.push(user.email);
+  if (parts.length === 1) parts.push("Usuário");
+  return parts.join(" — ");
 };
 
 export default function AdminVencedores() {
@@ -91,6 +120,9 @@ export default function AdminVencedores() {
     (async () => {
       try {
         const payload = await getJSON("/api/admin/users");
+        if (isLocalDev() && hasUsersPagination(payload)) {
+          console.warn("[AdminVencedores] /api/admin/users parece paginado; alguns usuarios podem nao aparecer na lista.");
+        }
         if (alive) setUsers(normalizeUsers(payload));
       } catch (e) {
         console.error("[AdminVencedores] users fetch error:", e);
@@ -217,7 +249,7 @@ export default function AdminVencedores() {
                             <MenuItem value={String(w.winnerUserId)}>{w.nome || "Usuário"}</MenuItem>
                           )}
                           {users.map((user) => (
-                            <MenuItem key={user.id} value={user.id}>{userOptionLabel(user)}</MenuItem>
+                            <MenuItem key={user.id} value={String(user.id)}>{formatUserOption(user)}</MenuItem>
                           ))}
                         </TextField>
                       </TableCell>
