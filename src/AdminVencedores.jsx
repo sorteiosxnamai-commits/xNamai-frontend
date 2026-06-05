@@ -49,6 +49,7 @@ async function patchJSON(path, body) {
 
 /* ---------- helpers ---------- */
 const pad3 = (n) => (n != null ? String(n).padStart(3, "0") : "--");
+const editableValue = (v) => (v == null || v === "-" ? "" : v);
 const fmtDate = (v) => {
   if (!v) return "-";
   const d = new Date(v);
@@ -70,9 +71,9 @@ export default function AdminVencedores() {
         const lines = list.map((w) => ({
           key: `${w.draw_id}-${w.realized_at}`,
           drawId: w.draw_id,
-          nome: w.winner_name || "-",
+          nome: editableValue(w.winner_name ?? w.winnerName ?? w.nome),
           numero: w.draw_id,
-          numeroVencedor: (w.winner_number ?? "") === "" || w.winner_number == null ? "-" : w.winner_number,
+          numeroVencedor: editableValue(w.winner_number ?? w.winnerNumber ?? w.numeroVencedor),
           data: fmtDate(w.realized_at),
           status: w.status || (w.redeemed ? "RESGATADO" : "NÃO RESGATADO"),
           dias: w.days_since ?? "-",
@@ -101,6 +102,8 @@ export default function AdminVencedores() {
     try {
       setSavingId(row.drawId);
       const resp = await patchJSON(`/api/admin/winners/${row.drawId}`, {
+        winner_name: row.nome,
+        winner_number: row.numeroVencedor,
         product_name: row.productName,
         product_link: row.productLink,
       });
@@ -108,7 +111,13 @@ export default function AdminVencedores() {
       setRows((prev) =>
         prev.map((r) =>
           r.drawId === row.drawId
-            ? { ...r, productName: resp.product_name || "", productLink: resp.product_link || "" }
+            ? {
+                ...r,
+                nome: editableValue((resp.winner_name ?? resp.winnerName ?? resp.nome) ?? row.nome),
+                numeroVencedor: editableValue((resp.winner_number ?? resp.winnerNumber ?? resp.numeroVencedor) ?? row.numeroVencedor),
+                productName: resp.product_name || "",
+                productLink: resp.product_link || "",
+              }
             : r
         )
       );
@@ -154,9 +163,25 @@ export default function AdminVencedores() {
                   )}
                   {rows.map((w) => (
                     <TableRow key={w.key} hover>
-                      <TableCell sx={{ fontWeight: 800 }}>{w.nome}</TableCell>
+                      <TableCell sx={{ minWidth: 220 }}>
+                        <TextField
+                          size="small"
+                          placeholder="Nome do usuário"
+                          value={w.nome}
+                          onChange={(e) => updateField(w.key, "nome", e.target.value)}
+                          fullWidth
+                        />
+                      </TableCell>
                       <TableCell sx={{ fontWeight: 900, color: "primary.main" }}>{pad3(w.numero)}</TableCell>
-                      <TableCell sx={{ fontWeight: 800 }}>{w.numeroVencedor}</TableCell>
+                      <TableCell sx={{ minWidth: 120 }}>
+                        <TextField
+                          size="small"
+                          placeholder="00"
+                          value={w.numeroVencedor}
+                          onChange={(e) => updateField(w.key, "numeroVencedor", e.target.value)}
+                          fullWidth
+                        />
+                      </TableCell>
                       <TableCell>{w.data}</TableCell>
                       <TableCell sx={{ color: w.status === "RESGATADO" ? "primary.main" : "text.secondary", fontWeight: 900 }}>
                         {w.status}
