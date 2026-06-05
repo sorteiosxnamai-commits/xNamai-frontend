@@ -71,6 +71,7 @@ export default function AdminVencedores() {
         const lines = list.map((w) => ({
           key: `${w.draw_id}-${w.realized_at}`,
           drawId: w.draw_id,
+          winnerUserId: editableValue(w.winner_user_id ?? w.winnerUserId),
           nome: editableValue(w.winner_name ?? w.winnerName ?? w.nome),
           numero: w.draw_id,
           numeroVencedor: editableValue(w.winner_number ?? w.winnerNumber ?? w.numeroVencedor),
@@ -102,7 +103,7 @@ export default function AdminVencedores() {
     try {
       setSavingId(row.drawId);
       const resp = await patchJSON(`/api/admin/winners/${row.drawId}`, {
-        winner_name: row.nome,
+        winner_user_id: row.winnerUserId,
         winner_number: row.numeroVencedor,
         product_name: row.productName,
         product_link: row.productLink,
@@ -113,6 +114,7 @@ export default function AdminVencedores() {
           r.drawId === row.drawId
             ? {
                 ...r,
+                winnerUserId: editableValue((resp.winner_user_id ?? resp.winnerUserId) ?? row.winnerUserId),
                 nome: editableValue((resp.winner_name ?? resp.winnerName ?? resp.nome) ?? row.nome),
                 numeroVencedor: editableValue((resp.winner_number ?? resp.winnerNumber ?? resp.numeroVencedor) ?? row.numeroVencedor),
                 productName: resp.product_name || "",
@@ -166,9 +168,9 @@ export default function AdminVencedores() {
                       <TableCell sx={{ minWidth: 220 }}>
                         <TextField
                           size="small"
-                          placeholder="Nome do usuário"
-                          value={w.nome}
-                          onChange={(e) => updateField(w.key, "nome", e.target.value)}
+                          placeholder="ID do usuário"
+                          value={w.winnerUserId}
+                          onChange={(e) => updateField(w.key, "winnerUserId", e.target.value)}
                           fullWidth
                         />
                       </TableCell>
