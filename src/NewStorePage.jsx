@@ -24,15 +24,6 @@ import { apiJoin, authHeaders } from "./lib/api";
 import { useAuth } from "./authContext";
 import { API_CONFIG } from "./config/api";
 
-const DEFAULT_LIMIT_USAGE = {
-  max_numbers_per_user: 5,
-  paid_count: 0,
-  reserved_count: 0,
-  used_count: 0,
-  remaining: 5,
-  can_buy: true,
-};
-
 import {
    List, ListItem, ListItemText,
   Alert, Accordion, AccordionSummary, AccordionDetails
@@ -67,6 +58,15 @@ import {
   createTheme,
 } from "@mui/material";
 import LockRoundedIcon from "@mui/icons-material/LockRounded";
+
+const DEFAULT_LIMIT_USAGE = {
+  max_numbers_per_user: 5,
+  paid_count: 0,
+  reserved_count: 0,
+  used_count: 0,
+  remaining: 5,
+  can_buy: true,
+};
 
 // PNG em `public/assets` (CRA — respeita PUBLIC_URL em deploy)
 const imgTabelaUtilizacao = `${process.env.PUBLIC_URL ?? ""}/assets/tabela-utilizacao-cartao.png`;
@@ -103,6 +103,13 @@ const theme = createTheme({
 
 // Helpers
 const pad2 = (n) => n.toString().padStart(2, "0");
+const DEFAULT_MAIN_NUMBER_COUNT = 100;
+const DEFAULT_GRID_NUMBERS = Array.from({ length: DEFAULT_MAIN_NUMBER_COUNT }, (_, n) => ({
+  n,
+  number: n,
+  label: pad2(n),
+  status: "available",
+}));
 
 function cleanText(value) {
   if (value === null || value === undefined) return "";
@@ -194,7 +201,6 @@ export default function NewStorePage({
   indisponiveis = MOCK_INDISPONIVEIS,
   groupUrl = XNAMAI_WHATSAPP_GROUP_URL,
 }) {
-  const totalGridNumbers = 100;
   const navigate = useNavigate();
   const { selecionados, setSelecionados, limparSelecao } =
     React.useContext(SelectionContext);
@@ -205,6 +211,8 @@ export default function NewStorePage({
   const [srvIndisponiveis, setSrvIndisponiveis] = React.useState([]);
   // Números com reserva ativa no backend (status reserved/pending)
   const [srvReservados, setSrvReservados] = React.useState([]);
+  const [srvNumbers, setSrvNumbers] = React.useState(DEFAULT_GRID_NUMBERS);
+  const [numberLabelDigits, setNumberLabelDigits] = React.useState(2);
   // Números confirmados localmente após PIX aprovado (até o /api/numbers refletir sold).
   const [locallySoldNumbers, setLocallySoldNumbers] = React.useState([]);
 
@@ -375,6 +383,28 @@ export default function NewStorePage({
   );
   const selectedNow = selecionados.length;
   const remainingAfterSelection = Math.max(0, remainingCount - selectedNow);
+  const gridNumbers = React.useMemo(() => {
+    const source = Array.isArray(srvNumbers) && srvNumbers.length
+      ? srvNumbers
+      : DEFAULT_GRID_NUMBERS;
+
+    return source
+      .map((item) => {
+        const n = Number(item?.n ?? item?.number);
+        if (!Number.isInteger(n) || n < 0) return null;
+        return { ...item, n, number: n };
+      })
+      .filter(Boolean)
+      .sort((a, b) => a.n - b.n);
+  }, [srvNumbers]);
+  const gridNumberSet = React.useMemo(
+    () => new Set(gridNumbers.map((item) => item.n)),
+    [gridNumbers]
+  );
+  const formatNumber = React.useCallback(
+    (n) => String(Number(n)).padStart(numberLabelDigits, "0"),
+    [numberLabelDigits]
+  );
   const selectionStatusLabel = `Usados: ${usedCount}/${maxSelectable} • Agora: ${selectedNow} • Restam: ${remainingAfterSelection}`;
 
   // ===== Carregar preço, textos e (se houver) draw id — sem 404 no console
@@ -454,12 +484,37 @@ export default function NewStorePage({
       });
       if (!res.ok) return;
       const j = await res.json();
+      const apiNumbers = Array.isArray(j) ? j : Array.isArray(j?.numbers) ? j.numbers : [];
+      const normalizedNumbers = apiNumbers
+        .map((item) => {
+          const n = Number(item?.n ?? item?.number);
+          if (!Number.isInteger(n) || n < 0) return null;
+          return { ...item, n, number: n };
+        })
+        .filter(Boolean)
+        .sort((a, b) => a.n - b.n);
+
+      if (normalizedNumbers.length) {
+        const maxNumber = normalizedNumbers[normalizedNumbers.length - 1].n;
+        const fallbackDigits = normalizedNumbers.length > 100
+          ? Math.max(3, String(maxNumber).length)
+          : 2;
+        const nextLabelDigits = Number(j?.label_digits || fallbackDigits);
+
+        setSrvNumbers(normalizedNumbers);
+        setNumberLabelDigits(nextLabelDigits);
+      }
+
+      const responseDrawId = Number(j?.draw_id ?? j?.drawId);
+      if (Number.isInteger(responseDrawId) && responseDrawId > 0) {
+        setCurrentDrawId(responseDrawId);
+      }
 
       const indis = [];
       const reservs = [];
       const initials = {};
 
-      for (const it of j?.numbers || []) {
+      for (const it of normalizedNumbers) {
         const num = Number(it.n ?? it.number);
         if (!Number.isInteger(num)) continue;
 
@@ -744,12 +799,12 @@ export default function NewStorePage({
   React.useEffect(() => {
     if (!selecionados.length) return;
     const bloqueados = new Set([...indisponiveisAll, ...reservadosAll]);
-    const filtrados = selecionados.filter((n) => !bloqueados.has(n));
+    const filtrados = selecionados.filter((n) => gridNumberSet.has(n) && !bloqueados.has(n));
     if (filtrados.length !== selecionados.length) {
       setSelecionados(filtrados);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [indisponiveisAll, reservadosAll]);
+  }, [indisponiveisAll, reservadosAll, gridNumberSet]);
 
   const handleClickNumero = (n) => {
     if (isIndisponivel(n) || isReservado(n)) return;
@@ -1066,7 +1121,8 @@ export default function NewStorePage({
                       boxShadow: "none",
                     }}
                   >
-                    {Array.from({ length: totalGridNumbers }).map((_, idx) => {
+                    {gridNumbers.map((item) => {
+                      const idx = Number(item.n ?? item.number);
                       const visual = getNumberVisualState({
                         number: idx,
                         unavailableNumbers: unavailableSet,
@@ -1098,7 +1154,7 @@ export default function NewStorePage({
                         >
                           <Stack spacing={0.2} alignItems="center" sx={{ pointerEvents: "none" }}>
                             <Box component="span" sx={{ fontSize: { xs: 14.5, md: 15.5 }, lineHeight: 1 }}>
-                              {pad2(idx)}
+                              {item.label || formatNumber(idx)}
                             </Box>
                             {unavailable && initials && (
                               <Box
@@ -1756,7 +1812,7 @@ export default function NewStorePage({
                 Você selecionou {selecionados.length} {selecionados.length === 1 ? "número" : "números"}:
               </Typography>
               <Typography variant="h6" sx={{ fontWeight: 800, letterSpacing: 1, mb: 1 }}>
-                {selecionados.slice().sort((a, b) => a - b).map(pad2).join(", ")}
+                {selecionados.slice().sort((a, b) => a - b).map(formatNumber).join(", ")}
               </Typography>
               <Typography variant="body1" sx={{ mt: 0.5, mb: 1 }}>
                 Total:{" "}

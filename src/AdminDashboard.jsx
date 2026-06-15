@@ -224,6 +224,7 @@ export default function AdminDashboard() {
   const [creating, setCreating] = React.useState(false);
   const [message, setMessage] = React.useState("");
   const [error, setError] = React.useState("");
+  const [drawNumberCount, setDrawNumberCount] = React.useState(100);
 
   const [configForm, setConfigForm] = React.useState({
     ticket_price_cents: "5500",
@@ -321,6 +322,8 @@ export default function AdminDashboard() {
 
   const totalNumbers = Number(
     draw?.total_numbers ||
+      draw?.number_count ||
+      summary?.number_count ||
       summary?.total_numbers ||
       summary?.total ||
       100
@@ -348,6 +351,8 @@ export default function AdminDashboard() {
   const remaining = Number(
     remainingFromApi ?? Math.max(0, totalNumbers - sold - reserved)
   );
+
+  const selectedNumberCount = Number(drawNumberCount) || 100;
 
   async function handleSaveConfig(event) {
     event.preventDefault();
@@ -400,14 +405,14 @@ export default function AdminDashboard() {
           onlyNumbers(createForm.max_numbers_per_selection) || 5
         ),
         cashback_percent: clampPercent(createForm.cashback_percent),
-        numbers_count: 100,
-        numbers_start: 0,
-        numbers_end: 99,
+        number_count: selectedNumberCount,
       };
 
       const data = await createAdminDraw(payload);
 
-      setMessage(`Sorteio #${data?.draw?.id || ""} criado com sucesso com números de 00 a 99.`);
+      setMessage(
+        `Sorteio #${data?.draw?.id || ""} criado com sucesso com ${selectedNumberCount} numeros.`
+      );
       setShowCreate(false);
       setCreateForm({
         title: "",
@@ -465,17 +470,40 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            <button
-              type="button"
-              style={styles.outlineButton}
-              onClick={() => {
-                setShowCreate((value) => !value);
-                setError("");
-                setMessage("");
+            <div
+              style={{
+                display: "flex",
+                alignItems: "flex-end",
+                gap: 12,
+                flexWrap: "wrap",
               }}
             >
-              NOVO SORTEIO
-            </button>
+              <label>
+                <span style={styles.label}>Quantidade de numeros do novo sorteio</span>
+                <select
+                  style={{ ...styles.input, width: 150, height: 44, minWidth: 150 }}
+                  value={drawNumberCount}
+                  onChange={(e) => setDrawNumberCount(Number(e.target.value))}
+                  disabled={creating}
+                >
+                  <option value={100}>100</option>
+                  <option value={500}>500</option>
+                  <option value={1000}>1000</option>
+                </select>
+              </label>
+
+              <button
+                type="button"
+                style={styles.outlineButton}
+                onClick={() => {
+                  setShowCreate((value) => !value);
+                  setError("");
+                  setMessage("");
+                }}
+              >
+                NOVO SORTEIO
+              </button>
+            </div>
           </div>
 
           {error ? <div style={styles.error}>{error}</div> : null}
@@ -598,7 +626,7 @@ export default function AdminDashboard() {
                         color: "#53617a",
                         fontWeight: 800,
                       }}
-                      value="00 até 99 — 100 números fixos"
+                      value={`0 ate ${selectedNumberCount - 1} - ${selectedNumberCount} numeros`}
                       readOnly
                     />
                   </div>

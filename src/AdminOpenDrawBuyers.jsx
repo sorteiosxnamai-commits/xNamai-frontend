@@ -45,6 +45,7 @@ async function getJSON(path) {
 
 /* ---------- util ---------- */
 const pad2 = (n) => String(n).padStart(2, "0");
+const padNumber = (n, digits = 2) => String(n).padStart(digits, "0");
 const palette = [
   "#59d98e","#5bb6ff","#ffb74d","#e57373","#ba68c8","#4db6ac","#7986cb",
   "#aed581","#90a4ae","#f06292","#9575cd","#4fc3f7","#81c784","#ff8a65",
@@ -149,6 +150,8 @@ export default function AdminOpenDrawBuyers() {
   const [drawId, setDrawId] = React.useState(null);
   const [sold, setSold] = React.useState(0);
   const [remaining, setRemaining] = React.useState(0);
+  const [totalNumbers, setTotalNumbers] = React.useState(100);
+  const [labelDigits, setLabelDigits] = React.useState(2);
   const [buyers, setBuyers] = React.useState([]);      // [{user_id, name, email, numbers[], count, total_cents}]
   const [numbers, setNumbers] = React.useState([]);    // [{n, user_id, name, email}]
   const [query, setQuery] = React.useState("");
@@ -190,12 +193,32 @@ export default function AdminOpenDrawBuyers() {
       });
 
       const apiNumbers = Array.isArray(r.numbers) ? r.numbers : [];
+      const responseTotalNumbers = Number(
+        r.total_numbers ??
+          r.number_count ??
+          r.draw?.total_numbers ??
+          r.draw?.number_count ??
+          100
+      );
+      const safeTotalNumbers =
+        Number.isInteger(responseTotalNumbers) && responseTotalNumbers > 0
+          ? responseTotalNumbers
+          : 100;
+      const responseLabelDigits = Number(
+        r.label_digits ||
+          r.draw?.label_digits ||
+          (safeTotalNumbers > 100 ? Math.max(3, String(safeTotalNumbers - 1).length) : 2)
+      );
+      const safeLabelDigits =
+        Number.isInteger(responseLabelDigits) && responseLabelDigits > 0
+          ? responseLabelDigits
+          : 2;
 
       const fallbackNumbers = normalizedBuyers.flatMap((buyer) =>
         (buyer.numbers || []).map((number) => ({
           n: Number(number),
           number: Number(number),
-          label: pad2(number),
+          label: padNumber(number, safeLabelDigits),
           buyer_key: buyer.buyer_key,
           user_id: buyer.user_id,
           name: buyer.name,
@@ -216,7 +239,7 @@ export default function AdminOpenDrawBuyers() {
             ...item,
             n: number,
             number,
-            label: item.label || pad2(number),
+            label: item.label || padNumber(number, safeLabelDigits),
             buyer_key:
               item.buyer_key ||
               (item.user_id ? `user:${item.user_id}` : `number:${number}`),
@@ -238,15 +261,17 @@ export default function AdminOpenDrawBuyers() {
       );
 
       const nextRemaining = Number(
-        r.remaining ??
+          r.remaining ??
           r.remaining_numbers ??
           r.draw?.remaining_numbers ??
-          Math.max(0, 100 - nextSold)
+          Math.max(0, safeTotalNumbers - nextSold)
       );
 
       setDrawId(r.draw_id ?? r.draw?.id ?? null);
       setSold(nextSold);
       setRemaining(nextRemaining);
+      setTotalNumbers(safeTotalNumbers);
+      setLabelDigits(safeLabelDigits);
       setBuyers(normalizedBuyers);
       setNumbers(normalizedNumbers);
     } finally {
@@ -254,6 +279,11 @@ export default function AdminOpenDrawBuyers() {
     }
   }, []);
   React.useEffect(() => { load(); }, [load]);
+
+  const formatNumber = React.useCallback(
+    (n) => padNumber(n, labelDigits),
+    [labelDigits]
+  );
 
   const idToIdx = React.useMemo(() => {
     const map = new Map();
@@ -278,9 +308,9 @@ export default function AdminOpenDrawBuyers() {
     return buyers.filter(b =>
       String(b.name || "").toLowerCase().includes(q) ||
       String(b.email || "").toLowerCase().includes(q) ||
-      (Array.isArray(b.numbers) && b.numbers.some(n => pad2(n).includes(q)))
+      (Array.isArray(b.numbers) && b.numbers.some(n => formatNumber(n).includes(q)))
     );
-  }, [buyers, query]);
+  }, [buyers, query, formatNumber]);
 
   const numberOwnerMap = React.useMemo(() => {
     const map = new Map();
@@ -306,7 +336,7 @@ export default function AdminOpenDrawBuyers() {
         (b.name || "").replaceAll(","," "),
         (b.email || "").replaceAll(","," "),
         b.count,
-        (b.numbers || []).map(pad2).join(" "),
+        (b.numbers || []).map(formatNumber).join(" "),
         b.total_cents || 0
       ]);
     });
@@ -356,7 +386,7 @@ export default function AdminOpenDrawBuyers() {
     ctx.fillStyle = "#FFFFFF";
     ctx.font = "900 44px Inter, system-ui, Segoe UI, Roboto, Arial";
     ctx.textBaseline = "top";
-    ctx.fillText("Sorteio Ativo — Grade 00–99", Mx, y);
+    ctx.fillText(`Sorteio Ativo - Grade ${formatNumber(0)}-${formatNumber(totalNumbers - 1)}`, Mx, y);
     y += 44 + 16;
 
     // Metadados
@@ -365,7 +395,7 @@ export default function AdminOpenDrawBuyers() {
     const metaValues = [
       String(drawId ?? "-"),
       String(sold ?? 0),
-      String(Math.max(0, remaining ?? (100 - (sold || 0)))),
+      String(Math.max(0, remaining ?? (totalNumbers - (sold || 0)))),
     ];
     const colW = 280;
 
@@ -380,16 +410,18 @@ export default function AdminOpenDrawBuyers() {
     }
     y += 36 + 28 + 28;
 
-    // Grade 10x10
+    // Grade
     const gap = 10;
     const footerH = 28 + 12 + 8;
     const availH = H - y - footerH - My;
     const availW = W - Mx * 2;
+    const cols = totalNumbers > 100 ? 20 : 10;
+    const rows = Math.ceil(totalNumbers / cols);
 
-    const cellW = (availW - gap * 9) / 10;
-    const cellHMax = (availH - gap * 9) / 10;
+    const cellW = (availW - gap * (cols - 1)) / cols;
+    const cellHMax = (availH - gap * (rows - 1)) / rows;
     const cell = Math.min(cellW, cellHMax);
-    const gridW = cell * 10 + gap * 9;
+    const gridW = cell * cols + gap * (cols - 1);
     const startX = Mx + (availW - gridW) / 2;
     const startY = y;
 
@@ -407,9 +439,9 @@ export default function AdminOpenDrawBuyers() {
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
 
-    for (let i = 0; i < 100; i++) {
-      const r = Math.floor(i / 10);
-      const c = i % 10;
+    for (let i = 0; i < totalNumbers; i++) {
+      const r = Math.floor(i / cols);
+      const c = i % cols;
       const x = startX + c * (cell + gap);
       const yy = startY + r * (cell + gap);
 
@@ -423,11 +455,11 @@ export default function AdminOpenDrawBuyers() {
       }
 
       ctx.font = `${Math.round(cell * 0.36)}px Inter, system-ui, Segoe UI, Roboto, Arial`;
-      ctx.fillText(pad2(i), x + cell / 2, yy + cell / 2);
+      ctx.fillText(formatNumber(i), x + cell / 2, yy + cell / 2);
     }
 
     // Footer
-    const footY = startY + 10 * (cell + gap) + 16;
+    const footY = startY + rows * (cell + gap) + 16;
     ctx.globalAlpha = 0.8;
     ctx.fillStyle = "#FFFFFF";
     ctx.font = "22px Inter, system-ui, Segoe UI, Roboto, Arial";
@@ -641,7 +673,7 @@ export default function AdminOpenDrawBuyers() {
         const qty = Number(b?.count || (b?.numbers?.length ?? 0) || 0);
 
         const nums = Array.isArray(b?.numbers) ? b.numbers.slice() : [];
-        const numbersStr = nums.map(pad2).join(", ");
+        const numbersStr = nums.map(formatNumber).join(", ");
 
         const innerW = cardW - 64; // padding interno aproximado
 
@@ -833,7 +865,7 @@ export default function AdminOpenDrawBuyers() {
 
         <Tabs value={tab} onChange={(_, v) => setTab(v)} textColor="primary" indicatorColor="primary">
           <Tab label="Por comprador" />
-          <Tab label="Por número (00–99)" />
+          <Tab label="Por número" />
         </Tabs>
 
         {tab === 0 && (
@@ -888,7 +920,7 @@ export default function AdminOpenDrawBuyers() {
                           </TableCell>
                           <TableCell sx={{ fontWeight: 900, color: "primary.main" }}>{b.count || 0}</TableCell>
                           <TableCell sx={{ maxWidth: 520, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                            {(b.numbers || []).map(pad2).join(", ")}
+                            {(b.numbers || []).map(formatNumber).join(", ")}
                           </TableCell>
                           <TableCell sx={{ fontWeight: 800 }}>
                             {((b.total_cents || 0) / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
@@ -913,7 +945,7 @@ export default function AdminOpenDrawBuyers() {
                   gap: .6,
                 }}
               >
-                {Array.from({ length: 100 }, (_, n) => {
+                {Array.from({ length: totalNumbers }, (_, n) => {
                   const owner = numberOwnerMap.get(n);
                   const buyerKey =
                     owner?.buyer_key ||
@@ -925,8 +957,8 @@ export default function AdminOpenDrawBuyers() {
                   const fg = owner ? "#000" : "#0B1B33";
 
                   const title = owner
-                    ? `${pad2(n)} • ${owner.name || owner.email || "Comprador"} • ${owner.source_label || "Pago"}`
-                    : `${pad2(n)} • disponível`;
+                    ? `${formatNumber(n)} • ${owner.name || owner.email || "Comprador"} • ${owner.source_label || "Pago"}`
+                    : `${formatNumber(n)} • disponível`;
 
                   return (
                     <Box
@@ -962,7 +994,7 @@ export default function AdminOpenDrawBuyers() {
                           : {},
                       }}
                     >
-                      {pad2(n)}
+                      {formatNumber(n)}
                     </Box>
                   );
                 })}
@@ -979,7 +1011,7 @@ export default function AdminOpenDrawBuyers() {
         fullWidth
       >
         <DialogTitle sx={{ fontWeight: 900 }}>
-          Número {selectedNumber ? pad2(selectedNumber.number) : ""}
+          Número {selectedNumber ? formatNumber(selectedNumber.number) : ""}
         </DialogTitle>
 
         <DialogContent dividers>
