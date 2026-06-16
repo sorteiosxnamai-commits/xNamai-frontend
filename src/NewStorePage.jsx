@@ -111,6 +111,11 @@ const DEFAULT_GRID_NUMBERS = Array.from({ length: DEFAULT_MAIN_NUMBER_COUNT }, (
   status: "available",
 }));
 
+function normalizePositiveInteger(value) {
+  const count = Math.floor(Number(value));
+  return Number.isFinite(count) && count > 0 ? count : 1;
+}
+
 function cleanText(value) {
   if (value === null || value === undefined) return "";
   return String(value).trim();
@@ -218,6 +223,7 @@ export default function NewStorePage({
 
   // Iniciais dos vendidos (n -> "AB")
   const [soldInitials, setSoldInitials] = React.useState({});
+  const [bulkPickCount, setBulkPickCount] = React.useState(1);
 
   // Preço dinâmico
   const FALLBACK_PRICE = Number(process.env.REACT_APP_PIX_PRICE) || 55;
@@ -836,6 +842,48 @@ export default function NewStorePage({
     });
   };
 
+  const handleDecreaseBulkPickCount = () => {
+    setBulkPickCount((prev) => Math.max(1, normalizePositiveInteger(prev) - 1));
+  };
+
+  const handleIncreaseBulkPickCount = () => {
+    setBulkPickCount((prev) => normalizePositiveInteger(prev) + 1);
+  };
+
+  const handleBulkPickNumbers = () => {
+    setSelecionados((prev) => {
+      const currentSelection = Array.isArray(prev) ? prev : [];
+      const remainingSlots = Math.max(0, remainingCount - currentSelection.length);
+      if (remainingSlots <= 0) return currentSelection;
+
+      const selectedSet = new Set(currentSelection);
+      const availableNumbers = gridNumbers
+        .map((item) => Number(item?.n ?? item?.number))
+        .filter(
+          (n) =>
+            Number.isInteger(n) &&
+            !unavailableSet.has(n) &&
+            !reservedSet.has(n) &&
+            !selectedSet.has(n)
+        );
+
+      const amountToAdd = Math.min(
+        normalizePositiveInteger(bulkPickCount),
+        remainingSlots,
+        availableNumbers.length
+      );
+      if (amountToAdd <= 0) return currentSelection;
+
+      const randomNumbers = [...availableNumbers];
+      for (let i = randomNumbers.length - 1; i > 0; i -= 1) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [randomNumbers[i], randomNumbers[j]] = [randomNumbers[j], randomNumbers[i]];
+      }
+
+      return [...currentSelection, ...randomNumbers.slice(0, amountToAdd)];
+    });
+  };
+
   const getCellSx = (n) => {
     const visual = getNumberVisualState({
       number: n,
@@ -1045,6 +1093,111 @@ export default function NewStorePage({
                 </Typography>
               </Stack>
 
+              <Stack
+                direction={{ xs: "column", lg: "row" }}
+                spacing={1.1}
+                alignItems="stretch"
+                justifyContent={{ xs: "stretch", lg: "flex-end" }}
+                sx={{ width: { xs: "100%", md: 360, lg: "auto" }, maxWidth: "100%" }}
+              >
+                <Stack
+                  direction="row"
+                  spacing={0.65}
+                  alignItems="stretch"
+                  sx={{
+                    width: { xs: "100%", lg: 324 },
+                    minWidth: 0,
+                  }}
+                >
+                  <Button
+                    variant="outlined"
+                    aria-label="Diminuir quantidade"
+                    disabled={bulkPickCount <= 1}
+                    onClick={handleDecreaseBulkPickCount}
+                    sx={{
+                      minWidth: 38,
+                      px: 0,
+                      borderRadius: 1.6,
+                      fontWeight: 1000,
+                      borderColor: "rgba(30,102,255,0.38)",
+                      color: "#1E66FF",
+                      bgcolor: "#FFFFFF",
+                      fontSize: 18,
+                      lineHeight: 1,
+                      "&:hover": {
+                        borderColor: "rgba(30,102,255,0.62)",
+                        bgcolor: "rgba(244,248,255,0.98)",
+                      },
+                    }}
+                  >
+                    -
+                  </Button>
+                  <Box
+                    sx={{
+                      minWidth: 46,
+                      px: 1.2,
+                      borderRadius: 1.6,
+                      border: "1px solid rgba(30,102,255,0.24)",
+                      bgcolor: "rgba(244,248,255,0.98)",
+                      color: "#0B1B33",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontWeight: 950,
+                      fontSize: 13,
+                      fontVariantNumeric: "tabular-nums",
+                    }}
+                  >
+                    {bulkPickCount}
+                  </Box>
+                  <Button
+                    variant="outlined"
+                    aria-label="Aumentar quantidade"
+                    onClick={handleIncreaseBulkPickCount}
+                    sx={{
+                      minWidth: 38,
+                      px: 0,
+                      borderRadius: 1.6,
+                      fontWeight: 1000,
+                      borderColor: "rgba(30,102,255,0.38)",
+                      color: "#1E66FF",
+                      bgcolor: "#FFFFFF",
+                      fontSize: 18,
+                      lineHeight: 1,
+                      "&:hover": {
+                        borderColor: "rgba(30,102,255,0.62)",
+                        bgcolor: "rgba(244,248,255,0.98)",
+                      },
+                    }}
+                  >
+                    +
+                  </Button>
+                  <Button
+                    variant="contained"
+                    disabled={remainingAfterSelection <= 0}
+                    onClick={handleBulkPickNumbers}
+                    sx={{
+                      flex: 1,
+                      minWidth: 0,
+                      borderRadius: 1.6,
+                      fontWeight: 1000,
+                      color: "#FFFFFF",
+                      bgcolor: "#1E66FF",
+                      boxShadow: "0 10px 16px rgba(30, 102, 255, 0.22)",
+                      px: { xs: 1, sm: 1.35 },
+                      py: 1.02,
+                      textTransform: "uppercase",
+                      whiteSpace: "nowrap",
+                      fontSize: { xs: 11, sm: 11.5 },
+                      "&:hover": {
+                        bgcolor: "#2B73FF",
+                      },
+                    }}
+                  >
+                    ESCOLHER NUMEROS
+                  </Button>
+                </Stack>
+
               <Stack direction="row" spacing={1.1} alignItems="stretch" sx={{ width: { xs: "100%", md: 360 } }}>
                 <Button
                   fullWidth
@@ -1089,6 +1242,7 @@ export default function NewStorePage({
                 >
                   CONTINUAR
                 </Button>
+              </Stack>
               </Stack>
 
               <Box id="produtos" sx={{ width: 0, height: 0 }} />
