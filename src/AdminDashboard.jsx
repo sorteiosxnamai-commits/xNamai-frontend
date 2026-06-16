@@ -362,11 +362,14 @@ export default function AdminDashboard() {
       setError("");
       setMessage("");
 
+      const maxNumbersPerUser = Number(
+        onlyNumbers(configForm.max_numbers_per_selection) || 5
+      );
+
       await updateAdminConfig({
         ticket_price_cents: Number(onlyNumbers(configForm.ticket_price_cents) || 5500),
-        max_numbers_per_selection: Number(
-          onlyNumbers(configForm.max_numbers_per_selection) || 5
-        ),
+        max_numbers_per_selection: maxNumbersPerUser,
+        max_numbers_per_user: maxNumbersPerUser,
         promo_text: configForm.promo_text,
         cashback_percent: clampPercent(configForm.cashback_percent),
       });

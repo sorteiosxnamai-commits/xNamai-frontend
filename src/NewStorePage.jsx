@@ -60,11 +60,11 @@ import {
 import LockRoundedIcon from "@mui/icons-material/LockRounded";
 
 const DEFAULT_LIMIT_USAGE = {
-  max_numbers_per_user: 5,
+  max_numbers_per_user: null,
   paid_count: 0,
   reserved_count: 0,
   used_count: 0,
-  remaining: 5,
+  remaining: null,
   can_buy: true,
 };
 
@@ -114,6 +114,14 @@ const DEFAULT_GRID_NUMBERS = Array.from({ length: DEFAULT_MAIN_NUMBER_COUNT }, (
 function normalizePositiveInteger(value) {
   const count = Math.floor(Number(value));
   return Number.isFinite(count) && count > 0 ? count : 1;
+}
+
+function pickPositiveInteger(...values) {
+  for (const value of values) {
+    const number = Math.floor(Number(value));
+    if (Number.isFinite(number) && number > 0) return number;
+  }
+  return null;
 }
 
 function cleanText(value) {
@@ -316,7 +324,34 @@ export default function NewStorePage({
   // Draw atual (se o backend expuser)
   const [currentDrawId, setCurrentDrawId] = React.useState(null);
 
+  const configMaxSelectable = React.useMemo(
+    () => resolveMaxNumbersPerUser(publicConfig),
+    [publicConfig]
+  );
+  const publicMaxNumbers = React.useMemo(() => {
+    const draw =
+      publicConfig?.current_draw ||
+      publicConfig?.currentDraw ||
+      publicConfig?.current ||
+      {};
+
+    return (
+      pickPositiveInteger(
+        draw?.max_numbers_per_user,
+        draw?.maxNumbersPerUser,
+        draw?.max_numbers_per_selection,
+        draw?.maxNumbersPerSelection,
+        publicConfig?.max_numbers_per_user,
+        publicConfig?.maxNumbersPerUser,
+        publicConfig?.max_numbers_per_selection,
+        publicConfig?.maxNumbersPerSelection,
+        configMaxSelectable
+      ) || 5
+    );
+  }, [publicConfig, configMaxSelectable]);
+
   const [limitUsage, setLimitUsage] = React.useState(DEFAULT_LIMIT_USAGE);
+  const [limitUsageLoaded, setLimitUsageLoaded] = React.useState(false);
   const pixGeneratingRef = React.useRef(false);
   const numbersLoadingRef = React.useRef(false);
   const numbersReloadTimerRef = React.useRef(null);
@@ -341,8 +376,11 @@ export default function NewStorePage({
         const payload = data?.ok !== false && data ? data : null;
 
         if (payload && res.ok) {
-          const max = Number(
-            payload.max_numbers_per_user ?? payload.max ?? DEFAULT_LIMIT_USAGE.max_numbers_per_user
+          const max = pickPositiveInteger(
+            payload.max_numbers_per_user,
+            payload.max_numbers_per_selection,
+            payload.max,
+            publicMaxNumbers
           );
           const paid = Number(payload.paid_count || 0);
           const reserved = Number(payload.reserved_count || 0);
@@ -354,13 +392,14 @@ export default function NewStorePage({
             : Math.max(0, max - used);
 
           setLimitUsage({
-            max_numbers_per_user: max > 0 ? max : 5,
+            max_numbers_per_user: max,
             paid_count: paid,
             reserved_count: reserved,
             used_count: used,
             remaining,
             can_buy: payload.can_buy !== false,
           });
+          setLimitUsageLoaded(true);
           return payload;
         }
       } catch (err) {
@@ -368,24 +407,25 @@ export default function NewStorePage({
       }
       return null;
     },
-    [currentDrawId, isAuthenticated]
+    [currentDrawId, isAuthenticated, publicMaxNumbers]
   );
 
-  const configMaxSelectable = React.useMemo(
-    () => resolveMaxNumbersPerUser(publicConfig),
-    [publicConfig]
-  );
+  React.useEffect(() => {
+    setLimitUsageLoaded(false);
+  }, [currentDrawId, isAuthenticated]);
 
+  const shouldUsePurchaseLimit = isAuthenticated && limitUsageLoaded;
   const maxSelectable = Number(
-    limitUsage?.max_numbers_per_user ||
-      publicConfig?.max_numbers_per_user ||
-      configMaxSelectable ||
-      5
+    (shouldUsePurchaseLimit
+      ? pickPositiveInteger(limitUsage?.max_numbers_per_user, publicMaxNumbers)
+      : publicMaxNumbers) || 5
   );
-  const usedCount = Number(limitUsage?.used_count || 0);
+  const usedCount = shouldUsePurchaseLimit ? Number(limitUsage?.used_count || 0) : 0;
   const remainingCount = Math.max(
     0,
-    Number(limitUsage?.remaining ?? maxSelectable - usedCount)
+    shouldUsePurchaseLimit
+      ? Number(limitUsage?.remaining ?? maxSelectable - usedCount)
+      : maxSelectable - usedCount
   );
   const selectedNow = selecionados.length;
   const remainingAfterSelection = Math.max(0, remainingCount - selectedNow);
@@ -746,26 +786,31 @@ export default function NewStorePage({
         addCount,
         drawId: currentDrawId,
       });
+      const responseMax = pickPositiveInteger(
+        limit?.max_numbers_per_user,
+        limit?.max_numbers_per_selection,
+        limit?.max,
+        maxSelectable
+      );
       setLimitUsage({
-        max_numbers_per_user: Number(
-          limit?.max_numbers_per_user || maxSelectable
-        ),
+        max_numbers_per_user: responseMax,
         paid_count: Number(limit?.paid_count || 0),
         reserved_count: Number(limit?.reserved_count || 0),
         used_count: Number(limit?.used_count || 0),
         remaining: Math.max(0, Number(limit?.remaining ?? 0)),
         can_buy: limit?.blocked !== true,
       });
+      setLimitUsageLoaded(true);
 
       const wouldBe = Number(limit?.used_count || 0) + addCount;
-      const overByFront = wouldBe > maxSelectable;
+      const overByFront = wouldBe > responseMax;
 
       if (limit?.blocked || overByFront) {
         openLimitModal({
           type: "purchase",
           current: limit?.used_count ?? usedCount,
-          max: maxSelectable,
-          message: `Você já possui ${limit?.used_count ?? usedCount} de ${maxSelectable} números neste sorteio. É possível selecionar apenas mais ${Math.max(0, Number(limit?.remaining ?? remainingCount))}.`,
+          max: responseMax,
+          message: `Você já possui ${limit?.used_count ?? usedCount} de ${responseMax} números neste sorteio. É possível selecionar apenas mais ${Math.max(0, Number(limit?.remaining ?? remainingCount))}.`,
         });
         return;
       }
