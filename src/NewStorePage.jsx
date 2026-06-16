@@ -1239,7 +1239,7 @@ export default function NewStorePage({
                       },
                     }}
                   >
-                    ESCOLHER NUMEROS
+                    ESCOLHER NÚMEROS ALEATÓRIOS
                   </Button>
                 </Stack>
 
