@@ -240,18 +240,35 @@ export default function NewStorePage({
   // Config pública (/api/config) — textos do sorteio vêm daqui (sem fallback antigo hardcoded)
   const [publicConfig, setPublicConfig] = React.useState(null);
   const resultSource = publicConfig?.result_source || "lotomania";
-  const resultSourceLabel =
-    resultSource === "loteria_federal" ? "Loteria Federal" : "Lotomania";
+  const isFederalLottery = resultSource === "loteria_federal";
   const resultSourceFullLabel =
-    resultSource === "loteria_federal"
+    isFederalLottery
       ? "Loteria Federal"
       : "Loteria Federal, modalidade Lotomania";
+  const resultWinnerRuleShort = isFederalLottery
+    ? "três últimos números"
+    : "último número";
+  const resultWinnerSentence = isFederalLottery
+    ? "O ganhador é o participante com os três últimos números do resultado da Loteria Federal."
+    : "O ganhador é o participante com o último número sorteado pela Lotomania.";
+  const resultWinnerDefinitionSentence = isFederalLottery
+    ? "O ganhador será definido pelos três últimos números do resultado oficial da Loteria Federal."
+    : "O ganhador será definido pelo último número sorteado no resultado oficial da Lotomania.";
+  const resultBasedSentence = isFederalLottery
+    ? "Resultado baseado no primeiro resultado oficial da Loteria Federal após todos os números serem reservados, considerando os três últimos números do resultado."
+    : "Resultado baseado no primeiro resultado oficial da Lotomania após todos os números serem reservados.";
+  const resultUsageSentence = isFederalLottery
+    ? "Para o resultado dos sorteios, será utilizado o primeiro resultado da Loteria Federal após todos os números serem reservados, considerando os três últimos números do resultado."
+    : "Para o resultado dos sorteios, será utilizado o primeiro resultado da Lotomania após todos os números serem reservados, considerando o último número sorteado.";
+  const resultFaqSentence = isFederalLottery
+    ? "Baseado no resultado oficial da Loteria Federal. O ganhador é quem possui os três últimos números do resultado."
+    : "Baseado no resultado oficial da Lotomania. O ganhador é quem possui o último número sorteado.";
   const resultSourceTransparencyText =
-    resultSource === "loteria_federal"
-      ? "o resultado pode ser conferido publicamente pelo resultado oficial da Loteria Federal."
+    isFederalLottery
+      ? "o resultado pode ser conferido publicamente pelo resultado oficial da Loteria Federal, considerando os três últimos números do resultado."
       : "o resultado pode ser conferido publicamente no site oficial da Caixa Econômica Federal, na modalidade Lotomania.";
   const resultSourceShortTransparency =
-    resultSource === "loteria_federal"
+    isFederalLottery
       ? "Resultado via Loteria Federal"
       : "Resultado via Lotomania (Caixa)";
 
@@ -1388,7 +1405,7 @@ export default function NewStorePage({
 
             <Box sx={{ mt: 2.5, textAlign: "center" }}>
               <Typography variant="subtitle1" sx={{ opacity: 0.95, fontWeight: 800, color: "rgba(11,27,51,0.82)" }}>
-                {`Resultado baseado no primeiro resultado oficial da ${resultSourceLabel} após todos os números serem reservados.`}
+                {resultBasedSentence}
               </Typography>
             </Box>
           </Paper>
@@ -1493,10 +1510,8 @@ export default function NewStorePage({
               <ul className="xnamai-official-card__list">
                 <li>A vaga só é confirmada após a compensação do pagamento.</li>
                 <li>O sorteio é realizado quando todos os números forem vendidos.</li>
-                <li>{`O ganhador é o participante com o último número sorteado pela ${resultSourceLabel}.`}</li>
-                <li>
-                  {`Para o resultado dos sorteios, será utilizado o primeiro resultado da ${resultSourceLabel} após todos os números serem reservados.`}
-                </li>
+                <li>{resultWinnerSentence}</li>
+                <li>{resultUsageSentence}</li>
                 <li>Prazo máximo: 7 dias após abertura da rodada.</li>
                 <li>Envio do prêmio: frete por conta do vencedor.</li>
                 <li>
@@ -1689,17 +1704,17 @@ export default function NewStorePage({
                 conforme as regras da campanha.
               </Typography>
               <Typography variant="body1">
-                {`• O ganhador será definido pelo último número sorteado no resultado oficial da ${resultSourceLabel}.`}
+                {`• ${resultWinnerDefinitionSentence}`}
               </Typography>
               <Typography variant="body1">
-                {`• Exemplo: se a linha final da ${resultSourceLabel} terminar com 82, 84, 85, 88 e 99, o número considerado será o último: 99.`}
+                {`• Exemplo: será considerado o ${resultWinnerRuleShort} do resultado oficial.`}
               </Typography>
               <Typography variant="body1">
                 • Caso o número sorteado esteja entre 00 e 09, será considerado com dois
                 algarismos, incluindo o zero.
               </Typography>
               <Typography variant="body1">
-                {`• Para o resultado, será utilizado o primeiro resultado da ${resultSourceLabel} após todos os números serem reservados.`}
+                {`• ${resultUsageSentence}`}
               </Typography>
               <Typography variant="body1">
                 • Prazo máximo da rodada: 7 dias após a abertura.
@@ -1873,7 +1888,7 @@ export default function NewStorePage({
                 </AccordionSummary>
                 <AccordionDetails>
                   <Typography variant="body2">
-                    {`Baseado no resultado oficial da ${resultSourceLabel}. O ganhador é quem possui o último número sorteado.`}
+                    {resultFaqSentence}
                   </Typography>
                 </AccordionDetails>
               </Accordion>
