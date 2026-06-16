@@ -231,6 +231,7 @@ export default function AdminDashboard() {
     max_numbers_per_selection: "5",
     promo_text: "",
     cashback_percent: "100",
+    result_source: "lotomania",
   });
 
   const [createForm, setCreateForm] = React.useState({
@@ -273,6 +274,7 @@ export default function AdminDashboard() {
             config.cashback_percent ??
             100
         ),
+        result_source: config.result_source || "lotomania",
       });
 
       setCreateForm((old) => ({
@@ -372,6 +374,7 @@ export default function AdminDashboard() {
         max_numbers_per_user: maxNumbersPerUser,
         promo_text: configForm.promo_text,
         cashback_percent: clampPercent(configForm.cashback_percent),
+        result_source: configForm.result_source || "lotomania",
       });
 
       setMessage("Configurações atualizadas com sucesso.");
@@ -708,6 +711,23 @@ export default function AdminDashboard() {
                       }
                       placeholder="5"
                     />
+                  </label>
+
+                  <label>
+                    <span style={styles.label}>Base do resultado</span>
+                    <select
+                      style={styles.input}
+                      value={configForm.result_source}
+                      onChange={(e) =>
+                        setConfigForm((old) => ({
+                          ...old,
+                          result_source: e.target.value,
+                        }))
+                      }
+                    >
+                      <option value="lotomania">Lotomania</option>
+                      <option value="loteria_federal">Loteria Federal</option>
+                    </select>
                   </label>
 
                   <label style={styles.full}>

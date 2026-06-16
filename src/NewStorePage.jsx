@@ -239,6 +239,21 @@ export default function NewStorePage({
 
   // Config pública (/api/config) — textos do sorteio vêm daqui (sem fallback antigo hardcoded)
   const [publicConfig, setPublicConfig] = React.useState(null);
+  const resultSource = publicConfig?.result_source || "lotomania";
+  const resultSourceLabel =
+    resultSource === "loteria_federal" ? "Loteria Federal" : "Lotomania";
+  const resultSourceFullLabel =
+    resultSource === "loteria_federal"
+      ? "Loteria Federal"
+      : "Loteria Federal, modalidade Lotomania";
+  const resultSourceTransparencyText =
+    resultSource === "loteria_federal"
+      ? "o resultado pode ser conferido publicamente pelo resultado oficial da Loteria Federal."
+      : "o resultado pode ser conferido publicamente no site oficial da Caixa Econômica Federal, na modalidade Lotomania.";
+  const resultSourceShortTransparency =
+    resultSource === "loteria_federal"
+      ? "Resultado via Loteria Federal"
+      : "Resultado via Lotomania (Caixa)";
 
   const displayPrizeTitle = React.useMemo(() => {
     const c = publicConfig || {};
@@ -1029,8 +1044,7 @@ export default function NewStorePage({
                   </Typography>
 
                   <Typography variant="body2" sx={{ color: "rgba(11,27,51,0.60)", fontSize: 12.8, lineHeight: 1.5 }}>
-                    Sorteio válido até o preenchimento total da tabela. Baseado no resultado
-                    oficial da Loteria Federal, modalidade Lotomania.
+                    {`Sorteio válido até o preenchimento total da tabela. Baseado no resultado oficial da ${resultSourceFullLabel}.`}
                   </Typography>
                 </Stack>
 
@@ -1374,8 +1388,7 @@ export default function NewStorePage({
 
             <Box sx={{ mt: 2.5, textAlign: "center" }}>
               <Typography variant="subtitle1" sx={{ opacity: 0.95, fontWeight: 800, color: "rgba(11,27,51,0.82)" }}>
-                Resultado baseado no primeiro resultado oficial da Lotomania após todos os
-                números serem reservados.
+                {`Resultado baseado no primeiro resultado oficial da ${resultSourceLabel} após todos os números serem reservados.`}
               </Typography>
             </Box>
           </Paper>
@@ -1441,7 +1454,7 @@ export default function NewStorePage({
                     Transparência total
                   </Typography>
                   <Typography variant="body2" sx={{ color: "rgba(11,27,51,0.62)" }}>
-                    Resultado via Lotomania (Caixa)
+                    {resultSourceShortTransparency}
                   </Typography>
                 </Box>
               </Stack>
@@ -1480,10 +1493,9 @@ export default function NewStorePage({
               <ul className="xnamai-official-card__list">
                 <li>A vaga só é confirmada após a compensação do pagamento.</li>
                 <li>O sorteio é realizado quando todos os números forem vendidos.</li>
-                <li>O ganhador é o participante com o último número sorteado pela Lotomania.</li>
+                <li>{`O ganhador é o participante com o último número sorteado pela ${resultSourceLabel}.`}</li>
                 <li>
-                  Para o resultado dos sorteios, será utilizado o primeiro resultado da
-                  Lotomania após todos os números serem reservados.
+                  {`Para o resultado dos sorteios, será utilizado o primeiro resultado da ${resultSourceLabel} após todos os números serem reservados.`}
                 </li>
                 <li>Prazo máximo: 7 dias após abertura da rodada.</li>
                 <li>Envio do prêmio: frete por conta do vencedor.</li>
@@ -1497,9 +1509,7 @@ export default function NewStorePage({
                 será exibido com dois algarismos, incluindo o zero.
               </Box>
               <Box className="xnamai-official-note" sx={{ mt: 1.5 }}>
-                <strong>Transparência total:</strong> o resultado pode ser conferido
-                publicamente no site oficial da Caixa Econômica Federal, na modalidade
-                Lotomania.
+                <strong>Transparência total:</strong> {resultSourceTransparencyText}
               </Box>
             </Paper>
 
@@ -1679,20 +1689,17 @@ export default function NewStorePage({
                 conforme as regras da campanha.
               </Typography>
               <Typography variant="body1">
-                • O ganhador será definido pelo último número sorteado no resultado oficial da
-                Lotomania.
+                {`• O ganhador será definido pelo último número sorteado no resultado oficial da ${resultSourceLabel}.`}
               </Typography>
               <Typography variant="body1">
-                • Exemplo: se a linha final da Lotomania terminar com 82, 84, 85, 88 e 99, o
-                número considerado será o último: 99.
+                {`• Exemplo: se a linha final da ${resultSourceLabel} terminar com 82, 84, 85, 88 e 99, o número considerado será o último: 99.`}
               </Typography>
               <Typography variant="body1">
                 • Caso o número sorteado esteja entre 00 e 09, será considerado com dois
                 algarismos, incluindo o zero.
               </Typography>
               <Typography variant="body1">
-                • Para o resultado, será utilizado o primeiro resultado da Lotomania após todos
-                os números serem reservados.
+                {`• Para o resultado, será utilizado o primeiro resultado da ${resultSourceLabel} após todos os números serem reservados.`}
               </Typography>
               <Typography variant="body1">
                 • Prazo máximo da rodada: 7 dias após a abertura.
@@ -1713,8 +1720,7 @@ export default function NewStorePage({
                 Transparência total
               </Typography>
               <Typography variant="body1">
-                O resultado pode ser conferido publicamente no site oficial da Caixa Econômica
-                Federal, na modalidade Lotomania.
+                {resultSourceTransparencyText.charAt(0).toUpperCase() + resultSourceTransparencyText.slice(1)}
               </Typography>
             </Stack>
           </Paper>
@@ -1867,8 +1873,7 @@ export default function NewStorePage({
                 </AccordionSummary>
                 <AccordionDetails>
                   <Typography variant="body2">
-                    Baseado no resultado oficial da Lotomania. O ganhador é quem possui o último
-                    número sorteado.
+                    {`Baseado no resultado oficial da ${resultSourceLabel}. O ganhador é quem possui o último número sorteado.`}
                   </Typography>
                 </AccordionDetails>
               </Accordion>
