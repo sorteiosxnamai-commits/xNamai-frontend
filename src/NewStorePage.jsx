@@ -241,10 +241,9 @@ export default function NewStorePage({
   const [publicConfig, setPublicConfig] = React.useState(null);
   const resultSource = publicConfig?.result_source || "lotomania";
   const isFederalLottery = resultSource === "loteria_federal";
-  const resultSourceFullLabel =
-    isFederalLottery
-      ? "Loteria Federal"
-      : "Loteria Federal, modalidade Lotomania";
+  const resultSourceLabelWithRule = isFederalLottery
+    ? "Loteria Federal (últimos três números)"
+    : "Lotomania (último número)";
   const resultWinnerRuleShort = isFederalLottery
     ? "três últimos números"
     : "último número";
@@ -254,23 +253,16 @@ export default function NewStorePage({
   const resultWinnerDefinitionSentence = isFederalLottery
     ? "O ganhador será definido pelos três últimos números do resultado oficial da Loteria Federal."
     : "O ganhador será definido pelo último número sorteado no resultado oficial da Lotomania.";
-  const resultBasedSentence = isFederalLottery
-    ? "Resultado baseado no primeiro resultado oficial da Loteria Federal após todos os números serem reservados, considerando os três últimos números do resultado."
-    : "Resultado baseado no primeiro resultado oficial da Lotomania após todos os números serem reservados.";
-  const resultUsageSentence = isFederalLottery
-    ? "Para o resultado dos sorteios, será utilizado o primeiro resultado da Loteria Federal após todos os números serem reservados, considerando os três últimos números do resultado."
-    : "Para o resultado dos sorteios, será utilizado o primeiro resultado da Lotomania após todos os números serem reservados, considerando o último número sorteado.";
+  const resultBasedSentence = `Resultado baseado no primeiro resultado oficial da ${resultSourceLabelWithRule} após todos os números serem reservados.`;
+  const resultUsageSentence = `Para o resultado dos sorteios, será utilizado o primeiro resultado da ${resultSourceLabelWithRule} após todos os números serem reservados.`;
   const resultFaqSentence = isFederalLottery
-    ? "Baseado no resultado oficial da Loteria Federal. O ganhador é quem possui os três últimos números do resultado."
-    : "Baseado no resultado oficial da Lotomania. O ganhador é quem possui o último número sorteado.";
+    ? `Baseado no resultado oficial da ${resultSourceLabelWithRule}. O ganhador é quem possui os três últimos números do resultado.`
+    : `Baseado no resultado oficial da ${resultSourceLabelWithRule}. O ganhador é quem possui o último número sorteado.`;
   const resultSourceTransparencyText =
     isFederalLottery
-      ? "o resultado pode ser conferido publicamente pelo resultado oficial da Loteria Federal, considerando os três últimos números do resultado."
-      : "o resultado pode ser conferido publicamente no site oficial da Caixa Econômica Federal, na modalidade Lotomania.";
-  const resultSourceShortTransparency =
-    isFederalLottery
-      ? "Resultado via Loteria Federal"
-      : "Resultado via Lotomania (Caixa)";
+      ? `o resultado pode ser conferido publicamente pelo resultado oficial da ${resultSourceLabelWithRule}.`
+      : `o resultado pode ser conferido publicamente no site oficial da Caixa Econômica Federal, na modalidade ${resultSourceLabelWithRule}.`;
+  const resultSourceShortTransparency = `Resultado via ${resultSourceLabelWithRule}`;
 
   const displayPrizeTitle = React.useMemo(() => {
     const c = publicConfig || {};
@@ -1061,7 +1053,7 @@ export default function NewStorePage({
                   </Typography>
 
                   <Typography variant="body2" sx={{ color: "rgba(11,27,51,0.60)", fontSize: 12.8, lineHeight: 1.5 }}>
-                    {`Sorteio válido até o preenchimento total da tabela. Baseado no resultado oficial da ${resultSourceFullLabel}.`}
+                    {`Sorteio válido até o preenchimento total da tabela. Baseado no resultado oficial da ${resultSourceLabelWithRule}.`}
                   </Typography>
                 </Stack>
 
