@@ -145,26 +145,66 @@ async function findOpenDrawId() {
   return null;
 }
 
+const FALLBACK_NUMBER_COUNT = 100;
+
+function getBoardLabelDigits(total, maxNumber, payload) {
+  const apiDigits = Number(payload?.label_digits ?? payload?.draw?.label_digits);
+  if (Number.isInteger(apiDigits) && apiDigits > 0) return apiDigits;
+  return total > 100 ? Math.max(3, String(maxNumber).length) : 2;
+}
+
+function makeFallbackBoard(total = FALLBACK_NUMBER_COUNT, payload = null) {
+  const safeTotal = Number.isInteger(Number(total)) && Number(total) > 0
+    ? Number(total)
+    : FALLBACK_NUMBER_COUNT;
+  const labelDigits = getBoardLabelDigits(safeTotal, safeTotal - 1, payload);
+
+  return Array.from({ length: safeTotal }, (_, n) => ({
+    n,
+    number: n,
+    label: String(n).padStart(labelDigits, "0"),
+    status: "available",
+    state: "open",
+  }));
+}
+
 /** Normaliza payload do board para [{ n, label, state }] */
 function normalizeBoardPayload(payload) {
   let raw = [];
   if (Array.isArray(payload)) raw = payload;
   else raw = payload?.board || payload?.numbers || payload?.cells || payload?.items || [];
 
+  const responseTotal = Number(
+    payload?.number_count ??
+    payload?.total_numbers ??
+    payload?.draw?.number_count ??
+    payload?.draw?.total_numbers ??
+    raw.length
+  );
+  const total = Number.isInteger(responseTotal) && responseTotal > 0
+    ? responseTotal
+    : FALLBACK_NUMBER_COUNT;
+
   if (Array.isArray(raw) && raw.length) {
-    return raw.map((c, idx) => {
+    const normalized = raw.map((c, idx) => {
       const n = Number(c?.n ?? c?.number ?? c?.num ?? c?.index ?? idx);
       const status = normalizeNumberStatus(c?.status ?? c?.state);
       return {
         n,
         number: n,
-        label: String(n).padStart(2, "0"),
+        label: "",
         status,
         state: status === "unavailable" ? "taken" : status === "reserved" ? "reserved" : "open",
         isWinner: !!c?.isWinner,
         isMine: !!c?.isMine,
       };
-    }).filter(c => Number.isInteger(c.n) && c.n >= 0 && c.n <= 99);
+    }).filter(c => Number.isInteger(c.n) && c.n >= 0);
+    const maxNumber = normalized.reduce((max, item) => Math.max(max, item.n), total - 1);
+    const labelDigits = getBoardLabelDigits(total, maxNumber, payload);
+    return normalized.map((item) => ({
+      ...item,
+      label: String(item.n).padStart(labelDigits, "0"),
+    }));
   }
 
   // Outros formatos: listas de reservados/vendidos
@@ -172,14 +212,15 @@ function normalizeBoardPayload(payload) {
   const taken = new Set((payload?.taken_numbers || payload?.sold_numbers || []).map(Number));
 
   const out = [];
-  for (let n = 0; n < 100; n++) {
+  const labelDigits = getBoardLabelDigits(total, total - 1, payload);
+  for (let n = 0; n < total; n++) {
     let status = "available";
     if (taken.has(n)) status = "unavailable";
     else if (reserved.has(n)) status = "reserved";
     out.push({
       n,
       number: n,
-      label: String(n).padStart(2, "0"),
+      label: String(n).padStart(labelDigits, "0"),
       status,
       state: status === "unavailable" ? "taken" : status === "reserved" ? "reserved" : "open",
     });
@@ -190,10 +231,10 @@ function normalizeBoardPayload(payload) {
 /** Busca a grade (board) para um sorteio. */
 async function fetchBoard(drawId) {
   const paths = [
+    `/numbers?draw_id=${drawId}`,
     `/me/draws/${drawId}/board`,
     `/admin/draws/${drawId}/board`,
     `/draws/${drawId}/board`,
-    `/numbers?draw_id=${drawId}`,
     `/draws/${drawId}`, // às vezes devolve { board: [...] }
   ];
   for (const p of paths) {
@@ -203,13 +244,7 @@ async function fetchBoard(drawId) {
     if (board.length) return board;
   }
   // fallback: grade "vazia" (tudo livre)
-  return Array.from({ length: 100 }, (_, n) => ({
-    n,
-    number: n,
-    label: String(n).padStart(2, "0"),
-    status: "available",
-    state: "open",
-  }));
+  return makeFallbackBoard();
 }
 
 /* -------------------------------- Normalizadores -------------------------------- */
@@ -446,10 +481,10 @@ export default function AdminUsersPage() {
   }
 
   function getAdminGridNumberStatus(number) {
-    const key = String(number).padStart(2, "0");
+    const target = Number(number);
     const item = board.find((n) => {
       const value = n?.number ?? n?.n ?? n?.num;
-      return String(value).padStart(2, "0") === key;
+      return Number(value) === target;
     });
 
     return normalizeNumberStatus(item?.status ?? item?.state);
